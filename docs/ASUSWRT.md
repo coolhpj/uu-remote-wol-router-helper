@@ -1,0 +1,112 @@
+# ASUSWRT / ASUSWRT-Merlin 适配说明
+
+本页描述 ASUSWRT / ASUSWRT-Merlin 平台的社区诊断边界。当前真实参考样本是 **ASUS RT-AX86U / Merlin-KoolShare 388.11**。
+
+## 当前参考样本
+
+- Device: ASUS RT-AX86U
+- Firmware family: ASUSWRT-Merlin / KoolShare modified build
+- Architecture: AArch64
+- Official UU channel observed: `static-asuswrt`
+- Historical verified backend version: `v14.6.24`
+- Persistent UU directory: `/jffs/uu`
+- Runtime directory: `/tmp/uu`
+- Monitor: `/jffs/uu/uuplugin_monitor.sh`
+
+> `v14.6.24` 是 2026-08-29/30 实机验证时的历史版本。项目代码必须通过网易官方 API 获取当前包，不应把历史版本写死成安装目标。
+
+## “华硕自带 UU”与实际 uuplugin 的关系
+
+RT-AX86U 固件里的「网易 UU 加速器」页面属于 ASUSWRT 的集成入口。页面本身不是实际运行二进制；真正的 `uuplugin` 由网易官方后端动态下发。
+
+因此：
+
+```text
+ASUSWRT UU 管理入口
+        ↓
+网易官方服务
+        ↓
+当前平台插件包
+        ↓
+/jffs/uu 持久组件
+        ↓
+/tmp/uu 运行组件
+```
+
+不能仅凭前端页面年代判断实际插件版本。
+
+## 当前只读工具
+
+### 平台检测
+
+```sh
+sh platforms/asuswrt/detect.sh
+```
+
+检测内容包括：
+
+- `nvram` 与 `productid`；
+- CPU 架构；
+- firmware/build 标识；
+- `sw_mode`；
+- `/jffs`；
+- KoolShare 环境；
+- `/jffs/uu` 和 `/tmp/uu` 是否存在。
+
+不会修改 NVRAM、JFFS、进程或防火墙。
+
+### UU 健康检查
+
+```sh
+sh platforms/asuswrt/health.sh
+```
+
+检查：
+
+- monitor；
+- `uuplugin`；
+- `xuplugin-guardian`；
+- 网易 `:16000` 控制连接；
+- 当前版本；
+- MC2/Clash 是否同时在线（仅作参考，不作为 UU 健康判据）。
+
+## RT-AX86U 已验证的 WOL-only 共存事实
+
+在当前参考样本中，网易 UU 后端在线但**没有给任何设备开启 UU 游戏加速**时，已实测：
+
+- `uuplugin` 在线；
+- `xuplugin-guardian` 在线；
+- `:16000` ESTABLISHED；
+- MC2 的 Clash 进程继续在线；
+- MC2 的既有 TCP/UDP 透明代理核心状态未被 UU 待机模式破坏。
+
+因此当前项目把这两种场景严格分开：
+
+```text
+WOL-only / idle
+  → 已有真实共存参考样本
+
+UU game acceleration + MC2
+  → 可能争用 TProxy / NAT / fwmark / policy routing
+  → 不属于当前兼容承诺
+```
+
+## 为什么 ASUSWRT 不直接复用 XiaoQiang installer
+
+两者的持久化模型明显不同：
+
+```text
+XiaoQiang / RB06
+  /userdisk/appdata + /data + UCI firewall include
+
+ASUSWRT / RT-AX86U
+  /jffs/uu + /tmp/uu + ASUS/KoolShare startup integration
+```
+
+所以设备型号只进入 profile，真正安装逻辑必须由不同 platform adapter 实现。
+
+## 当前状态
+
+ASUSWRT 目前只开放只读 `detect / health`。
+
+虽然 RT-AX86U 样本的插件安装、重启恢复、云连接和 WOL 能力研究已经有真实证据，但当前权威交接包没有把它标成“手机移动数据 Remote WOL 完整终验”，所以兼容矩阵仍保持 **Platform reference**，不会为了丰富列表而升级成 `Verified`。

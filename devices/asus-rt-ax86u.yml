@@ -17,6 +17,7 @@ verification:
   real_reboot: true
   cloud_connection: true
   wol_only_mc2_coexistence: true
+  read_only_detect_health_adapter: true
   remote_wol_over_mobile_data: null
 
 status: platform-reference

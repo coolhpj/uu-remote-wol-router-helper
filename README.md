@@ -54,7 +54,7 @@ sh uu-helper.sh stage openwrt-aarch64
 
 `diagnose / collect-info / check-api / preflight` 都是只读操作。当前 `preflight` 只针对 XiaoQiang adapter，检查平台、AArch64、非 AP 模式、必需工具、`/tmp` 可写和空间阈值。`stage` 只在 `/tmp/uu-wol-helper-*` 下下载、MD5 校验、检查 tar 路径并解压官方包；它不会停止/启动 UU 进程，也不会修改持久目录或注册自启动。
 
-`diagnose` 会先匹配已知平台 adapter。当前 XiaoQiang 已有只读检测/健康检查；未知平台只进入 `collect-info`，不会猜测型号或执行安装。
+`diagnose` 会依次匹配已知平台 adapter。当前 **XiaoQiang** 与 **ASUSWRT / ASUSWRT-Merlin** 都已有只读检测/健康检查；未知平台只进入 `collect-info`，不会猜测型号或执行安装。
 
 当前诊断退出码：
 
@@ -127,7 +127,7 @@ sh uu-helper.sh stage openwrt-aarch64
 
 > `Remote WOL = ✅` 只用于已经有真实远程开机证据的设备。不会因为插件能启动就标记兼容。
 
-完整矩阵见 [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md)。SSH/root 使用边界见 [`docs/SSH-ACCESS.md`](docs/SSH-ACCESS.md)。XiaoQiang 适配说明见 [`docs/XIAOQIANG.md`](docs/XIAOQIANG.md)。
+完整矩阵见 [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md)。SSH/root 使用边界见 [`docs/SSH-ACCESS.md`](docs/SSH-ACCESS.md)。XiaoQiang 适配说明见 [`docs/XIAOQIANG.md`](docs/XIAOQIANG.md)，ASUSWRT 参考适配见 [`docs/ASUSWRT.md`](docs/ASUSWRT.md)。
 
 ## 成功标准
 
@@ -292,7 +292,8 @@ uu-remote-wol-router-helper/
 - [x] 完成 XiaoQiang 只读 preflight
 - [ ] RB06 实机复验临时 smoke-test（保护壳与自动恢复逻辑已完成）
 - [ ] 重写 XiaoQiang 持久安装 adapter
-- [ ] 整理 ASUSWRT reference adapter
+- [x] 完成 ASUSWRT reference adapter 的只读 detect/health
+- [ ] 设计 ASUSWRT 安装/恢复 adapter（官方集成设备优先，不默认覆盖）
 - [x] 第一轮敏感信息扫描（公开前需再次扫描）
 - [ ] 从原始证据中挑选并脱敏 README 图片
 - [ ] 第二环境复现

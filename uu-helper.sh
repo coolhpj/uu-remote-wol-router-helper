@@ -76,6 +76,25 @@ run_diagnose() {
         return "$health_rc"
     fi
 
+    asus_output=$(sh "$ROOT_DIR/platforms/asuswrt/detect.sh" 2>&1)
+    asus_rc=$?
+
+    if [ "$asus_rc" -eq 0 ]; then
+        printf '%s\n' "platform: asuswrt"
+        printf '%s\n' "$asus_output"
+        printf '\n'
+
+        sh "$ROOT_DIR/platforms/asuswrt/health.sh"
+        health_rc=$?
+
+        case "$health_rc" in
+            0) printf '\nhealth_summary: healthy\n' ;;
+            2) printf '\nhealth_summary: uu_not_installed\n' ;;
+            *) printf '\nhealth_summary: attention_required\n' ;;
+        esac
+        return "$health_rc"
+    fi
+
     printf '%s\n' "platform: unknown"
     printf '%s\n' "matched_adapter: none"
     printf '%s\n' "action: collect-only; no installation will be attempted"
