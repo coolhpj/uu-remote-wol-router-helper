@@ -3,6 +3,7 @@
 ROOT_DIR=$(CDPATH= cd "$(dirname "$0")/../.." 2>/dev/null && pwd) || exit 1
 . "$ROOT_DIR/lib/checksum.sh"
 . "$ROOT_DIR/lib/archive.sh"
+. "$ROOT_DIR/lib/evidence.sh"
 
 STAGE_DIR="${UU_STAGE_DIR:-/tmp/uu-wol-helper-stage}"
 TIMEOUT="${UU_SMOKE_TIMEOUT:-45}"
@@ -56,6 +57,13 @@ for required in uuplugin xuplugin-guardian uu.conf xtables-nft-multi; do
         exit 4
     fi
 done
+
+# A new smoke attempt invalidates any previous pass marker until this run
+# reaches full runtime/cloud success and restores the previous runtime.
+uu_clear_smoke_pass "$STAGE_DIR" || {
+    echo "Unable to clear stale smoke-test evidence." >&2
+    exit 4
+}
 
 command -v killall >/dev/null 2>&1 || {
     echo "killall is required for reversible runtime smoke-test." >&2
@@ -224,7 +232,13 @@ if [ "$passed" != "yes" ]; then
     exit 1
 fi
 
+if ! uu_write_smoke_pass "$STAGE_DIR" xiaoqiang "$stage_md5"; then
+    echo "Runtime smoke-test passed, but smoke-pass evidence could not be written." >&2
+    exit 8
+fi
+
 printf '%s\n' "SMOKE_TEST_PASS"
+printf 'evidence: %s\n' "$STAGE_DIR/smoke-pass"
 if [ "$previous_running" = "yes" ]; then
     printf '%s\n' "Previous UU runtime was restored after the temporary test."
 else

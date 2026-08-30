@@ -105,6 +105,8 @@ Private Draft 中已经加入 `platforms/xiaoqiang/smoke-test.sh` 保护壳，�
 - 临时测试结束后停止 staging 版本，并尝试恢复原运行态；
 - 不写持久目录、不注册自启动。
 
+只有 runtime、guardian、`:16000` 全部通过并完成原运行态恢复后，smoke-test 才会在 staging 目录生成与官方包 MD5 绑定的 `smoke-pass` 证据。未来持久安装器必须校验这个证据，不能因为 staging 成功就直接覆盖系统。
+
 在 RB06 对重写脚本完成真实复验之前，本项目不会把它标记为可公开使用的 smoke-test 命令。
 
 ## 安装器尚未开放的原因
