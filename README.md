@@ -1,5 +1,91 @@
 # UU Remote WOL Router Helper
 
+
+> 非官方社区项目 / Unofficial community project. Not affiliated with NetEase.
+
+
+让具备常在线能力的路由器成为 **网易 UU远程（UU Remote）Wake-on-LAN 辅助设备**，并把不同品牌、不同固件的安装与诊断过程拆成可维护的“通用核心 + 平台适配器 + 设备兼容档案”。
+
+
+> 当前仓库仍处于 **Private Draft / 私有草稿阶段**。在完成代码审计、脱敏、第二设备复现与公开文档复核之前，不建议对外发布。
+
+
+## 已经真实验证的起点
+
+
+本项目来自一次真实的 Redmi AX6000 / RB06 排障与移植过程，最终完成了：
+
+
+```text
+手机移动数据
+    ↓
+网易 UU 云端
+    ↓
+Redmi AX6000 / RB06 上的 uuplugin
+    ↓
+局域网 Magic Packet
+    ↓
+关机 PC 开机
+```
+
+
+Redmi AX6000 / RB06 已完成真实冷启动、UU 云连接以及手机移动数据远程开机终验。
+
+
+同时，ASUS RT-AX86U（Merlin-KoolShare / ASUSWRT 系）已作为第二种平台样本完成网易 UU `static-asuswrt` 通道、自启动与代理共存边界研究。它与 XiaoQiang/OpenWrt 的安装机制不同，因此本项目不会采用“每个型号复制一套脚本”的方式维护。
+
+
+## 项目目标
+
+
+本项目希望解决的是：
+
+
+> 当某台路由器理论上具备运行网易 UU 路由插件的条件，但官方入口缺失、插件过旧、持久化机制不同，或者需要诊断 UU远程 WOL 辅助设备状态时，提供一个可验证、可回滚、可扩展的社区适配框架。
+
+
+不是：
+
+
+- 破解路由器获取 root；
+- 绕过厂商安全机制开启 SSH；
+- 分发网易闭源二进制；
+- 保证所有路由器都能安装；
+- 把“进程启动”当成“UU远程可用”。
+
+
+## 使用前提：SSH / Shell 权限
+
+
+### 官方已经支持 UU WOL 的路由器
+
+
+如果厂商固件已经通过官方入口支持网易 UU远程，请优先使用官方方法。通常**不需要为了使用 UU远程而额外开启 SSH**。
+
+网易官方支持型号/路由器 WOL 插件说明：<https://www.uuremotepro.com/faq-article?id=wol-plugin>
+
+
+### 使用本项目手动适配时
+
+
+本项目的手动安装、平台检测、诊断和持久化功能通常需要：
+
+
+- SSH 或等效 Shell 管理权限；
+- 足够的系统权限（通常为 root）；
+- 可写的持久存储区域。
+
+
+本项目**不提供破解、漏洞利用或绕过设备安全限制来开启 SSH/root 的教程**。
+
+
+请优先查阅：
+
+
+1. 设备厂商官方文档；
+2. 所使用固件项目的官方文档；
+3. 本仓库 `docs/COMPATIBILITY.md` 中已验证设备的说明。# UU Remote WOL Router Helper
+
 > 非官方社区项目 / Unofficial community project. Not affiliated with NetEase.
 
 让具备常在线能力的路由器成为 **网易 UU远程（UU Remote）Wake-on-LAN 辅助设备**，并把不同品牌、不同固件的安装与诊断过程拆成可维护的“通用核心 + 平台适配器 + 设备兼容档案”。
