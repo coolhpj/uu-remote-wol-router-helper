@@ -13,7 +13,8 @@ for test_file in \
     tests/test-helper-cli.sh \
     tests/test-stage-core.sh \
     tests/test-smoke-guard.sh \
-    tests/test-asuswrt-adapter.sh
+    tests/test-asuswrt-adapter.sh \
+    tests/test-openwrt-adapter.sh
  do
     sh "$test_file"
 done

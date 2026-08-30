@@ -53,6 +53,12 @@
 
 在当前交接证据中，不把 RT-AX86U 标成 `Remote WOL Verified`，除非后续补入明确的手机移动数据终验记录。
 
+## Generic OpenWrt 诊断层
+
+仓库已经提供 Generic OpenWrt 的只读 `detect / health`，用于识别标准 OpenWrt / iStoreOS / 厂商 OpenWrt 衍生环境并读取 UU 运行状态。
+
+这只代表 **Experimental diagnostics**，不代表这些设备已经完成安装、重启或 Remote WOL 验证。具体型号仍需按下面流程逐台进入兼容矩阵。
+
 ## 新设备进入兼容矩阵的流程
 
 1. 确认设备品牌、型号、固件、架构；

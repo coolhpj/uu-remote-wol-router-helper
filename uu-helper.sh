@@ -95,6 +95,25 @@ run_diagnose() {
         return "$health_rc"
     fi
 
+    owrt_output=$(sh "$ROOT_DIR/platforms/openwrt/detect.sh" 2>&1)
+    owrt_rc=$?
+
+    if [ "$owrt_rc" -eq 0 ]; then
+        printf '%s\n' "platform: openwrt"
+        printf '%s\n' "$owrt_output"
+        printf '\n'
+
+        sh "$ROOT_DIR/platforms/openwrt/health.sh"
+        health_rc=$?
+
+        case "$health_rc" in
+            0) printf '\nhealth_summary: healthy\n' ;;
+            2) printf '\nhealth_summary: uu_not_installed\n' ;;
+            *) printf '\nhealth_summary: attention_required\n' ;;
+        esac
+        return "$health_rc"
+    fi
+
     printf '%s\n' "platform: unknown"
     printf '%s\n' "matched_adapter: none"
     printf '%s\n' "action: collect-only; no installation will be attempted"
