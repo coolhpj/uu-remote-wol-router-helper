@@ -59,25 +59,25 @@ expect {
     timeout { puts stderr "unexpected guest architecture"; exit 20 }
 }
 
-send "grep -F \"DISTRIB_TARGET='armsr/armv8'\" /etc/openwrt_release >/dev/null && echo LAB_TARGET_OK\r"
+send "grep -F \"DISTRIB_TARGET='armsr/armv8'\" /etc/openwrt_release >/dev/null && echo LAB_TARGET_\"OK\"\r"
 expect {
     -re {LAB_TARGET_OK} {}
     timeout { puts stderr "unexpected OpenWrt target"; exit 21 }
 }
 
-send "grep -F \"DISTRIB_RELEASE='$version'\" /etc/openwrt_release >/dev/null && echo LAB_RELEASE_OK\r"
+send "grep -F \"DISTRIB_RELEASE='$version'\" /etc/openwrt_release >/dev/null && echo LAB_RELEASE_\"OK\"\r"
 expect {
     -re {LAB_RELEASE_OK} {}
     timeout { puts stderr "unexpected OpenWrt release"; exit 22 }
 }
 
-send "ip link show eth0 >/dev/null 2>&1 && echo LAB_NIC_OK\r"
+send "ip link show eth0 >/dev/null 2>&1 && echo LAB_NIC_\"OK\"\r"
 expect {
     -re {LAB_NIC_OK} {}
     timeout { puts stderr "virtio network interface was not detected"; exit 23 }
 }
 
-send "echo LAB_BOOT_OK\r"
+send "echo LAB_BOOT_\"OK\"\r"
 expect {
     -re {LAB_BOOT_OK} {}
     timeout { puts stderr "boot completion marker missing"; exit 24 }

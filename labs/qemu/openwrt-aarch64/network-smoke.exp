@@ -54,19 +54,19 @@ if {!$prompt_ready} {
     }
 }
 
-send "ip link show eth1 >/dev/null 2>&1 && echo LAB_WAN_NIC_OK\r"
+send "ip link show eth1 >/dev/null 2>&1 && echo LAB_WAN_NIC_\"OK\"\r"
 expect {
     -re {LAB_WAN_NIC_OK} {}
     timeout { puts stderr "second virtio WAN interface was not detected"; exit 20 }
 }
 
-send "ip link set eth1 up; udhcpc -i eth1 -q -n -t 5 >/tmp/udhcpc-wan.log 2>&1; ip -4 addr show dev eth1 | grep -q 'inet ' && echo LAB_DHCP_OK\r"
+send "ip link set eth1 up; udhcpc -i eth1 -q -n -t 5 >/tmp/udhcpc-wan.log 2>&1; ip -4 addr show dev eth1 | grep -q 'inet ' && echo LAB_DHCP_\"OK\"\r"
 expect {
     -re {LAB_DHCP_OK} {}
     timeout { puts stderr "QEMU user-network DHCP did not configure eth1"; exit 21 }
 }
 
-send "command -v wget >/dev/null 2>&1 && echo LAB_WGET_OK\r"
+send "command -v wget >/dev/null 2>&1 && echo LAB_WGET_\"OK\"\r"
 expect {
     -re {LAB_WGET_OK} {}
     timeout { puts stderr "OpenWrt initramfs does not provide wget"; exit 22 }
@@ -74,13 +74,13 @@ expect {
 
 # Keep the signed package URL out of Actions logs. Only validate that the
 # official API can be reached over HTTPS and returns the expected flat fields.
-send "rm -f /tmp/uu-api.json; wget -qO /tmp/uu-api.json 'https://router.uu.163.com/api/plugin?type=openwrt-aarch64' && grep -q '\"status\":\"ok\"' /tmp/uu-api.json && grep -q '\"md5\":\"' /tmp/uu-api.json && grep -q '\"url\":\"http' /tmp/uu-api.json && echo LAB_UU_API_OK\r"
+send "rm -f /tmp/uu-api.json; wget -qO /tmp/uu-api.json 'https://router.uu.163.com/api/plugin?type=openwrt-aarch64' && grep -q '\"status\":\"ok\"' /tmp/uu-api.json && grep -q '\"md5\":\"' /tmp/uu-api.json && grep -q '\"url\":\"http' /tmp/uu-api.json && echo LAB_UU_API_\"OK\"\r"
 expect {
     -re {LAB_UU_API_OK} {}
     timeout { puts stderr "NetEase openwrt-aarch64 API HTTPS validation failed"; exit 23 }
 }
 
-send "rm -f /tmp/uu-api.json /tmp/udhcpc-wan.log; echo LAB_NETWORK_OK\r"
+send "rm -f /tmp/uu-api.json /tmp/udhcpc-wan.log; echo LAB_NETWORK_\"OK\"\r"
 expect {
     -re {LAB_NETWORK_OK} {}
     timeout { puts stderr "network completion marker missing"; exit 24 }
