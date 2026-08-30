@@ -85,6 +85,8 @@ Generic OpenWrt 目前只说明：
 
 它**不代表安装器已验证**。
 
+Private Draft 已加入 `platforms/openwrt/smoke-test.sh` 保护壳，但**暂时没有接入 `uu-helper.sh`**。第一版 Generic OpenWrt smoke-test 采取最保守策略：默认禁用、只允许 `/tmp/uu-wol-helper-*` staging、要求 root + staging/MD5/channel 全部匹配；如果设备上已经存在任何 UU runtime，直接拒绝，不尝试停止或替换。只有真实临时 runtime 同时满足 `uuplugin + guardian + :16000 ESTABLISHED` 后，才写入与 staging MD5 绑定的 smoke-pass 证据，并在测试结束后停止临时 UU。
+
 在给某台 Generic OpenWrt 开放安装前，仍要确认：
 
 1. 精确架构与网易官方 channel；

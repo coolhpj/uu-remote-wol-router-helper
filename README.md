@@ -295,6 +295,7 @@ uu-remote-wol-router-helper/
 - [ ] 重写 XiaoQiang 持久安装 adapter
 - [x] 完成 ASUSWRT reference adapter 的只读 detect/health
 - [x] 完成 Generic OpenWrt Experimental detect/health + platform-aware preflight + confirmed channel auto-selection
+- [x] 完成 Generic OpenWrt 临时 smoke-test 保护壳（尚未在 iStoreOS 执行真实 runtime）
 - [ ] 设计 ASUSWRT 安装/恢复 adapter（官方集成设备优先，不默认覆盖）
 - [x] 第一轮敏感信息扫描（公开前需再次扫描）
 - [x] CI 测试入口已完成：shell 语法、单元/guard 测试与敏感信息扫描
