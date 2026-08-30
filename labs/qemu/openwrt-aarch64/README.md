@@ -4,7 +4,7 @@ This lab provides repeatable software-level validation for the ARM64 OpenWrt pat
 
 ## Scope
 
-The first stage validates:
+Stage 1 is cloud-verified in GitHub Actions and validates:
 
 - an official OpenWrt `armsr/armv8` image boots under QEMU AArch64;
 - the guest reports `aarch64`;
@@ -12,6 +12,8 @@ The first stage validates:
 - the pinned OpenWrt release matches the expected version;
 - a virtio network interface is visible;
 - the image is downloaded from OpenWrt at runtime and verified by SHA256 before execution.
+
+Stage 2 adds an isolated second virtio WAN interface and validates guest DHCP plus HTTPS access to the official NetEase `openwrt-aarch64` plugin API without printing signed package URLs into CI logs.
 
 The lab does **not** claim to emulate a MediaTek, Qualcomm, Broadcom, Xiaomi, ASUS, TP-Link, or GL.iNet hardware platform. Passing this lab means **Lab Tested**, not physical-device **Verified**.
 
@@ -44,7 +46,7 @@ sh labs/qemu/openwrt-aarch64/boot-smoke.sh
 
 ## Planned next stages
 
-1. configure QEMU user networking inside the guest and prove outbound Internet/API access;
+1. finish Stage 2 guest WAN + official NetEase API cloud verification;
 2. stage the current official `openwrt-aarch64` UU package;
 3. run the real ARM64 `uuplugin` and check guardian + UU cloud connection;
 4. move to a persistent rootfs and validate install → reboot → health → rollback;

@@ -57,7 +57,7 @@
 
 朋友 RB06 不再作为新版代码的日常复现设备。现有真实 RB06 的 reboot / UU 云连接 / 手机移动数据 Remote WOL 终验继续作为硬件事实；新版 installer / rollback 改由可重复实验室验证。
 
-- [ ] 建立 ARM64 OpenWrt QEMU Lab；
+- [x] 建立 ARM64 OpenWrt QEMU Lab；官方 OpenWrt 25.12.5 / `armsr/armv8` 已在 GitHub Actions QEMU 中真实启动并完成 Boot smoke；
 - [ ] 在 Lab 上加入 XiaoQiang compatibility shim（`/data`、`/userdisk/appdata`、NETMODE、`firewall.uuplugin`）；
 - [ ] 跑通 rewritten smoke-test / legacy-migration installer / rollback；
 - [ ] QEMU Lab 只证明软件回归，不冒充新的 RB06 实体硬件终验。
@@ -82,7 +82,7 @@
 
 - [x] 当前 `gh` OAuth Token 已包含 `workflow` scope；
 - [x] `.github/workflows/ci.yml` 已正常 push；
-- [x] 首次 GitHub 云端 Actions 已实际运行并全绿（CI run `33322370954`）。
+- [x] 普通 CI 已在 GitHub 云端实际运行并全绿；ARM64 QEMU Boot Lab 也已完成一次真实云端成功运行。
 
 ### 5. 最终公开前安全审计
 

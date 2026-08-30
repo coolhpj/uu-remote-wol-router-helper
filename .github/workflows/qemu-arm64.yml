@@ -22,7 +22,7 @@ jobs:
     timeout-minutes: 12
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install QEMU ARM64 tools
         run: |
@@ -31,3 +31,6 @@ jobs:
 
       - name: Boot official OpenWrt ARM64 image
         run: sh labs/qemu/openwrt-aarch64/boot-smoke.sh
+
+      - name: Validate WAN and NetEase ARM64 API
+        run: sh labs/qemu/openwrt-aarch64/network-smoke.sh
