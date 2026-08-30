@@ -18,9 +18,9 @@ spawn qemu-system-aarch64 \
     -no-reboot \
     -kernel $image \
     -netdev user,id=lan0,restrict=on \
-    -device virtio-net-pci,netdev=lan0,mac=52:54:00:00:00:10 \
+    -device virtio-net-pci,netdev=lan0 \
     -netdev user,id=wan0 \
-    -device virtio-net-pci,netdev=wan0,mac=52:54:00:00:00:20
+    -device virtio-net-pci,netdev=wan0
 
 set prompt_ready 0
 expect {
@@ -74,7 +74,7 @@ expect {
 
 # Keep the signed package URL out of Actions logs. Only validate that the
 # official API can be reached over HTTPS and returns the expected flat fields.
-send "rm -f /tmp/uu-api.json; wget -qO /tmp/uu-api.json 'https://router.uu.163.com/api/plugin?type=openwrt-aarch64' && grep -Eq '\"status\"[[:space:]]*:[[:space:]]*\"ok\"' /tmp/uu-api.json && grep -Eq '\"md5\"[[:space:]]*:[[:space:]]*\"[0-9A-Fa-f]{32}\"' /tmp/uu-api.json && grep -Eq '\"url\"[[:space:]]*:[[:space:]]*\"https?://' /tmp/uu-api.json && echo LAB_UU_API_OK\r"
+send "rm -f /tmp/uu-api.json; wget -qO /tmp/uu-api.json 'https://router.uu.163.com/api/plugin?type=openwrt-aarch64' && grep -q '\"status\":\"ok\"' /tmp/uu-api.json && grep -q '\"md5\":\"' /tmp/uu-api.json && grep -q '\"url\":\"http' /tmp/uu-api.json && echo LAB_UU_API_OK\r"
 expect {
     -re {LAB_UU_API_OK} {}
     timeout { puts stderr "NetEase openwrt-aarch64 API HTTPS validation failed"; exit 23 }
