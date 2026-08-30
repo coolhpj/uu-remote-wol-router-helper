@@ -1,0 +1,43 @@
+#!/bin/sh
+
+# RB06-verified runtime wrapper template.
+# It deliberately refuses XiaoQiang AP modes used in the validated setup.
+
+PLUGIN_DIR="${UU_PLUGIN_DIR:-/userdisk/appdata/2882303761518031252}"
+
+cleanall() {
+    killall uuplugin_monitor.sh 2>/dev/null || true
+    killall uuplugin 2>/dev/null || true
+    killall xuplugin-guardian 2>/dev/null || true
+}
+
+plugon() {
+    mode=$(uci -q get xiaoqiang.common.NETMODE 2>/dev/null || true)
+
+    if [ "$mode" = "wifiapmode" ] || [ "$mode" = "lanapmode" ]; then
+        echo "In AP mode, exit!"
+        return 0
+    fi
+
+    cleanall
+    sleep 1
+
+    "$PLUGIN_DIR/uuplugin_monitor.sh" >${UU_MONITOR_WRAPPER_LOG:-/tmp/uu-v14-monitor-wrapper.log} 2>&1 &
+}
+
+plugoff() {
+    cleanall
+}
+
+case "${1:-}" in
+    plugon)
+        plugon
+        ;;
+    plugoff)
+        plugoff
+        ;;
+    *)
+        echo "Usage: $0 {plugon|plugoff}"
+        exit 1
+        ;;
+esac

@@ -290,6 +290,7 @@ uu-remote-wol-router-helper/
 - [x] 完成统一 `uu-helper.sh` 安全入口
 - [x] 完成官方包下载 / MD5 / staging 链
 - [x] 完成 XiaoQiang 只读 preflight
+- [x] 从 RB06 最终证据提取 monitor / wrapper / boot-helper runtime 模板并加入离线回归测试
 - [ ] RB06 实机复验临时 smoke-test（保护壳与自动恢复逻辑已完成）
 - [ ] 重写 XiaoQiang 持久安装 adapter
 - [x] 完成 ASUSWRT reference adapter 的只读 detect/health

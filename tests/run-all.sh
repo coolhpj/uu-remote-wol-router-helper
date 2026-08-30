@@ -14,7 +14,8 @@ for test_file in \
     tests/test-stage-core.sh \
     tests/test-smoke-guard.sh \
     tests/test-asuswrt-adapter.sh \
-    tests/test-openwrt-adapter.sh
+    tests/test-openwrt-adapter.sh \
+    tests/test-xiaoqiang-runtime.sh
  do
     sh "$test_file"
 done

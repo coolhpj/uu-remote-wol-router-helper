@@ -75,6 +75,21 @@ UU_PLUGIN_DIR=/path/to/plugin sh platforms/xiaoqiang/health.sh
 
 **进程在线不能替代云连接在线。**
 
+## 已提取的 RB06 runtime 模板
+
+最终实机验证过的运行层逻辑已经整理到：
+
+```text
+platforms/xiaoqiang/runtime/
+├── uuplugin_monitor.sh
+├── xnetease-uu
+└── auto.sh
+```
+
+这些文件不是安装器，而是持久安装器未来要写入目标路径的**已验证运行模板**。其中 `auto.sh` 保留了本次真实冷启动故障最终修复的核心：等默认路由与网易 API、检查 `:16000`、首次失败自动重启一次。
+
+仓库还提供离线回归测试，模拟“第一次云连接失败、第二次启动成功”，防止后续重构把这条关键恢复逻辑删掉。
+
 ## 临时 smoke-test（尚未实机复验）
 
 Private Draft 中已经加入 `platforms/xiaoqiang/smoke-test.sh` 保护壳，但它**暂时没有接入 `uu-helper.sh`**，因为还没有用 RB06 对这份重写后的脚本做第二次真实运行态复现。
