@@ -290,7 +290,7 @@ uu-remote-wol-router-helper/
 - [x] 完成统一 `uu-helper.sh` 安全入口
 - [x] 完成官方包下载 / MD5 / staging 链
 - [x] 完成 XiaoQiang 只读 preflight
-- [ ] 完成临时 smoke-test 运行链
+- [ ] RB06 实机复验临时 smoke-test（保护壳与自动恢复逻辑已完成）
 - [ ] 重写 XiaoQiang 持久安装 adapter
 - [ ] 整理 ASUSWRT reference adapter
 - [x] 第一轮敏感信息扫描（公开前需再次扫描）

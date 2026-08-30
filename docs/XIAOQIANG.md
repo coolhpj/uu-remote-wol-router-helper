@@ -75,6 +75,23 @@ UU_PLUGIN_DIR=/path/to/plugin sh platforms/xiaoqiang/health.sh
 
 **进程在线不能替代云连接在线。**
 
+## 临时 smoke-test（尚未实机复验）
+
+Private Draft 中已经加入 `platforms/xiaoqiang/smoke-test.sh` 保护壳，但它**暂时没有接入 `uu-helper.sh`**，因为还没有用 RB06 对这份重写后的脚本做第二次真实运行态复现。
+
+保护条件包括：
+
+- 默认拒绝执行；
+- 必须显式设置 `UU_RUNTIME_TEST_CONFIRM=TEMPORARY_RUNTIME_CHANGE`；
+- 必须先通过 XiaoQiang preflight；
+- staging 包必须存在并重新通过 MD5 / tar 结构检查；
+- 如果检测到已有 `uuplugin / guardian / monitor` 运行，还必须设置 `UU_ALLOW_STOP_EXISTING=YES`；
+- 已有运行态必须存在已验证的 `xnetease-uu` 恢复 wrapper，否则在停止任何进程前拒绝执行；
+- 临时测试结束后停止 staging 版本，并尝试恢复原运行态；
+- 不写持久目录、不注册自启动。
+
+在 RB06 对重写脚本完成真实复验之前，本项目不会把它标记为可公开使用的 smoke-test 命令。
+
 ## 安装器尚未开放的原因
 
 当前 Private Draft 阶段不会因为检测到 `aarch64 + XiaoQiang` 就直接覆盖插件。

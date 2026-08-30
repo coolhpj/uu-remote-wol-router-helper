@@ -47,6 +47,9 @@ if ! uu_verify_md5 "$package" "$UU_API_MD5"; then
 fi
 printf '%s\n' "md5_check: pass"
 
+metadata="$stage_dir/metadata"
+printf 'channel=%s\nversion=%s\nmd5=%s\n' "$channel" "$UU_API_VERSION" "$UU_API_MD5" > "$metadata"
+
 if ! uu_validate_uu_package "$package"; then
     echo "Official package structure validation failed." >&2
     exit 1
