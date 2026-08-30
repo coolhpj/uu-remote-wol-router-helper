@@ -40,15 +40,18 @@ Redmi AX6000 / RB06 已完成真实冷启动、UU 云连接以及手机移动数
 - 保证所有路由器都能安装；
 - 把“进程启动”当成“UU远程可用”。
 
-## 当前只读入口
+## 当前安全入口
 
-Private Draft 阶段先开放不会修改路由器的统一入口：
+Private Draft 阶段先开放诊断与临时 staging，不提供正式安装：
 
 ```sh
 sh uu-helper.sh diagnose
 sh uu-helper.sh collect-info
 sh uu-helper.sh check-api openwrt-aarch64
+sh uu-helper.sh stage openwrt-aarch64
 ```
+
+`diagnose / collect-info / check-api` 都是只读操作。`stage` 只在 `/tmp/uu-wol-helper-*` 下下载、MD5 校验、检查 tar 路径并解压官方包；它不会停止/启动 UU 进程，也不会修改持久目录或注册自启动。
 
 `diagnose` 会先匹配已知平台 adapter。当前 XiaoQiang 已有只读检测/健康检查；未知平台只进入 `collect-info`，不会猜测型号或执行安装。
 
@@ -283,8 +286,9 @@ uu-remote-wol-router-helper/
 - [x] 完成只读 collect-info 第一版
 - [x] 完成网易 API 解析 + MD5 校验基础模块
 - [x] 完成 XiaoQiang 只读 detect/health
-- [x] 完成统一只读 `uu-helper.sh diagnose` 入口
-- [ ] 完成官方包下载 / staging / smoke-test 安装链
+- [x] 完成统一 `uu-helper.sh` 安全入口
+- [x] 完成官方包下载 / MD5 / staging 链
+- [ ] 完成临时 smoke-test 运行链
 - [ ] 重写 XiaoQiang 持久安装 adapter
 - [ ] 整理 ASUSWRT reference adapter
 - [x] 第一轮敏感信息扫描（公开前需再次扫描）
