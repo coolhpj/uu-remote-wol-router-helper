@@ -1,0 +1,37 @@
+vendor: Redmi
+model: AX6000
+device_id: RB06
+
+platform: xiaoqiang
+firmware_family: XiaoQiang/OpenWrt-derived
+soc: MediaTek MT7986
+arch: aarch64
+
+uu_channel: openwrt-aarch64
+
+paths:
+  uu_install: /userdisk/appdata/2882303761518031252
+  persistent_helper: /data/uu-v14
+
+startup:
+  method: uci-firewall-include
+  rc_local_reliable: false
+
+verification:
+  plugin_install: true
+  real_reboot: true
+  cloud_connection: true
+  app_router_detection: true
+  same_account_binding: true
+  remote_wol_over_mobile_data: true
+
+status: verified
+verified_date: 2026-08-30
+
+historical_test:
+  uu_version: v14.6.24
+  note: "Version is historical evidence only; future installer must query current official release dynamically."
+
+notes:
+  - "Public UDP 40009 -> LAN PC:9 was separately verified as Wake-on-WAN backup and is not part of UU Remote internals."
+  - "Do not hardcode historical public IP or UU cloud server IP."
