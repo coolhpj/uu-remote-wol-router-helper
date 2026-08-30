@@ -1,0 +1,32 @@
+vendor: ASUS
+model: RT-AX86U
+device_id: RT-AX86U
+
+platform: asuswrt
+firmware_family: ASUSWRT/Merlin-KoolShare
+arch: aarch64
+
+uu_channel: static-asuswrt
+
+paths:
+  persistent_root: /jffs
+
+verification:
+  official_uu_entry: true
+  plugin_install: true
+  real_reboot: true
+  cloud_connection: true
+  wol_only_mc2_coexistence: true
+  remote_wol_over_mobile_data: null
+
+status: platform-reference
+
+historical_test:
+  uu_version: v14.6.24
+  note: "Current evidence package does not mark mobile-data Remote WOL as fully verified for this router sample."
+
+notes:
+  - "Official UI users normally do not need SSH only to use vendor-supported UU features."
+  - "SSH/root is relevant to this project only for advanced adaptation and diagnostics."
+  - "WOL-only background operation and MC2 transparent proxy were observed to coexist."
+  - "Starting UU game acceleration for a PC can alter that PC's routing and interfere with proxy-dependent access."
