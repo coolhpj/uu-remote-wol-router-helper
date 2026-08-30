@@ -24,6 +24,9 @@ verification:
   app_router_detection: true
   same_account_binding: true
   remote_wol_over_mobile_data: true
+  rewritten_smoke_test_hardware_retest: false
+  legacy_migration_adapter_offline_test: true
+  rewritten_migration_hardware_retest: false
 
 status: verified
 verified_date: 2026-08-30

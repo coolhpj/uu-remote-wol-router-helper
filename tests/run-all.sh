@@ -19,7 +19,8 @@ for test_file in \
     tests/test-openwrt-adapter.sh \
     tests/test-openwrt-smoke-guard.sh \
     tests/test-openwrt-persist.sh \
-    tests/test-xiaoqiang-runtime.sh
+    tests/test-xiaoqiang-runtime.sh \
+    tests/test-xiaoqiang-persist.sh
  do
     sh "$test_file"
 done

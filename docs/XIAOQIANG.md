@@ -109,11 +109,42 @@ Private Draft 中已经加入 `platforms/xiaoqiang/smoke-test.sh` 保护壳，�
 
 在 RB06 对重写脚本完成真实复验之前，本项目不会把它标记为可公开使用的 smoke-test 命令。
 
-## 安装器尚未开放的原因
+## 持久化 migration adapter（Private Draft）
+
+当前已经加入：
+
+- `platforms/xiaoqiang/install.sh`
+- `platforms/xiaoqiang/rollback.sh`
+- `platforms/xiaoqiang/persist-common.sh`
+
+第一版**故意只支持本项目已经实机验证过的 legacy migration 路径**，不把“裸 RB06 从零安装”冒充成已验证能力。执行前必须同时存在：
+
+- `/userdisk/appdata/2882303761518031252/manifest`
+- `/userdisk/appdata/2882303761518031252/start_script`
+- `/userdisk/appdata/installPlugin/2882303761518031252.json`
+- `start_script` 中可确认的 `xnetease-uu` 引用
+- 与当前官方包 MD5 绑定的 XiaoQiang `smoke-pass`
+
+迁移会完整备份旧插件目录、旧 `/data/uu-v14` helper、旧 installPlugin JSON，以及原 `firewall.uuplugin` 的 type/path/enabled 状态；然后写入官方 staged runtime、已验证 monitor/wrapper/boot-helper，更新 Xiaomi 元数据中的显示版本，并注册本轮实机验证过的：
+
+```text
+firewall.uuplugin=include
+firewall.uuplugin.type='script'
+firewall.uuplugin.path='/data/uu-v14/auto.sh'
+firewall.uuplugin.enabled='1'
+```
+
+`rollback.sh` 会恢复上述旧文件和旧 firewall include。当前不提供 destructive uninstall：因为本路径本质是“迁移已有 Xiaomi 插件”，在没有裸机 fresh-install 实机证据之前，rollback 比删除整套插件更安全。
+
+fake-root 回归已经覆盖：默认拒绝、smoke-pass 闸门、fresh install fail-closed、官方四文件迁移、manifest/JSON 动态版本更新、firewall include 注册、完整 rollback 恢复。
+
+**尚未在朋友 RB06 上用这份重写后的 installer 做第二次实机迁移复现**，因此仍然只属于 Private Draft。
+
+## 公开安装路径尚未开放的原因
 
 当前 Private Draft 阶段不会因为检测到 `aarch64 + XiaoQiang` 就直接覆盖插件。
 
-正式安装器至少还需要：
+正式公开前至少还需要：
 
 1. 识别具体设备/固件；
 2. 确认不是 AP 模式；
