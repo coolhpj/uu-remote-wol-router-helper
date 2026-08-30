@@ -296,7 +296,7 @@ uu-remote-wol-router-helper/
 - [x] 完成 ASUSWRT reference adapter 的只读 detect/health
 - [x] 完成 Generic OpenWrt Experimental detect/health + platform-aware preflight + confirmed channel auto-selection
 - [x] 完成 Generic OpenWrt 临时 smoke-test，并在真实 iStoreOS x86_64 上验证 `uuplugin + guardian + :16000`；测试后 OpenClash/网络规则恢复基线
-- [x] 完成 Generic OpenWrt 持久化 adapter 草稿：标准 `/usr/lib + /etc/init.d + procd`、smoke-pass 闸门、备份、自动回滚与卸载；fake-root 回归全绿，尚未写入真实 iStoreOS
+- [x] 完成 Generic OpenWrt 持久化 adapter 草稿：标准 `/usr/lib + /etc/init.d + procd`、smoke-pass 闸门、备份、自动回滚与卸载；NAS fake-root 与真实 iStoreOS BusyBox `/tmp` fake-root 回归均全绿，尚未写入真实持久层
 - [ ] 设计 ASUSWRT 安装/恢复 adapter（官方集成设备优先，不默认覆盖）
 - [x] 第一轮敏感信息扫描（公开前需再次扫描）
 - [x] CI 测试入口已完成：shell 语法、单元/guard 测试与敏感信息扫描

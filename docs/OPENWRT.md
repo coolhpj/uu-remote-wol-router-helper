@@ -105,7 +105,7 @@ Private Draft 已加入 `platforms/openwrt/smoke-test.sh`，但**暂时没有接
 
 真实写入前必须同时满足：OpenWrt preflight、官方 package MD5/结构复核、架构与 channel 匹配、以及同一 staging MD5 对应的 `smoke-pass`。安装脚本默认禁用；服务 `enable/start/health` 任一步失败会尝试自动 rollback。卸载脚本只删除带本项目 ownership marker 的文件，避免误删其它 UU 实现。
 
-2026-08-30 已在 fake-root 环境完成旧目录/旧 init 备份、安装、rollback 恢复、陌生文件拒删、fresh install + uninstall 的自动回归。真实 iStoreOS 也已只读确认：`/usr/lib` 与 `/etc/init.d` 都由 `/overlay` 持久化，`rc.common/procd/rc.d` 可用，约 1.6 GiB 可用空间，计划使用的三个路径当前无冲突。**但尚未执行真实持久安装或 reboot。**
+2026-08-30 已在 fake-root 环境完成旧目录/旧 init 备份、安装、rollback 恢复、陌生文件拒删、fresh install + uninstall 的自动回归。随后又把同一套脚本原样送入真实 iStoreOS 24.10.7 的 BusyBox 用户态，仅在 `/tmp` fake-root 中复验，结果同样全部通过并已清理。真实 iStoreOS 也已只读确认：`/usr/lib` 与 `/etc/init.d` 都由 `/overlay` 持久化，`rc.common/procd/rc.d` 可用，约 1.6 GiB 可用空间，计划使用的三个路径当前无冲突。**但尚未执行真实持久安装或 reboot。**
 
 ### 多个同账号 UU 路由器同时在线的实测现象
 
