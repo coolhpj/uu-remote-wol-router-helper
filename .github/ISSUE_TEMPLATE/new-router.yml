@@ -1,0 +1,61 @@
+name: New Router Support / 新路由器支持
+about: Request support for a router that is not yet verified
+labels: ["new-router", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请先确认厂商官方是否已经支持网易 UU远程。如果已经支持，请优先使用官方方式。
+        本项目不会指导利用漏洞或绕过厂商安全机制获取 SSH/root。
+
+  - type: input
+    id: vendor
+    attributes:
+      label: Router vendor / 路由器品牌
+      placeholder: Xiaomi / Redmi / ASUS / TP-Link / H3C / ZTE ...
+    validations:
+      required: true
+
+  - type: input
+    id: model
+    attributes:
+      label: Model / 型号
+      placeholder: Redmi AX6000 / RT-AX86U ...
+    validations:
+      required: true
+
+  - type: input
+    id: firmware
+    attributes:
+      label: Firmware / 固件
+      description: 固件名称与版本；不要提交 SN、MAC、WAN IP、账号信息。
+    validations:
+      required: true
+
+  - type: dropdown
+    id: shell
+    attributes:
+      label: SSH/root Shell available? / 是否已有 SSH/root Shell
+      options:
+        - "Yes / 是"
+        - "No / 否"
+        - "Unknown / 不确定"
+    validations:
+      required: true
+
+  - type: textarea
+    id: collect
+    attributes:
+      label: collect-info output / 只读环境报告
+      description: 请运行 scripts/collect-info.sh，并在人工检查无敏感信息后粘贴结果。
+      render: shell
+
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety confirmation / 安全确认
+      options:
+        - label: 我已经检查提交内容，不包含密码、PPPoE、Token、SN、设备验证码、未脱敏公网 IP 或 MAC。
+          required: true
+        - label: 我理解“理论兼容”不等于“Verified”，愿意按分级流程提供真实测试结果。
+          required: true
