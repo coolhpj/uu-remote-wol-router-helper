@@ -132,6 +132,22 @@ stop_temporary_runtime() {
     sleep 2
 }
 
+cleanup_residue_detected() {
+    runtime_active && return 0
+
+    if have_cmd nft && nft list tables 2>/dev/null | grep 'XU_' >/dev/null 2>&1; then
+        return 0
+    fi
+    if have_cmd iptables-save && iptables-save 2>/dev/null | grep 'XU_' >/dev/null 2>&1; then
+        return 0
+    fi
+    if have_cmd ip6tables-save && ip6tables-save 2>/dev/null | grep 'XU_' >/dev/null 2>&1; then
+        return 0
+    fi
+
+    return 1
+}
+
 cleanup() {
     if [ "$temporary_started" = "yes" ]; then
         stop_temporary_runtime
@@ -180,6 +196,12 @@ printf 'elapsed_seconds: %s\n' "$elapsed"
 stop_temporary_runtime
 temporary_started="no"
 trap - 0 HUP INT TERM
+
+if cleanup_residue_detected; then
+    echo "CLEANUP_INCOMPLETE: UU process or XU_* firewall residue remains after temporary runtime stop." >&2
+    echo "No smoke-pass evidence will be written." >&2
+    exit 8
+fi
 
 if [ "$passed" != "yes" ]; then
     echo "SMOKE_TEST_FAILED" >&2

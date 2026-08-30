@@ -19,10 +19,10 @@ verified:
   package_md5: true
   package_structure: true
   temporary_staging: true
-  runtime_smoke_test: false
+  runtime_smoke_test: true
   persistent_install: false
   reboot: false
-  uu_cloud: false
+  uu_cloud: true
   remote_wol: false
 
 sample_date: 2026-08-30
@@ -30,5 +30,8 @@ sample_uu_version: v14.6.22
 
 notes:
   - This profile records a generic x86_64 iStoreOS/OpenWrt test environment, not a product compatibility claim.
-  - The staging test wrote only under /tmp and was cleaned after verification.
-  - No UU process was started and no UCI or persistent overlay setting was changed during this phase.
+  - Staging and runtime smoke-test used only /tmp; no UCI or persistent overlay setting was changed.
+  - Official openwrt-x86_64 v14.6.22 started successfully; uuplugin + guardian + :16000 were healthy within 2 seconds.
+  - Temporary UU processes were stopped after the test; XU_* nftables residue was absent and OpenClash remained online.
+  - ip rule, ip route and normalized nft ruleset matched the pre-test baseline after cleanup.
+  - Persistent install, reboot behavior, UU App recognition and Remote WOL are still unverified.

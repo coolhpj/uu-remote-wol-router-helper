@@ -26,9 +26,9 @@ Unknown → collect-info only
 
 ## 官方 x86_64 通道与 iStoreOS 第二环境
 
-2026-08-30 已通过网易官方 API 确认存在 `openwrt-x86_64` 通道，当前返回 **v14.6.22**。项目已完成这个通道的 API、MD5、tar 结构与 `/tmp` staging 验证，但尚未在 iStoreOS 上启动真实 UU runtime。
+2026-08-30 已通过网易官方 API 确认存在 `openwrt-x86_64` 通道，当前返回 **v14.6.22**。项目已经在真实 iStoreOS 24.10.7 / x86_64 上完成 API、MD5、tar、`/tmp` staging 和临时 runtime smoke-test：`uuplugin + xuplugin-guardian + :16000 ESTABLISHED` 在约 2 秒内同时通过。
 
-因此 NAS 上的 iStoreOS 可以作为第二 OpenWrt 环境：先验证 detect / health / staging / 持久化与回滚；真实 runtime 与 WOL 节点实验必须单独授权并保留回滚路径。
+测试后临时 UU 已停止，未写 UCI/`/overlay`；OpenClash 仍在线，`XU_*` 临时 nftables 表无残留，`ip rule`、`ip route` 与归一化后的 nft ruleset 均恢复到测试前结构。iStoreOS 因此已经证明可以运行网易官方 x86_64 UU 后端，但**持久安装、reboot、UU App 辅助设备识别和 Remote WOL 仍未验证**。
 
 ## 平台预检与官方通道自动选择
 
@@ -85,7 +85,7 @@ Generic OpenWrt 目前只说明：
 
 它**不代表安装器已验证**。
 
-Private Draft 已加入 `platforms/openwrt/smoke-test.sh` 保护壳，但**暂时没有接入 `uu-helper.sh`**。第一版 Generic OpenWrt smoke-test 采取最保守策略：默认禁用、只允许 `/tmp/uu-wol-helper-*` staging、要求 root + staging/MD5/channel 全部匹配；如果设备上已经存在任何 UU runtime，直接拒绝，不尝试停止或替换。只有真实临时 runtime 同时满足 `uuplugin + guardian + :16000 ESTABLISHED` 后，才写入与 staging MD5 绑定的 smoke-pass 证据，并在测试结束后停止临时 UU。
+Private Draft 已加入 `platforms/openwrt/smoke-test.sh`，但**暂时没有接入 `uu-helper.sh`**。它默认禁用、只允许 `/tmp/uu-wol-helper-*` staging、要求 root + staging/MD5/channel 全部匹配；如果设备上已经存在任何 UU runtime，直接拒绝，不尝试停止或替换。只有真实临时 runtime 同时满足 `uuplugin + guardian + :16000 ESTABLISHED`，并在停止后确认没有 UU 进程或 `XU_*` firewall 残留，才允许写入与 staging MD5 绑定的 smoke-pass 证据。
 
 在给某台 Generic OpenWrt 开放安装前，仍要确认：
 

@@ -122,10 +122,10 @@ sh uu-helper.sh stage auto
 |---|---|---|---:|---:|---:|---:|---|
 | Redmi AX6000 / RB06 | XiaoQiang / OpenWrt-derived | `openwrt-aarch64` | ✅ | ✅ | ✅ | ✅ | **Verified** |
 | ASUS RT-AX86U | ASUSWRT / Merlin-KoolShare | `static-asuswrt` | ✅ | ✅ | ✅ | ⚠️ | Platform reference |
-| Generic OpenWrt / iStoreOS | OpenWrt | `openwrt-aarch64` / `openwrt-x86_64` 等按架构选择 | 🚧 | 🚧 | 🚧 | 🚧 | Experimental; iStoreOS x86_64 detect + staging verified |
+| Generic OpenWrt / iStoreOS | OpenWrt | `openwrt-aarch64` / `openwrt-x86_64` 等按架构选择 | 🚧 | 🚧 | ✅* | 🚧 | Experimental; iStoreOS x86_64 temporary runtime + cloud verified |
 | Other vendors | Vendor firmware | Unknown | ❓ | ❓ | ❓ | ❓ | Community research |
 
-> `Remote WOL = ✅` 只用于已经有真实远程开机证据的设备。不会因为插件能启动就标记兼容。
+> `Remote WOL = ✅` 只用于已经有真实远程开机证据的设备。不会因为插件能启动就标记兼容。`UU Cloud = ✅*` 在 iStoreOS 行仅表示临时 smoke-test 已真实建立 `:16000`，不代表持久安装/reboot 已验证。
 
 完整矩阵见 [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md)。SSH/root 使用边界见 [`docs/SSH-ACCESS.md`](docs/SSH-ACCESS.md)。XiaoQiang 适配说明见 [`docs/XIAOQIANG.md`](docs/XIAOQIANG.md)，ASUSWRT 参考适配见 [`docs/ASUSWRT.md`](docs/ASUSWRT.md)，Generic OpenWrt 诊断层见 [`docs/OPENWRT.md`](docs/OPENWRT.md)。
 
@@ -295,14 +295,14 @@ uu-remote-wol-router-helper/
 - [ ] 重写 XiaoQiang 持久安装 adapter
 - [x] 完成 ASUSWRT reference adapter 的只读 detect/health
 - [x] 完成 Generic OpenWrt Experimental detect/health + platform-aware preflight + confirmed channel auto-selection
-- [x] 完成 Generic OpenWrt 临时 smoke-test 保护壳（尚未在 iStoreOS 执行真实 runtime）
+- [x] 完成 Generic OpenWrt 临时 smoke-test，并在真实 iStoreOS x86_64 上验证 `uuplugin + guardian + :16000`；测试后 OpenClash/网络规则恢复基线
 - [ ] 设计 ASUSWRT 安装/恢复 adapter（官方集成设备优先，不默认覆盖）
 - [x] 第一轮敏感信息扫描（公开前需再次扫描）
 - [x] CI 测试入口已完成：shell 语法、单元/guard 测试与敏感信息扫描
 - [ ] GitHub Actions workflow：本地文件已准备，等待 `gh` 增加 `workflow` scope 后启用
 - [ ] 从原始证据中挑选并脱敏 README 图片
-- [x] 第二环境第一阶段：NAS iStoreOS 24.10.7 / x86_64 已通过 Generic OpenWrt detect + 官方 `openwrt-x86_64 v14.6.22` API / MD5 / tar / `/tmp` staging；未启动 UU、未改 UCI/overlay
-- [ ] 第二环境第二阶段：iStoreOS 真实 UU runtime / 持久化 / reboot / 云连接 / WOL 节点实验（运行态变更前单独确认）
+- [x] 第二环境第一阶段：NAS iStoreOS 24.10.7 / x86_64 已通过 detect/preflight + `stage auto` + 官方 `openwrt-x86_64 v14.6.22` 临时 runtime / `:16000` 云连接；未改 UCI/overlay，测试后规则恢复基线
+- [ ] 第二环境第二阶段：iStoreOS 持久化 / reboot / UU App 辅助设备识别 / WOL 节点实验
 - [ ] 第三设备候选：闲置 RS2，后续用于扩展真实硬件兼容验证
 - [ ] Private review
 - [ ] Public release
