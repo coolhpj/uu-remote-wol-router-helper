@@ -105,8 +105,22 @@ ASUSWRT / RT-AX86U
 
 所以设备型号只进入 profile，真正安装逻辑必须由不同 platform adapter 实现。
 
+## 安装/恢复策略
+
+ASUSWRT 的设计已经明确：**官方集成优先，不提供 Generic ASUSWRT 覆盖式 installer。**
+
+默认行为是：
+
+1. 检测厂商/固件是否已有网易 UU 官方入口；
+2. 已有官方入口时，只提供 `detect / health`、版本/云连接诊断和故障信息采集；
+3. 不因为能访问 `/jffs` 就覆盖官方 `/jffs/uu`；
+4. 不用 Generic OpenWrt 或 XiaoQiang 的安装方式替换 ASUSWRT 自带生命周期管理；
+5. 只有未来出现“某个明确型号的官方组件损坏、且已有可回滚实机证据”时，才单独增加 model-specific recovery adapter。
+
+这不是功能缺失，而是项目安全边界：对于本来就受官方支持的设备，最稳妥的实现就是尽量不接管厂商已经维护的安装/升级路径。
+
 ## 当前状态
 
-ASUSWRT 目前只开放只读 `detect / health`。
+ASUSWRT 当前开放只读 `detect / health`，并把“官方集成优先、默认不覆盖”作为正式平台策略。
 
 虽然 RT-AX86U 样本的插件安装、重启恢复、云连接和 WOL 能力研究已经有真实证据，但当前权威交接包没有把它标成“手机移动数据 Remote WOL 完整终验”，所以兼容矩阵仍保持 **Platform reference**，不会为了丰富列表而升级成 `Verified`。

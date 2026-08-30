@@ -297,7 +297,7 @@ uu-remote-wol-router-helper/
 - [x] 完成 Generic OpenWrt Experimental detect/health + platform-aware preflight + confirmed channel auto-selection
 - [x] 完成 Generic OpenWrt 临时 smoke-test，并在真实 iStoreOS x86_64 上验证 `uuplugin + guardian + :16000`；测试后 OpenClash/网络规则恢复基线
 - [x] 完成 Generic OpenWrt 持久化 adapter：标准 `/usr/lib + /etc/init.d + procd`、smoke-pass 闸门、备份、自动回滚与卸载；NAS fake-root、真实 iStoreOS BusyBox `/tmp` fake-root 和真实 `/overlay` 持久安装均已通过
-- [ ] 设计 ASUSWRT 安装/恢复 adapter（官方集成设备优先，不默认覆盖）
+- [x] 完成 ASUSWRT 安装/恢复策略设计：官方集成设备只做 detect/health/recovery guidance，默认不覆盖 `/jffs/uu`；未来仅对有实机回滚证据的具体型号增加 model-specific recovery
 - [x] 第一轮敏感信息扫描（公开前需再次扫描）
 - [x] CI 测试入口已完成：shell 语法、单元/guard 测试与敏感信息扫描
 - [ ] GitHub Actions workflow：本地文件已准备，等待 `gh` 增加 `workflow` scope 后启用
@@ -306,5 +306,5 @@ uu-remote-wol-router-helper/
 - [x] 第二环境第二阶段（功能终验）：UU主机加速绑定 OpenWrt、UU远程辅助设备检测、手机关闭 Wi‑Fi 后仅用移动数据远程开机均已成功
 - [ ] 第二环境第三阶段（部署终验）：真实 iStoreOS 持久安装与 reboot 后自动恢复均已通过；待空闲窗口再做 reboot 后移动数据 WOL、真实 rollback，以及“AX86U-only / iStoreOS-only / 双在线”的多辅助设备 A/B/C 对照实验。当前因其它工作占用主机，禁止为此测试主动关机或重启。
 - [ ] 第三设备候选：闲置 RS2，后续用于扩展真实硬件兼容验证
-- [ ] Private review
+- [ ] Private review（发布门禁与剩余硬阻塞见 [`docs/PRIVATE-REVIEW.md`](docs/PRIVATE-REVIEW.md)）
 - [ ] Public release
