@@ -3,6 +3,8 @@
 SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" 2>/dev/null && pwd) || exit 1
 # shellcheck source=../lib/netease-api.sh
 . "$SCRIPT_DIR/../lib/netease-api.sh"
+# shellcheck source=../lib/download.sh
+. "$SCRIPT_DIR/../lib/download.sh"
 
 channel="${1:-openwrt-aarch64}"
 
@@ -17,9 +19,9 @@ printf 'channel: %s\n' "$channel"
 printf 'status: %s\n' "$UU_API_STATUS"
 printf 'version: %s\n' "$UU_API_VERSION"
 printf 'md5: %s\n' "$UU_API_MD5"
-printf 'url: %s\n' "$UU_API_URL"
+printf 'url: %s\n' "$(uu_redact_url "$UU_API_URL")"
 if [ -n "$UU_API_URL_BAK" ]; then
-    printf 'url_bak: %s\n' "$UU_API_URL_BAK"
+    printf 'url_bak: %s\n' "$(uu_redact_url "$UU_API_URL_BAK")"
 fi
 if [ -n "$UU_API_SIGNATURE" ]; then
     printf 'signature: present\n'

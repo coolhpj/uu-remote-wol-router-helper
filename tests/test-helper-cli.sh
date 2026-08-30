@@ -40,6 +40,23 @@ else
     not_ok "collect-info remains read-only"
 fi
 
+FAKE_BIN=$(mktemp -d /tmp/uu-helper-test.XXXXXX) || exit 1
+trap 'rm -rf "$FAKE_BIN"' 0 HUP INT TERM
+cat > "$FAKE_BIN/curl" <<'EOF'
+#!/bin/sh
+printf '%s\n' '{"status":"ok","md5":"0123456789abcdef0123456789abcdef","url":"https://example.invalid/uu.tar.gz?key1=secret&key2=temp","url_bak":"https://backup.invalid/uu.tar.gz"}'
+EOF
+chmod +x "$FAKE_BIN/curl"
+api_output=$(PATH="$FAKE_BIN:$PATH" UU_API_BASE='https://example.invalid/api/plugin' sh "$HELPER" check-api openwrt-aarch64 2>&1)
+api_rc=$?
+if [ "$api_rc" -eq 0 ] \
+    && printf '%s' "$api_output" | grep '<redacted>' >/dev/null 2>&1 \
+    && ! printf '%s' "$api_output" | grep 'key1=secret' >/dev/null 2>&1; then
+    ok "check-api redacts temporary download query"
+else
+    not_ok "check-api redacts temporary download query"
+fi
+
 if [ "$failures" -ne 0 ]; then
     printf '%s test(s) failed\n' "$failures" >&2
     exit 1

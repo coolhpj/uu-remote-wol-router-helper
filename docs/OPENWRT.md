@@ -24,6 +24,12 @@ Unknown → collect-info only
 
 因此 XiaoQiang 即使带有 `/etc/openwrt_release`，也不会被 Generic OpenWrt 抢走。
 
+## 官方 x86_64 通道与 iStoreOS 第二环境
+
+2026-08-30 已通过网易官方 API 确认存在 `openwrt-x86_64` 通道，当前返回 **v14.6.22**。项目已完成这个通道的 API、MD5、tar 结构与 `/tmp` staging 验证，但尚未在 iStoreOS 上启动真实 UU runtime。
+
+因此 NAS 上的 iStoreOS 可以作为第二 OpenWrt 环境：先验证 detect / health / staging / 持久化与回滚；真实 runtime 与 WOL 节点实验必须单独授权并保留回滚路径。
+
 ## 当前只读检测
 
 ```sh
