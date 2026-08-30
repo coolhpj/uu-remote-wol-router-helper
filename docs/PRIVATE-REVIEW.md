@@ -74,9 +74,9 @@
 见 [`MULTI-AUX-DEVICE.md`](MULTI-AUX-DEVICE.md)。
 
 - [x] A：iStoreOS-only 已完成 Remote WOL；
-- [ ] B：AX86U-only、PC 不重新配置；
-- [ ] C：两边同时在线并抓 WOL/Magic Packet 证据；
-- [ ] README 最终只能写实测行为，不把样本现象写成网易官方优先级规则。
+- [x] B：AX86U-only、PC 不重新配置，手机仅移动数据，Remote WOL 成功；
+- [x] C：两边同时在线，手机仅移动数据触发后抓到 AX86U 发出的 UDP/9 + EtherType `0x0842` Magic Packet；同一窗口未观察到 iStoreOS 发出对应 WOL 广播；
+- [x] README/文档只写当前样本实测行为，不把该结果写成网易官方固定优先级规则。
 
 ### 4. GitHub Actions 真正上线
 

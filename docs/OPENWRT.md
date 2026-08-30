@@ -111,11 +111,11 @@ Private Draft 已加入 `platforms/openwrt/smoke-test.sh`，但**暂时没有接
 
 ### 多个同账号 UU 路由器同时在线的实测现象
 
-本样本同时存在 AX86U 与 iStoreOS 两个已绑定同一 UU 账号的路由器 runtime。实测中，即使手机和 Windows 默认网关都已指向 iStoreOS，只要 AX86U UU 仍在线，UU远程辅助设备页面仍优先显示“华硕路由器”；临时暂停 AX86U UU 后，页面切换为通用“路由器”，随后 iStoreOS 完成了移动数据 Remote WOL 终验。
+本样本同时存在 AX86U 与 iStoreOS 两个已绑定同一 UU 账号的路由器 runtime。实测中，即使手机和 Windows 默认网关都已指向 iStoreOS，只要 AX86U UU 仍在线，UU远程辅助设备页面仍显示“华硕路由器”；临时暂停 AX86U UU 后，页面切换为通用“路由器”，随后 iStoreOS 完成了移动数据 Remote WOL 终验。
+
+A/B/C 对照现已全部完成：A=iStoreOS-only 成功，B=AX86U-only 且不重新配置 PC 也成功；C 在两者同时在线时进行 LAN 抓包，明确捕获到 AX86U 发出的 UDP/9 Magic Packet 与 EtherType `0x0842` 原生 Magic Packet，目标主机随后上线；同一窗口未观察到 iStoreOS 发出对应 WOL 广播。
 
 这只记录当前样本行为，不把它写成网易官方的固定优先级规则。多路由器环境排障时，应把“同账号下其它 UU 路由器是否同时在线”列为一个重要变量。
-
-待办：后续在不影响其它工作窗口时，继续做多辅助设备 A/B/C 对照实验：A=iStoreOS-only、B=AX86U-only（不重新配置 PC）、C=两者同时在线并抓取 WOL 发送证据。当前已暂停该实验，不为此主动关机或重启主机。
 
 在给某台 Generic OpenWrt 开放安装前，仍要确认：
 

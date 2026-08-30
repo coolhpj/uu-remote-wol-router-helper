@@ -15,7 +15,7 @@
 | Vendor | Model | Device ID | Firmware family | CPU/Arch | UU channel | SSH/Shell | Install | Reboot | Cloud | Remote WOL | Status |
 |---|---|---|---|---|---|---|---:|---:|---:|---:|---|
 | Redmi | AX6000 | RB06 | XiaoQiang / OpenWrt-derived | MT7986 / AArch64 | `openwrt-aarch64` | Required for manual adaptation | ✅ | ✅ | ✅ | ✅ | **Verified** |
-| ASUS | RT-AX86U | RT-AX86U | ASUSWRT / Merlin-KoolShare | AArch64 | `static-asuswrt` | Not required for official UI; required for advanced adaptation/diagnostics | ✅ | ✅ | ✅ | ⚠️ | Platform reference |
+| ASUS | RT-AX86U | RT-AX86U | ASUSWRT / Merlin-KoolShare | AArch64 | `static-asuswrt` | Not required for official UI; required for advanced adaptation/diagnostics | ✅ | ✅ | ✅ | ✅ | **Verified** |
 | iStoreOS | x86_64 VM sample | generic-openwrt-x86_64 | OpenWrt / iStoreOS 24.10.7 | x86_64 / x86/64 | `openwrt-x86_64` | Available | ✅* | ✅* | ✅ | ✅* | Experimental: persistent install + reboot + mobile-data WOL verified; rollback pending |
 
 ## Redmi AX6000 / RB06
@@ -52,7 +52,9 @@
 
 ### 当前标记原则
 
-在当前交接证据中，不把 RT-AX86U 标成 `Remote WOL Verified`，除非后续补入明确的手机移动数据终验记录。
+2026-08-31 已补齐手机移动数据终验：在 AX86U-only 条件下，不重新扫码、不重新配置 PC，手机关闭 Wi-Fi、仅使用移动数据即可成功远程开机；随后双在线抓包又明确捕获到 AX86U 发出的 UDP/9 与 EtherType `0x0842` Magic Packet，目标主机随后上线。因此当前 RT-AX86U 参考样本升级为 `Remote WOL Verified`。
+
+该 `Verified` 只对应当前 RT-AX86U / 当前固件样本，不外推到所有 ASUSWRT 设备。
 
 ## Generic OpenWrt adapter
 

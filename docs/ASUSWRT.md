@@ -123,4 +123,6 @@ ASUSWRT 的设计已经明确：**官方集成优先，不提供 Generic ASUSWRT
 
 ASUSWRT 当前开放只读 `detect / health`，并把“官方集成优先、默认不覆盖”作为正式平台策略。
 
-虽然 RT-AX86U 样本的插件安装、重启恢复、云连接和 WOL 能力研究已经有真实证据，但当前权威交接包没有把它标成“手机移动数据 Remote WOL 完整终验”，所以兼容矩阵仍保持 **Platform reference**，不会为了丰富列表而升级成 `Verified`。
+RT-AX86U 现在已经补齐手机移动数据 Remote WOL 实测证据：在 iStoreOS UU 停止、AX86U UU 单独在线时，不重新扫码、不重新配置 PC，手机关闭 Wi-Fi、仅使用移动数据即可成功远程开机。随后在 AX86U 与 iStoreOS UU 同时在线的 C 实验中，LAN 抓包又明确捕获到由 AX86U 发出的 UDP/9 Magic Packet 与 EtherType `0x0842` 原生 Magic Packet，目标主机随后上线。
+
+因此 RT-AX86U 在当前样本中可以升级为 **Remote WOL Verified**。但该结论仍只覆盖当前参考型号/固件样本，不代表所有 ASUSWRT/ASUSWRT-Merlin 设备自动获得 Verified。
