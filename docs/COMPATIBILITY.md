@@ -16,6 +16,7 @@
 |---|---|---|---|---|---|---|---:|---:|---:|---:|---|
 | Redmi | AX6000 | RB06 | XiaoQiang / OpenWrt-derived | MT7986 / AArch64 | `openwrt-aarch64` | Required for manual adaptation | ✅ | ✅ | ✅ | ✅ | **Verified** |
 | ASUS | RT-AX86U | RT-AX86U | ASUSWRT / Merlin-KoolShare | AArch64 | `static-asuswrt` | Not required for official UI; required for advanced adaptation/diagnostics | ✅ | ✅ | ✅ | ⚠️ | Platform reference |
+| iStoreOS | x86_64 VM sample | generic-openwrt-x86_64 | OpenWrt / iStoreOS 24.10.7 | x86_64 / x86/64 | `openwrt-x86_64` | Available | 🚧 | 🚧 | 🚧 | 🚧 | Experimental: detect + staging verified |
 
 ## Redmi AX6000 / RB06
 
@@ -58,6 +59,8 @@
 仓库已经提供 Generic OpenWrt 的只读 `detect / health`，用于识别标准 OpenWrt / iStoreOS / 厂商 OpenWrt 衍生环境并读取 UU 运行状态。
 
 这只代表 **Experimental diagnostics**，不代表这些设备已经完成安装、重启或 Remote WOL 验证。具体型号仍需按下面流程逐台进入兼容矩阵。
+
+当前第二环境样本已经用 iStoreOS 24.10.7 / x86_64 实测通过：Generic OpenWrt detect、`openwrt-x86_64` 官方 API、MD5、tar 结构与 `/tmp` staging。真实 UU runtime、持久化、reboot、云连接与 Remote WOL 仍未执行，因此继续保持 Experimental。
 
 ## 新设备进入兼容矩阵的流程
 

@@ -1,0 +1,32 @@
+vendor: iStoreOS
+model: x86_64 VM sample
+device_id: generic-openwrt-x86_64
+
+platform: openwrt
+firmware_family: iStoreOS / OpenWrt
+firmware_sample: 24.10.7
+architecture: x86_64
+target: x86/64
+uu_channel: openwrt-x86_64
+
+status: experimental
+
+verified:
+  platform_detect: true
+  uu_api: true
+  package_md5: true
+  package_structure: true
+  temporary_staging: true
+  runtime_smoke_test: false
+  persistent_install: false
+  reboot: false
+  uu_cloud: false
+  remote_wol: false
+
+sample_date: 2026-08-30
+sample_uu_version: v14.6.22
+
+notes:
+  - This profile records a generic x86_64 iStoreOS/OpenWrt test environment, not a product compatibility claim.
+  - The staging test wrote only under /tmp and was cleaned after verification.
+  - No UU process was started and no UCI or persistent overlay setting was changed during this phase.

@@ -122,7 +122,7 @@ sh uu-helper.sh stage openwrt-aarch64
 |---|---|---|---:|---:|---:|---:|---|
 | Redmi AX6000 / RB06 | XiaoQiang / OpenWrt-derived | `openwrt-aarch64` | ✅ | ✅ | ✅ | ✅ | **Verified** |
 | ASUS RT-AX86U | ASUSWRT / Merlin-KoolShare | `static-asuswrt` | ✅ | ✅ | ✅ | ⚠️ | Platform reference |
-| Generic OpenWrt | OpenWrt | `openwrt-aarch64` / `openwrt-x86_64` 等按架构选择 | 🚧 | 🚧 | 🚧 | 🚧 | Experimental diagnostics |
+| Generic OpenWrt / iStoreOS | OpenWrt | `openwrt-aarch64` / `openwrt-x86_64` 等按架构选择 | 🚧 | 🚧 | 🚧 | 🚧 | Experimental; iStoreOS x86_64 detect + staging verified |
 | Other vendors | Vendor firmware | Unknown | ❓ | ❓ | ❓ | ❓ | Community research |
 
 > `Remote WOL = ✅` 只用于已经有真实远程开机证据的设备。不会因为插件能启动就标记兼容。
@@ -300,7 +300,8 @@ uu-remote-wol-router-helper/
 - [x] CI 测试入口已完成：shell 语法、单元/guard 测试与敏感信息扫描
 - [ ] GitHub Actions workflow：本地文件已准备，等待 `gh` 增加 `workflow` scope 后启用
 - [ ] 从原始证据中挑选并脱敏 README 图片
-- [ ] 第二环境复现：优先使用 NAS 上的 iStoreOS。网易当前已确认存在官方 `openwrt-x86_64` 通道（2026-08-30 返回 v14.6.22），因此可继续验证 Generic OpenWrt / staging / 持久化 / 回滚，并在明确授权后追加真实 UU runtime/WOL 节点实验
+- [x] 第二环境第一阶段：NAS iStoreOS 24.10.7 / x86_64 已通过 Generic OpenWrt detect + 官方 `openwrt-x86_64 v14.6.22` API / MD5 / tar / `/tmp` staging；未启动 UU、未改 UCI/overlay
+- [ ] 第二环境第二阶段：iStoreOS 真实 UU runtime / 持久化 / reboot / 云连接 / WOL 节点实验（运行态变更前单独确认）
 - [ ] 第三设备候选：闲置 RS2，后续用于扩展真实硬件兼容验证
 - [ ] Private review
 - [ ] Public release
