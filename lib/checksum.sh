@@ -5,15 +5,13 @@ uu_md5_file() {
 
     if command -v md5sum >/dev/null 2>&1; then
         output=$(md5sum "$file") || return $?
-        printf '%s
-' "${output%% *}"
+        printf '%s\n' "${output%% *}"
         return 0
     fi
 
     if command -v busybox >/dev/null 2>&1; then
         output=$(busybox md5sum "$file" 2>/dev/null) || return $?
-        printf '%s
-' "${output%% *}"
+        printf '%s\n' "${output%% *}"
         return 0
     fi
 

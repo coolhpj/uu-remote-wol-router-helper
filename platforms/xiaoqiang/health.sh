@@ -43,26 +43,16 @@ if command -v uci >/dev/null 2>&1; then
     [ -n "$value" ] && netmode="$value"
 fi
 
-printf '%s
-' "XiaoQiang UU health"
-printf '%s
-' "=================="
-printf 'plugin_dir: %s
-' "$PLUGIN_DIR"
-printf 'plugin_dir_exists: %s
-' "$([ -d "$PLUGIN_DIR" ] && printf yes || printf no)"
-printf 'version: %s
-' "$version"
-printf 'netmode: %s
-' "$netmode"
-printf 'monitor: %s
-' "$monitor"
-printf 'uuplugin: %s
-' "$plugin"
-printf 'guardian: %s
-' "$guardian"
-printf 'cloud_16000: %s
-' "$cloud"
+printf '%s\n' "XiaoQiang UU health"
+printf '%s\n' "=================="
+printf 'plugin_dir: %s\n' "$PLUGIN_DIR"
+printf 'plugin_dir_exists: %s\n' "$([ -d "$PLUGIN_DIR" ] && printf yes || printf no)"
+printf 'version: %s\n' "$version"
+printf 'netmode: %s\n' "$netmode"
+printf 'monitor: %s\n' "$monitor"
+printf 'uuplugin: %s\n' "$plugin"
+printf 'guardian: %s\n' "$guardian"
+printf 'cloud_16000: %s\n' "$cloud"
 
 if [ ! -d "$PLUGIN_DIR" ]; then
     exit 2

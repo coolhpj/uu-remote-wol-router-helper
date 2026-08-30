@@ -41,23 +41,14 @@ if [ -n "$netmode" ] || [ "$xiaoqiang_config" = "yes" ]; then
     matched="yes"
 fi
 
-printf '%s
-' "XiaoQiang platform detection"
-printf '%s
-' "============================"
-printf 'matched: %s
-' "$matched"
-printf 'architecture: %s
-' "$arch"
-printf 'uci: %s
-' "$uci_state"
-printf 'xiaoqiang_netmode: %s
-' "${netmode:-unknown}"
-printf 'xiaoqiang_config: %s
-' "$xiaoqiang_config"
-printf '/data: %s
-' "$persistent_data"
-printf '/userdisk/appdata: %s
-' "$userdisk_appdata"
+printf '%s\n' "XiaoQiang platform detection"
+printf '%s\n' "============================"
+printf 'matched: %s\n' "$matched"
+printf 'architecture: %s\n' "$arch"
+printf 'uci: %s\n' "$uci_state"
+printf 'xiaoqiang_netmode: %s\n' "${netmode:-unknown}"
+printf 'xiaoqiang_config: %s\n' "$xiaoqiang_config"
+printf '/data: %s\n' "$persistent_data"
+printf '/userdisk/appdata: %s\n' "$userdisk_appdata"
 
 [ "$matched" = "yes" ]

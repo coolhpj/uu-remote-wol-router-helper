@@ -11,28 +11,18 @@ if ! uu_api_fetch_and_parse "$channel"; then
     exit 1
 fi
 
-printf '%s
-' "UU API check"
-printf '%s
-' "============"
-printf 'channel: %s
-' "$channel"
-printf 'status: %s
-' "$UU_API_STATUS"
-printf 'version: %s
-' "$UU_API_VERSION"
-printf 'md5: %s
-' "$UU_API_MD5"
-printf 'url: %s
-' "$UU_API_URL"
+printf '%s\n' "UU API check"
+printf '%s\n' "============"
+printf 'channel: %s\n' "$channel"
+printf 'status: %s\n' "$UU_API_STATUS"
+printf 'version: %s\n' "$UU_API_VERSION"
+printf 'md5: %s\n' "$UU_API_MD5"
+printf 'url: %s\n' "$UU_API_URL"
 if [ -n "$UU_API_URL_BAK" ]; then
-    printf 'url_bak: %s
-' "$UU_API_URL_BAK"
+    printf 'url_bak: %s\n' "$UU_API_URL_BAK"
 fi
 if [ -n "$UU_API_SIGNATURE" ]; then
-    printf 'signature: present
-'
+    printf 'signature: present\n'
 else
-    printf 'signature: absent
-'
+    printf 'signature: absent\n'
 fi

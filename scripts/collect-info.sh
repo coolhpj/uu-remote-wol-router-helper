@@ -87,7 +87,13 @@ elif have ss; then
 fi
 
 uu_known_path="none"
-for p in     /userdisk/appdata/2882303761518031252     /jffs/uu     /data/uu-v14     /data/uuplugin     /usr/share/uuplugin     /etc/uuplugin
+for p in \
+    /userdisk/appdata/2882303761518031252 \
+    /jffs/uu \
+    /data/uu-v14 \
+    /data/uuplugin \
+    /usr/share/uuplugin \
+    /etc/uuplugin
  do
     if [ -e "$p" ]; then
         if [ "$uu_known_path" = "none" ]; then

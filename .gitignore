@@ -12,7 +12,7 @@ evidence-private/
 reports/
 private-reports/
 
-# Local environment files
+# Secrets / credentials
 .env
 .env.*
 *.key
@@ -20,6 +20,9 @@ private-reports/
 *.crt
 *.p12
 *.pfx
+*secret*
+*token*
+*credential*
 
 # OS/editor
 .DS_Store

@@ -85,4 +85,12 @@
 - 只读 collect-info 报告
 - 是否愿意测试 Experimental adapter
 
-默认不得提交敏感凭据、设备验证码或未脱敏的网络身份信息。
+默认不得提交：
+
+- root 密码
+- PPPoE 密码
+- UU账号凭据
+- SN
+- Token
+- 设备验证码
+- 未脱敏公网 IP / MAC
