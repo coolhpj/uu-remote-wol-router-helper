@@ -127,7 +127,7 @@ sh uu-helper.sh stage auto
 
 > `Remote WOL = ✅` 只用于已经有真实远程开机证据的设备。不会因为插件能启动就标记兼容。iStoreOS 行的 `✅*` 表示：真实持久安装、真实 reboot 后自动恢复、UU云连接和移动数据 Remote WOL 都已验收通过；真实 rollback 仍未执行，所以暂时保持 Experimental。
 
-完整矩阵见 [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md)。SSH/root 使用边界见 [`docs/SSH-ACCESS.md`](docs/SSH-ACCESS.md)。XiaoQiang 适配说明见 [`docs/XIAOQIANG.md`](docs/XIAOQIANG.md)，ASUSWRT 参考适配见 [`docs/ASUSWRT.md`](docs/ASUSWRT.md)，Generic OpenWrt 诊断层见 [`docs/OPENWRT.md`](docs/OPENWRT.md)。
+完整矩阵见 [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md)。SSH/root 使用边界见 [`docs/SSH-ACCESS.md`](docs/SSH-ACCESS.md)。XiaoQiang 适配说明见 [`docs/XIAOQIANG.md`](docs/XIAOQIANG.md)，ASUSWRT 参考适配见 [`docs/ASUSWRT.md`](docs/ASUSWRT.md)，Generic OpenWrt 诊断层见 [`docs/OPENWRT.md`](docs/OPENWRT.md)。同账号存在多个辅助路由器时的已知事实与 A/B/C 验证方法见 [`docs/MULTI-AUX-DEVICE.md`](docs/MULTI-AUX-DEVICE.md)。
 
 ## 成功标准
 
