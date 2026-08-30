@@ -57,22 +57,47 @@ if {!$prompt_ready} {
     }
 }
 
-send "ip link set eth1 up; udhcpc -i eth1 -q -n -t 5 >/tmp/udhcpc-wan.log 2>&1; ip -4 addr show dev eth1 | grep -q 'inet ' && echo LAB_DHCP_OK\r"
+# The login console becomes available before OpenWrt has finished late network
+# initialization on armsr. Let that settle before taking control of the second
+# virtio NIC, otherwise netifd can race with the temporary DHCP route.
+send "sleep 40; ip link set eth1 up; udhcpc -i eth1 -q -n -t 5 >/tmp/udhcpc-wan.log 2>&1; ip -4 addr show dev eth1 | grep -q 'inet ' && echo LAB_DHCP_OK\r"
+set timeout 70
 expect {
     -re {LAB_DHCP_OK} {}
-    timeout { puts stderr "QEMU user-network DHCP did not configure eth1"; exit 20 }
+    timeout { puts stderr "QEMU user-network DHCP did not configure eth1 after network settle"; exit 20 }
+}
+set timeout 300
+
+send "rm -f /tmp/pre-stage-api.json; wget -qO /tmp/pre-stage-api.json 'https://router.uu.163.com/api/plugin?type=openwrt-aarch64' && grep -q '\"status\":\"ok\"' /tmp/pre-stage-api.json && echo LAB_PRE_STAGE_API_OK\r"
+expect {
+    -re {LAB_PRE_STAGE_API_OK} {}
+    timeout { puts stderr "stable guest WAN could not reach NetEase API before staging"; exit 21 }
 }
 
 send "mkdir -p /mnt/repo; modprobe 9pnet_virtio >/dev/null 2>&1 || true; mount -t 9p -o trans=virtio repo /mnt/repo >/tmp/9p-mount.log 2>&1 && test -f /mnt/repo/scripts/stage-package.sh && echo LAB_REPO_MOUNT_OK\r"
 expect {
     -re {LAB_REPO_MOUNT_OK} {}
-    timeout { puts stderr "read-only repository 9P mount failed"; exit 21 }
+    timeout { puts stderr "read-only repository 9P mount failed"; exit 22 }
 }
 
-send "rm -rf /tmp/uu-wol-helper-qemu-stage; UU_STAGE_DIR=/tmp/uu-wol-helper-qemu-stage sh /mnt/repo/scripts/stage-package.sh openwrt-aarch64\r"
+send "rm -rf /tmp/uu-wol-helper-qemu-stage; UU_STAGE_DIR=/tmp/uu-wol-helper-qemu-stage sh /mnt/repo/scripts/stage-package.sh openwrt-aarch64 && echo LAB_STAGE_COMMAND_OK || echo LAB_STAGE_COMMAND_FAILED\r"
+set stage_ready 0
 expect {
-    -re {STAGE_READY} {}
-    timeout { puts stderr "repository stage-package.sh did not reach STAGE_READY"; exit 22 }
+    -re {STAGE_READY} {
+        set stage_ready 1
+        exp_continue
+    }
+    -re {LAB_STAGE_COMMAND_OK} {
+        if {!$stage_ready} {
+            puts stderr "stage-package.sh returned success without STAGE_READY"
+            exit 23
+        }
+    }
+    -re {LAB_STAGE_COMMAND_FAILED} {
+        puts stderr "repository stage-package.sh returned failure"
+        exit 23
+    }
+    timeout { puts stderr "repository stage-package.sh did not finish"; exit 23 }
     eof { puts stderr "QEMU exited during package staging"; exit 23 }
 }
 
@@ -82,7 +107,7 @@ expect {
     timeout { puts stderr "staged ARM64 package files are incomplete"; exit 24 }
 }
 
-send "rm -rf /tmp/uu-wol-helper-qemu-stage /tmp/udhcpc-wan.log /tmp/9p-mount.log; umount /mnt/repo >/dev/null 2>&1 || true; echo LAB_STAGE_OK\r"
+send "rm -rf /tmp/uu-wol-helper-qemu-stage /tmp/udhcpc-wan.log /tmp/9p-mount.log /tmp/pre-stage-api.json; umount /mnt/repo >/dev/null 2>&1 || true; echo LAB_STAGE_OK\r"
 expect {
     -re {LAB_STAGE_OK} {}
     timeout { puts stderr "staging cleanup marker missing"; exit 25 }
