@@ -86,7 +86,7 @@
 ### 5. 最终公开前安全审计
 
 - [ ] 再跑一次全仓库 sensitive scan；
-- [ ] 检查历史 commit 是否包含不应公开的真实 IP/MAC/账号/临时 key；
+- [x] 当前 53 个历史 commit 已用 `tests/scan-history-sensitive.sh` 扫描，未发现规则命中的真实 IP/MAC/GitHub Token/网易临时 key；切 Public 前仍需在最终 HEAD 再跑一次；
 - [ ] 检查 README 和设备档案没有把测试环境的私网地址写成通用配置；
 - [ ] 确认仓库不包含原始完整聊天、PDF、第三方闭源 UU 二进制或未授权第三方代码。
 
