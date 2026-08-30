@@ -10,6 +10,7 @@ Usage:
   sh uu-helper.sh diagnose
   sh uu-helper.sh collect-info
   sh uu-helper.sh check-api [channel]
+  sh uu-helper.sh preflight
   sh uu-helper.sh stage [channel]
   sh uu-helper.sh help
 
@@ -17,6 +18,7 @@ Commands:
   diagnose      Read-only platform detection and UU health summary.
   collect-info  Read-only environment report for unsupported routers.
   check-api     Read-only NetEase UU plugin API check.
+  preflight     Read-only XiaoQiang readiness checks before staging/smoke-test.
   stage         Download, verify and extract the official package under /tmp only.
   help          Show this help.
 
@@ -94,6 +96,9 @@ case "$command_name" in
     check-api)
         shift
         exec sh "$ROOT_DIR/scripts/check-api.sh" "${1:-openwrt-aarch64}"
+        ;;
+    preflight)
+        exec sh "$ROOT_DIR/platforms/xiaoqiang/preflight.sh"
         ;;
     stage)
         shift

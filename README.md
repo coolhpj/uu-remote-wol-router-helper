@@ -48,10 +48,11 @@ Private Draft 阶段先开放诊断与临时 staging，不提供正式安装：
 sh uu-helper.sh diagnose
 sh uu-helper.sh collect-info
 sh uu-helper.sh check-api openwrt-aarch64
+sh uu-helper.sh preflight
 sh uu-helper.sh stage openwrt-aarch64
 ```
 
-`diagnose / collect-info / check-api` 都是只读操作。`stage` 只在 `/tmp/uu-wol-helper-*` 下下载、MD5 校验、检查 tar 路径并解压官方包；它不会停止/启动 UU 进程，也不会修改持久目录或注册自启动。
+`diagnose / collect-info / check-api / preflight` 都是只读操作。当前 `preflight` 只针对 XiaoQiang adapter，检查平台、AArch64、非 AP 模式、必需工具、`/tmp` 可写和空间阈值。`stage` 只在 `/tmp/uu-wol-helper-*` 下下载、MD5 校验、检查 tar 路径并解压官方包；它不会停止/启动 UU 进程，也不会修改持久目录或注册自启动。
 
 `diagnose` 会先匹配已知平台 adapter。当前 XiaoQiang 已有只读检测/健康检查；未知平台只进入 `collect-info`，不会猜测型号或执行安装。
 
@@ -288,6 +289,7 @@ uu-remote-wol-router-helper/
 - [x] 完成 XiaoQiang 只读 detect/health
 - [x] 完成统一 `uu-helper.sh` 安全入口
 - [x] 完成官方包下载 / MD5 / staging 链
+- [x] 完成 XiaoQiang 只读 preflight
 - [ ] 完成临时 smoke-test 运行链
 - [ ] 重写 XiaoQiang 持久安装 adapter
 - [ ] 整理 ASUSWRT reference adapter
