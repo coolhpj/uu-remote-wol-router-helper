@@ -28,7 +28,9 @@ Unknown → collect-info only
 
 2026-08-30 已通过网易官方 API 确认存在 `openwrt-x86_64` 通道，当前返回 **v14.6.22**。项目已经在真实 iStoreOS 24.10.7 / x86_64 上完成 API、MD5、tar、`/tmp` staging 和临时 runtime smoke-test：`uuplugin + xuplugin-guardian + :16000 ESTABLISHED` 在约 2 秒内同时通过。
 
-测试后临时 UU 已停止，未写 UCI/`/overlay`；OpenClash 仍在线，`XU_*` 临时 nftables 表无残留，`ip rule`、`ip route` 与归一化后的 nft ruleset 均恢复到测试前结构。iStoreOS 因此已经证明可以运行网易官方 x86_64 UU 后端，但**持久安装、reboot、UU App 辅助设备识别和 Remote WOL 仍未验证**。
+随后完成了完整功能链实验：手机默认网关切到 iStoreOS 后，UU主机加速将其识别并绑定为 OpenWrt；Windows 默认网关同样指向 iStoreOS，暂停同账号下 AX86U 的 UU runtime 后，UU远程辅助设备页面从“华硕路由器”切换为通用“路由器”，继续配置后最终在手机关闭 Wi‑Fi、仅使用移动数据时成功唤醒 Windows。
+
+测试后临时 UU 已停止，未写 UCI/`/overlay`；OpenClash 仍在线，`XU_*` 临时 nftables 表无残留，`ip rule`、`ip route` 与归一化后的 nft ruleset 均恢复到测试前结构。AX86U UU 也已恢复。iStoreOS 因此已经证明可以运行网易官方 x86_64 UU 后端并完成 Remote WOL 功能终验，但**持久安装、真实 reboot 后自动恢复和回滚仍未验证**。
 
 ## 平台预检与官方通道自动选择
 
@@ -86,6 +88,12 @@ Generic OpenWrt 目前只说明：
 它**不代表安装器已验证**。
 
 Private Draft 已加入 `platforms/openwrt/smoke-test.sh`，但**暂时没有接入 `uu-helper.sh`**。它默认禁用、只允许 `/tmp/uu-wol-helper-*` staging、要求 root + staging/MD5/channel 全部匹配；如果设备上已经存在任何 UU runtime，直接拒绝，不尝试停止或替换。只有真实临时 runtime 同时满足 `uuplugin + guardian + :16000 ESTABLISHED`，并在停止后确认没有 UU 进程或 `XU_*` firewall 残留，才允许写入与 staging MD5 绑定的 smoke-pass 证据。
+
+### 多个同账号 UU 路由器同时在线的实测现象
+
+本样本同时存在 AX86U 与 iStoreOS 两个已绑定同一 UU 账号的路由器 runtime。实测中，即使手机和 Windows 默认网关都已指向 iStoreOS，只要 AX86U UU 仍在线，UU远程辅助设备页面仍优先显示“华硕路由器”；临时暂停 AX86U UU 后，页面切换为通用“路由器”，随后 iStoreOS 完成了移动数据 Remote WOL 终验。
+
+这只记录当前样本行为，不把它写成网易官方的固定优先级规则。多路由器环境排障时，应把“同账号下其它 UU 路由器是否同时在线”列为一个重要变量。
 
 在给某台 Generic OpenWrt 开放安装前，仍要确认：
 

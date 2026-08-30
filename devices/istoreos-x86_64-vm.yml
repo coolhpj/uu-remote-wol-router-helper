@@ -23,7 +23,9 @@ verified:
   persistent_install: false
   reboot: false
   uu_cloud: true
-  remote_wol: false
+  uu_app_bind: true
+  auxiliary_device_detect: true
+  remote_wol: true
 
 sample_date: 2026-08-30
 sample_uu_version: v14.6.22
@@ -34,4 +36,6 @@ notes:
   - Official openwrt-x86_64 v14.6.22 started successfully; uuplugin + guardian + :16000 were healthy within 2 seconds.
   - Temporary UU processes were stopped after the test; XU_* nftables residue was absent and OpenClash remained online.
   - ip rule, ip route and normalized nft ruleset matched the pre-test baseline after cleanup.
-  - Persistent install, reboot behavior, UU App recognition and Remote WOL are still unverified.
+  - UU主机加速 App 已在手机默认网关指向 iStoreOS 时识别并绑定 OpenWrt。
+  - UU远程辅助设备检测在暂停同账号下 AX86U UU 后切换到通用“路由器”，随后完成手机关闭 Wi-Fi、仅移动数据的远程开机终验。
+  - 该 WOL 终验使用的是 /tmp 临时 runtime；持久安装、真实 reboot 后自动恢复与回滚仍未验证。

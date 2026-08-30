@@ -122,10 +122,10 @@ sh uu-helper.sh stage auto
 |---|---|---|---:|---:|---:|---:|---|
 | Redmi AX6000 / RB06 | XiaoQiang / OpenWrt-derived | `openwrt-aarch64` | ✅ | ✅ | ✅ | ✅ | **Verified** |
 | ASUS RT-AX86U | ASUSWRT / Merlin-KoolShare | `static-asuswrt` | ✅ | ✅ | ✅ | ⚠️ | Platform reference |
-| Generic OpenWrt / iStoreOS | OpenWrt | `openwrt-aarch64` / `openwrt-x86_64` 等按架构选择 | 🚧 | 🚧 | ✅* | 🚧 | Experimental; iStoreOS x86_64 temporary runtime + cloud verified |
+| Generic OpenWrt / iStoreOS | OpenWrt | `openwrt-aarch64` / `openwrt-x86_64` 等按架构选择 | 🚧 | 🚧 | ✅* | ✅* | Experimental; iStoreOS x86_64 temporary runtime + mobile-data WOL verified |
 | Other vendors | Vendor firmware | Unknown | ❓ | ❓ | ❓ | ❓ | Community research |
 
-> `Remote WOL = ✅` 只用于已经有真实远程开机证据的设备。不会因为插件能启动就标记兼容。`UU Cloud = ✅*` 在 iStoreOS 行仅表示临时 smoke-test 已真实建立 `:16000`，不代表持久安装/reboot 已验证。
+> `Remote WOL = ✅` 只用于已经有真实远程开机证据的设备。不会因为插件能启动就标记兼容。iStoreOS 行的 `✅*` 表示：临时 `/tmp` runtime 已真实建立 `:16000`，UU主机加速已成功绑定 OpenWrt，UU远程已检测到辅助路由器，并完成手机关闭 Wi‑Fi、仅移动数据的远程开机终验；但持久安装与真实 reboot 仍未验证。
 
 完整矩阵见 [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md)。SSH/root 使用边界见 [`docs/SSH-ACCESS.md`](docs/SSH-ACCESS.md)。XiaoQiang 适配说明见 [`docs/XIAOQIANG.md`](docs/XIAOQIANG.md)，ASUSWRT 参考适配见 [`docs/ASUSWRT.md`](docs/ASUSWRT.md)，Generic OpenWrt 诊断层见 [`docs/OPENWRT.md`](docs/OPENWRT.md)。
 
@@ -302,7 +302,8 @@ uu-remote-wol-router-helper/
 - [ ] GitHub Actions workflow：本地文件已准备，等待 `gh` 增加 `workflow` scope 后启用
 - [ ] 从原始证据中挑选并脱敏 README 图片
 - [x] 第二环境第一阶段：NAS iStoreOS 24.10.7 / x86_64 已通过 detect/preflight + `stage auto` + 官方 `openwrt-x86_64 v14.6.22` 临时 runtime / `:16000` 云连接；未改 UCI/overlay，测试后规则恢复基线
-- [ ] 第二环境第二阶段：iStoreOS 持久化 / reboot / UU App 辅助设备识别 / WOL 节点实验
+- [x] 第二环境第二阶段（功能终验）：UU主机加速绑定 OpenWrt、UU远程辅助设备检测、手机关闭 Wi‑Fi 后仅用移动数据远程开机均已成功
+- [ ] 第二环境第三阶段（部署终验）：iStoreOS 持久安装 / reboot 后自动恢复 / 回滚流程
 - [ ] 第三设备候选：闲置 RS2，后续用于扩展真实硬件兼容验证
 - [ ] Private review
 - [ ] Public release

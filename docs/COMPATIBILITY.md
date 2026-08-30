@@ -16,7 +16,7 @@
 |---|---|---|---|---|---|---|---:|---:|---:|---:|---|
 | Redmi | AX6000 | RB06 | XiaoQiang / OpenWrt-derived | MT7986 / AArch64 | `openwrt-aarch64` | Required for manual adaptation | ✅ | ✅ | ✅ | ✅ | **Verified** |
 | ASUS | RT-AX86U | RT-AX86U | ASUSWRT / Merlin-KoolShare | AArch64 | `static-asuswrt` | Not required for official UI; required for advanced adaptation/diagnostics | ✅ | ✅ | ✅ | ⚠️ | Platform reference |
-| iStoreOS | x86_64 VM sample | generic-openwrt-x86_64 | OpenWrt / iStoreOS 24.10.7 | x86_64 / x86/64 | `openwrt-x86_64` | Available | 🚧 | 🚧 | ✅ | 🚧 | Experimental: temporary runtime + cloud verified |
+| iStoreOS | x86_64 VM sample | generic-openwrt-x86_64 | OpenWrt / iStoreOS 24.10.7 | x86_64 / x86/64 | `openwrt-x86_64` | Available | 🚧 | 🚧 | ✅ | ✅* | Experimental: temporary runtime + mobile-data WOL verified |
 
 ## Redmi AX6000 / RB06
 
@@ -60,7 +60,9 @@
 
 这只代表 **Experimental diagnostics**，不代表这些设备已经完成安装、重启或 Remote WOL 验证。具体型号仍需按下面流程逐台进入兼容矩阵。
 
-当前第二环境样本已经用 iStoreOS 24.10.7 / x86_64 实测通过：Generic OpenWrt detect/preflight、`openwrt-x86_64 v14.6.22` 官方 API、MD5、tar、`/tmp` staging，以及临时 `uuplugin + guardian + :16000 ESTABLISHED` runtime smoke-test。测试后 OpenClash 保持在线、UU/XU_* 运行残留已清理，网络规则结构恢复基线。持久安装、真实 reboot、UU App 辅助设备识别与 Remote WOL 尚未执行，因此仍保持 Experimental。
+当前第二环境样本已经用 iStoreOS 24.10.7 / x86_64 实测通过：Generic OpenWrt detect/preflight、`openwrt-x86_64 v14.6.22` 官方 API、MD5、tar、`/tmp` staging，以及临时 `uuplugin + guardian + :16000 ESTABLISHED` runtime smoke-test。随后手机默认网关切到 iStoreOS，UU主机加速成功识别并绑定 OpenWrt；Windows 默认网关同样切到 iStoreOS 后，UU远程完成辅助设备检测，并最终在手机关闭 Wi‑Fi、仅使用移动数据时成功唤醒 Windows。测试后 OpenClash 保持在线、UU/XU_* 运行残留已清理，网络规则结构恢复基线。
+
+> `Remote WOL = ✅*` 只表示这台 iStoreOS 样本的**功能链路终验成功**。由于本次使用 `/tmp` 临时 runtime，尚未完成持久安装、真实 reboot 后自动恢复与回滚，因此整体状态仍保持 Experimental，而不是完整 Verified。
 
 ## 新设备进入兼容矩阵的流程
 
