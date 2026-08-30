@@ -1,0 +1,96 @@
+#!/usr/bin/expect -f
+
+set timeout 150
+
+if {$argc != 2} {
+    puts stderr "usage: boot-smoke.exp <kernel-image> <openwrt-version>"
+    exit 2
+}
+
+set image [lindex $argv 0]
+set version [lindex $argv 1]
+
+spawn qemu-system-aarch64 \
+    -machine virt \
+    -cpu cortex-a57 \
+    -m 256 \
+    -smp 2 \
+    -nographic \
+    -no-reboot \
+    -kernel $image \
+    -netdev user,id=net0 \
+    -device virtio-net-pci,netdev=net0
+
+set prompt_ready 0
+expect {
+    -re {Please press Enter to activate this console\.} {
+        send "\r"
+    }
+    -re {root@OpenWrt:/#} {
+        set prompt_ready 1
+    }
+    timeout {
+        puts stderr "OpenWrt console did not become ready"
+        exit 10
+    }
+    eof {
+        puts stderr "QEMU exited before OpenWrt console became ready"
+        exit 11
+    }
+}
+
+if {!$prompt_ready} {
+    expect {
+        -re {root@OpenWrt:/#} {}
+        timeout {
+            puts stderr "OpenWrt root prompt did not appear after activating console"
+            exit 12
+        }
+        eof {
+            puts stderr "QEMU exited before root prompt appeared"
+            exit 13
+        }
+    }
+}
+
+send "printf 'LAB_ARCH='; uname -m\r"
+expect {
+    -re {LAB_ARCH=aarch64} {}
+    timeout { puts stderr "unexpected guest architecture"; exit 20 }
+}
+
+send "grep -F \"DISTRIB_TARGET='armsr/armv8'\" /etc/openwrt_release >/dev/null && echo LAB_TARGET_OK\r"
+expect {
+    -re {LAB_TARGET_OK} {}
+    timeout { puts stderr "unexpected OpenWrt target"; exit 21 }
+}
+
+send "grep -F \"DISTRIB_RELEASE='$version'\" /etc/openwrt_release >/dev/null && echo LAB_RELEASE_OK\r"
+expect {
+    -re {LAB_RELEASE_OK} {}
+    timeout { puts stderr "unexpected OpenWrt release"; exit 22 }
+}
+
+send "ip link show eth0 >/dev/null 2>&1 && echo LAB_NIC_OK\r"
+expect {
+    -re {LAB_NIC_OK} {}
+    timeout { puts stderr "virtio network interface was not detected"; exit 23 }
+}
+
+send "echo LAB_BOOT_OK\r"
+expect {
+    -re {LAB_BOOT_OK} {}
+    timeout { puts stderr "boot completion marker missing"; exit 24 }
+}
+
+send "reboot -f\r"
+set timeout 30
+expect {
+    eof {}
+    timeout {
+        puts stderr "QEMU did not exit after forced reboot with -no-reboot"
+        exit 25
+    }
+}
+
+exit 0

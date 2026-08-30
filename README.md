@@ -291,8 +291,8 @@ uu-remote-wol-router-helper/
 - [x] 完成官方包下载 / MD5 / staging 链
 - [x] 完成 XiaoQiang 只读 preflight
 - [x] 从 RB06 最终证据提取 monitor / wrapper / boot-helper runtime 模板并加入离线回归测试
-- [ ] RB06 实机复验临时 smoke-test + legacy-migration installer/rollback（保护壳与离线回归已完成，等待合适窗口，不把朋友路由器当调试机）
-- [x] 完成 XiaoQiang legacy-migration 持久化 adapter 草稿：smoke-pass 闸门、旧插件/metadata/helper/firewall 备份、官方 runtime 迁移、动态显示版本更新与 rollback；裸机 fresh install 明确 fail closed，尚待 RB06 实机二次复验
+- [ ] 建立 ARM64 OpenWrt QEMU Lab，并在其上加入 XiaoQiang compatibility shim；新版 smoke-test / legacy-migration installer / rollback 改由 Lab 做持续回归，不再要求朋友 RB06 日常复现
+- [x] 完成 XiaoQiang legacy-migration 持久化 adapter 草稿：smoke-pass 闸门、旧插件/metadata/helper/firewall 备份、官方 runtime 迁移、动态显示版本更新与 rollback；裸机 fresh install 明确 fail closed，真实 RB06 历史终验与新版软件回归分开记录
 - [x] 完成 ASUSWRT reference adapter 的只读 detect/health
 - [x] 完成 Generic OpenWrt Experimental detect/health + platform-aware preflight + confirmed channel auto-selection
 - [x] 完成 Generic OpenWrt 临时 smoke-test，并在真实 iStoreOS x86_64 上验证 `uuplugin + guardian + :16000`；测试后 OpenClash/网络规则恢复基线
@@ -300,7 +300,7 @@ uu-remote-wol-router-helper/
 - [x] 完成 ASUSWRT 安装/恢复策略设计：官方集成设备只做 detect/health/recovery guidance，默认不覆盖 `/jffs/uu`；未来仅对有实机回滚证据的具体型号增加 model-specific recovery
 - [x] 第一轮敏感信息扫描（公开前需再次扫描）
 - [x] CI 测试入口已完成：shell 语法、单元/guard 测试与敏感信息扫描
-- [ ] GitHub Actions workflow：本地文件已准备，等待 `gh` 增加 `workflow` scope 后启用
+- [x] GitHub Actions CI 已启用并完成首次云端全绿；当前 checkout 为完整 Git 历史并运行本地回归 + 工作树/历史敏感扫描
 - [ ] 从原始证据中挑选并脱敏 README 图片
 - [x] 第二环境第一阶段：NAS iStoreOS 24.10.7 / x86_64 已通过 detect/preflight + `stage auto` + 官方 `openwrt-x86_64 v14.6.22` 临时 runtime / `:16000` 云连接；未改 UCI/overlay，测试后规则恢复基线
 - [x] 第二环境第二阶段（功能终验）：UU主机加速绑定 OpenWrt、UU远程辅助设备检测、手机关闭 Wi‑Fi 后仅用移动数据远程开机均已成功

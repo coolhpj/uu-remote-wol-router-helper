@@ -53,12 +53,14 @@
 
 以下项目未完成前，不把仓库切为 Public：
 
-### 1. RB06 重写代码实机复验
+### 1. XiaoQiang / RB06 重写代码回归
 
-- [ ] 在合适窗口使用重写后的 XiaoQiang smoke-test 做一次真实复现；
-- [ ] 在有明确回滚点的情况下验证 legacy-migration installer；
-- [ ] 验证 rewritten rollback 能恢复安装前状态；
-- [ ] 不把朋友路由器当日常调试机，失败必须立即停止扩大变更。
+朋友 RB06 不再作为新版代码的日常复现设备。现有真实 RB06 的 reboot / UU 云连接 / 手机移动数据 Remote WOL 终验继续作为硬件事实；新版 installer / rollback 改由可重复实验室验证。
+
+- [ ] 建立 ARM64 OpenWrt QEMU Lab；
+- [ ] 在 Lab 上加入 XiaoQiang compatibility shim（`/data`、`/userdisk/appdata`、NETMODE、`firewall.uuplugin`）；
+- [ ] 跑通 rewritten smoke-test / legacy-migration installer / rollback；
+- [ ] QEMU Lab 只证明软件回归，不冒充新的 RB06 实体硬件终验。
 
 ### 2. iStoreOS 部署链最后验收
 
@@ -78,10 +80,9 @@
 
 ### 4. GitHub Actions 真正上线
 
-- [x] `.github/workflows/ci.yml` 本地内容已准备；
-- [ ] 当前 `gh` OAuth Token 增加 `workflow` scope；
-- [ ] 正常 push workflow；
-- [ ] 至少观察一次 GitHub 云端 Actions 全绿。
+- [x] 当前 `gh` OAuth Token 已包含 `workflow` scope；
+- [x] `.github/workflows/ci.yml` 已正常 push；
+- [x] 首次 GitHub 云端 Actions 已实际运行并全绿（CI run `33322370954`）。
 
 ### 5. 最终公开前安全审计
 

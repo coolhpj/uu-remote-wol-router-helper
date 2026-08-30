@@ -1,0 +1,33 @@
+name: QEMU ARM64 Lab
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/qemu-arm64.yml'
+      - 'labs/qemu/openwrt-aarch64/**'
+      - 'platforms/openwrt/**'
+      - 'platforms/xiaoqiang/**'
+      - 'lib/**'
+      - 'scripts/**'
+      - 'uu-helper.sh'
+
+permissions:
+  contents: read
+
+jobs:
+  boot-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install QEMU ARM64 tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-arm expect
+
+      - name: Boot official OpenWrt ARM64 image
+        run: sh labs/qemu/openwrt-aarch64/boot-smoke.sh
