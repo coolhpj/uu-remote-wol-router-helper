@@ -81,7 +81,7 @@ Generic OpenWrt **不强制 monitor 必须存在**，因为标准 OpenWrt 设备
 
 ## 当前状态：Experimental Adapter
 
-Generic OpenWrt 已经不再只是只读诊断：真实 iStoreOS x86_64 已完成 detect / preflight / stage / 临时 runtime / UU 云连接 / UU账号绑定 / 手机移动数据 Remote WOL 功能终验。但**持久部署与 reboot 仍未在真实设备验收**，因此继续保持 Experimental，而不是直接标成完整 Verified。
+Generic OpenWrt 已经不再只是只读诊断：真实 iStoreOS x86_64 已完成 detect / preflight / stage / 临时 runtime / UU 云连接 / UU账号绑定 / 手机移动数据 Remote WOL 功能终验，并已完成真实 `/overlay` 持久安装。**真实 reboot 后自动恢复与真实 rollback 尚未验收**，因此继续保持 Experimental，而不是直接标成完整 Verified。
 
 Private Draft 已加入 `platforms/openwrt/smoke-test.sh`，但**暂时没有接入 `uu-helper.sh`**。它默认禁用、只允许 `/tmp/uu-wol-helper-*` staging、要求 root + staging/MD5/channel 全部匹配；如果设备上已经存在任何 UU runtime，直接拒绝，不尝试停止或替换。只有真实临时 runtime 同时满足 `uuplugin + guardian + :16000 ESTABLISHED`，并在停止后确认没有 UU 进程或 `XU_*` firewall 残留，才允许写入与 staging MD5 绑定的 smoke-pass 证据。
 
@@ -105,7 +105,9 @@ Private Draft 已加入 `platforms/openwrt/smoke-test.sh`，但**暂时没有接
 
 真实写入前必须同时满足：OpenWrt preflight、官方 package MD5/结构复核、架构与 channel 匹配、以及同一 staging MD5 对应的 `smoke-pass`。安装脚本默认禁用；服务 `enable/start/health` 任一步失败会尝试自动 rollback。卸载脚本只删除带本项目 ownership marker 的文件，避免误删其它 UU 实现。
 
-2026-08-30 已在 fake-root 环境完成旧目录/旧 init 备份、安装、rollback 恢复、陌生文件拒删、fresh install + uninstall 的自动回归。随后又把同一套脚本原样送入真实 iStoreOS 24.10.7 的 BusyBox 用户态，仅在 `/tmp` fake-root 中复验，结果同样全部通过并已清理。真实 iStoreOS 也已只读确认：`/usr/lib` 与 `/etc/init.d` 都由 `/overlay` 持久化，`rc.common/procd/rc.d` 可用，约 1.6 GiB 可用空间，计划使用的三个路径当前无冲突。**但尚未执行真实持久安装或 reboot。**
+2026-08-30 已在 fake-root 环境完成旧目录/旧 init 备份、安装、rollback 恢复、陌生文件拒删、fresh install + uninstall 的自动回归。随后又把同一套脚本原样送入真实 iStoreOS 24.10.7 的 BusyBox 用户态，仅在 `/tmp` fake-root 中复验，结果同样全部通过并已清理。真实 iStoreOS 也确认：`/usr/lib` 与 `/etc/init.d` 都由 `/overlay` 持久化，`rc.common/procd/rc.d` 可用，约 1.6 GiB 可用空间，三个目标路径安装前无冲突。
+
+随后已完成真实持久安装：`/usr/lib/uu-wol-helper`、`/etc/init.d/uu-wol-helper` 与 `/etc/uu-wol-helper` 已写入，procd `S95/K10` 已 enable；官方 `openwrt-x86_64 v14.6.22` 在安装后约 2 秒达到 `uuplugin + guardian + :16000 ESTABLISHED`，OpenClash 同时保持在线。安装前备份目录为 `/etc/uu-wol-helper/backups/20260830-204554-13316`。**尚未执行真实 reboot 后自动恢复与真实 rollback 验收。**
 
 ### 多个同账号 UU 路由器同时在线的实测现象
 

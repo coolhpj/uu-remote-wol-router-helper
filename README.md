@@ -122,10 +122,10 @@ sh uu-helper.sh stage auto
 |---|---|---|---:|---:|---:|---:|---|
 | Redmi AX6000 / RB06 | XiaoQiang / OpenWrt-derived | `openwrt-aarch64` | ✅ | ✅ | ✅ | ✅ | **Verified** |
 | ASUS RT-AX86U | ASUSWRT / Merlin-KoolShare | `static-asuswrt` | ✅ | ✅ | ✅ | ⚠️ | Platform reference |
-| Generic OpenWrt / iStoreOS | OpenWrt | `openwrt-aarch64` / `openwrt-x86_64` 等按架构选择 | 🚧 | 🚧 | ✅* | ✅* | Experimental; iStoreOS x86_64 temporary runtime + mobile-data WOL verified |
+| Generic OpenWrt / iStoreOS | OpenWrt | `openwrt-aarch64` / `openwrt-x86_64` 等按架构选择 | ✅* | 🚧 | ✅* | ✅* | Experimental; iStoreOS x86_64 persistent install + mobile-data WOL verified, reboot pending |
 | Other vendors | Vendor firmware | Unknown | ❓ | ❓ | ❓ | ❓ | Community research |
 
-> `Remote WOL = ✅` 只用于已经有真实远程开机证据的设备。不会因为插件能启动就标记兼容。iStoreOS 行的 `✅*` 表示：临时 `/tmp` runtime 已真实建立 `:16000`，UU主机加速已成功绑定 OpenWrt，UU远程已检测到辅助路由器，并完成手机关闭 Wi‑Fi、仅移动数据的远程开机终验；但持久安装与真实 reboot 仍未验证。
+> `Remote WOL = ✅` 只用于已经有真实远程开机证据的设备。不会因为插件能启动就标记兼容。iStoreOS 行的 `✅*` 表示：真实持久安装已经成功，UU云连接和移动数据 Remote WOL 也已终验通过；但真实 reboot 后自动恢复与真实 rollback 尚未验证，所以仍保持 Experimental。
 
 完整矩阵见 [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md)。SSH/root 使用边界见 [`docs/SSH-ACCESS.md`](docs/SSH-ACCESS.md)。XiaoQiang 适配说明见 [`docs/XIAOQIANG.md`](docs/XIAOQIANG.md)，ASUSWRT 参考适配见 [`docs/ASUSWRT.md`](docs/ASUSWRT.md)，Generic OpenWrt 诊断层见 [`docs/OPENWRT.md`](docs/OPENWRT.md)。
 
@@ -296,7 +296,7 @@ uu-remote-wol-router-helper/
 - [x] 完成 ASUSWRT reference adapter 的只读 detect/health
 - [x] 完成 Generic OpenWrt Experimental detect/health + platform-aware preflight + confirmed channel auto-selection
 - [x] 完成 Generic OpenWrt 临时 smoke-test，并在真实 iStoreOS x86_64 上验证 `uuplugin + guardian + :16000`；测试后 OpenClash/网络规则恢复基线
-- [x] 完成 Generic OpenWrt 持久化 adapter 草稿：标准 `/usr/lib + /etc/init.d + procd`、smoke-pass 闸门、备份、自动回滚与卸载；NAS fake-root 与真实 iStoreOS BusyBox `/tmp` fake-root 回归均全绿，尚未写入真实持久层
+- [x] 完成 Generic OpenWrt 持久化 adapter：标准 `/usr/lib + /etc/init.d + procd`、smoke-pass 闸门、备份、自动回滚与卸载；NAS fake-root、真实 iStoreOS BusyBox `/tmp` fake-root 和真实 `/overlay` 持久安装均已通过
 - [ ] 设计 ASUSWRT 安装/恢复 adapter（官方集成设备优先，不默认覆盖）
 - [x] 第一轮敏感信息扫描（公开前需再次扫描）
 - [x] CI 测试入口已完成：shell 语法、单元/guard 测试与敏感信息扫描
@@ -304,7 +304,7 @@ uu-remote-wol-router-helper/
 - [ ] 从原始证据中挑选并脱敏 README 图片
 - [x] 第二环境第一阶段：NAS iStoreOS 24.10.7 / x86_64 已通过 detect/preflight + `stage auto` + 官方 `openwrt-x86_64 v14.6.22` 临时 runtime / `:16000` 云连接；未改 UCI/overlay，测试后规则恢复基线
 - [x] 第二环境第二阶段（功能终验）：UU主机加速绑定 OpenWrt、UU远程辅助设备检测、手机关闭 Wi‑Fi 后仅用移动数据远程开机均已成功
-- [ ] 第二环境第三阶段（部署终验）：持久化代码与离线 rollback/uninstall 已完成；待真实 iStoreOS 安装、reboot 自动恢复、再做一次移动数据 WOL 与真实回滚验收
+- [ ] 第二环境第三阶段（部署终验）：真实 iStoreOS 持久安装已完成并健康；待 reboot 后自动恢复、再做一次移动数据 WOL 与真实 rollback 验收
 - [ ] 第三设备候选：闲置 RS2，后续用于扩展真实硬件兼容验证
 - [ ] Private review
 - [ ] Public release
