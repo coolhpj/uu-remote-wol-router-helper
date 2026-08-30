@@ -1,0 +1,51 @@
+name: Working Router Report / 成功兼容报告
+about: Report a router that has passed real hardware tests
+labels: ["compatibility", "needs-review"]
+body:
+  - type: input
+    id: router
+    attributes:
+      label: Router / 路由器
+    validations:
+      required: true
+
+  - type: input
+    id: firmware
+    attributes:
+      label: Firmware / 固件
+    validations:
+      required: true
+
+  - type: textarea
+    id: levels
+    attributes:
+      label: Verified levels / 已验证层级
+      description: 请逐项说明 Detect / Install / Reboot / Cloud / App / Binding / Remote WOL 哪些已真实通过。
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mobile
+    attributes:
+      label: Real mobile-data WOL test / 是否完成手机移动数据终验
+      options:
+        - "Yes / 是"
+        - "No / 否"
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes / 备注
+      description: 可填写自启动方式、插件通道和特殊现象；提交前请自行完成隐私检查。
+
+  - type: checkboxes
+    id: evidence
+    attributes:
+      label: Evidence / 证据确认
+      options:
+        - label: 以上结论来自真实硬件测试，不是根据 AI 或文档推测。
+          required: true
+        - label: 我已检查并清理不应公开的个人或设备信息。
+          required: true
