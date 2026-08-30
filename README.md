@@ -295,6 +295,8 @@ uu-remote-wol-router-helper/
 - [x] 完成 ASUSWRT reference adapter 的只读 detect/health
 - [ ] 设计 ASUSWRT 安装/恢复 adapter（官方集成设备优先，不默认覆盖）
 - [x] 第一轮敏感信息扫描（公开前需再次扫描）
+- [x] CI 测试入口已完成：shell 语法、单元/guard 测试与敏感信息扫描
+- [ ] GitHub Actions workflow：本地文件已准备，等待 `gh` 增加 `workflow` scope 后启用
 - [ ] 从原始证据中挑选并脱敏 README 图片
 - [ ] 第二环境复现
 - [ ] Private review
