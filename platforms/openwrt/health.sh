@@ -15,6 +15,7 @@ have_cmd() {
 
 if [ -z "$PLUGIN_DIR" ]; then
     for dir in \
+        /usr/lib/uu-wol-helper \
         /usr/share/uuplugin \
         /etc/uuplugin \
         /data/uuplugin \

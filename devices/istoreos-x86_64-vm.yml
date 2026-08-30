@@ -20,6 +20,8 @@ verified:
   package_structure: true
   temporary_staging: true
   runtime_smoke_test: true
+  persistence_adapter_offline_test: true
+  persistence_paths_collision_free: true
   persistent_install: false
   reboot: false
   uu_cloud: true
@@ -39,3 +41,5 @@ notes:
   - UU主机加速 App 已在手机默认网关指向 iStoreOS 时识别并绑定 OpenWrt。
   - UU远程辅助设备检测在暂停同账号下 AX86U UU 后切换到通用“路由器”，随后完成手机关闭 Wi-Fi、仅移动数据的远程开机终验。
   - 该 WOL 终验使用的是 /tmp 临时 runtime；持久安装、真实 reboot 后自动恢复与回滚仍未验证。
+  - Generic OpenWrt 持久化 adapter 已通过 fake-root install/rollback/uninstall 自动测试，但尚未写入真实 iStoreOS。
+  - 计划使用的 /usr/lib/uu-wol-helper、/etc/init.d/uu-wol-helper、/etc/uu-wol-helper 已在样本上只读确认无路径冲突。
