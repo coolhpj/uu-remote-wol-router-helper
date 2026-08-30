@@ -1,0 +1,58 @@
+name: Bug Report / 故障报告
+description: Report a reproducible problem on a supported or tested router
+labels: ["bug", "needs-triage"]
+body:
+  - type: input
+    id: router
+    attributes:
+      label: Router / 路由器
+      placeholder: Redmi AX6000 RB06
+    validations:
+      required: true
+
+  - type: input
+    id: firmware
+    attributes:
+      label: Firmware / 固件版本
+    validations:
+      required: true
+
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Failure stage / 失败阶段
+      options:
+        - Detect / 平台识别
+        - Download / 官方插件下载
+        - Install / 安装
+        - Reboot / 重启恢复
+        - UU Cloud / 云连接
+        - App detection / UU主机加速识别
+        - Auxiliary-device binding / 辅助设备绑定
+        - Remote WOL / 远程开机
+        - Other / 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps / 复现步骤
+      description: 请写最短可重复步骤。
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Relevant output / 相关输出
+      description: 只贴必要日志；提交前请检查敏感信息。
+      render: shell
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy / 隐私确认
+      options:
+        - label: 我已移除密码、Token、PPPoE、SN、设备验证码、未脱敏公网 IP 和 MAC。
+          required: true
