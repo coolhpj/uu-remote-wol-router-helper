@@ -1,0 +1,101 @@
+#!/usr/bin/expect -f
+
+set timeout 300
+
+if {$argc != 2} {
+    puts stderr "usage: stage-smoke.exp <kernel-image> <repo-root>"
+    exit 2
+}
+
+set image [lindex $argv 0]
+set repo [lindex $argv 1]
+
+spawn qemu-system-aarch64 \
+    -machine virt \
+    -cpu cortex-a57 \
+    -m 384 \
+    -smp 2 \
+    -nographic \
+    -no-reboot \
+    -kernel $image \
+    -netdev user,id=lan0,restrict=on \
+    -device virtio-net-pci,netdev=lan0 \
+    -netdev user,id=wan0 \
+    -device virtio-net-pci,netdev=wan0 \
+    -fsdev local,id=repo_fs,path=$repo,security_model=none,readonly=on \
+    -device virtio-9p-pci,fsdev=repo_fs,mount_tag=repo
+
+set prompt_ready 0
+expect {
+    -re {Please press Enter to activate this console\.} {
+        send "\r"
+    }
+    -re {root@[^:\r\n]+:[^\r\n]*# ?} {
+        set prompt_ready 1
+    }
+    timeout {
+        puts stderr "OpenWrt console did not become ready"
+        exit 10
+    }
+    eof {
+        puts stderr "QEMU exited before OpenWrt console became ready"
+        exit 11
+    }
+}
+
+if {!$prompt_ready} {
+    expect {
+        -re {root@[^:\r\n]+:[^\r\n]*# ?} {}
+        timeout {
+            puts stderr "OpenWrt root prompt did not appear after activating console"
+            exit 12
+        }
+        eof {
+            puts stderr "QEMU exited before root prompt appeared"
+            exit 13
+        }
+    }
+}
+
+send "ip link set eth1 up; udhcpc -i eth1 -q -n -t 5 >/tmp/udhcpc-wan.log 2>&1; ip -4 addr show dev eth1 | grep -q 'inet ' && echo LAB_DHCP_OK\r"
+expect {
+    -re {LAB_DHCP_OK} {}
+    timeout { puts stderr "QEMU user-network DHCP did not configure eth1"; exit 20 }
+}
+
+send "mkdir -p /mnt/repo; modprobe 9pnet_virtio >/dev/null 2>&1 || true; mount -t 9p -o trans=virtio repo /mnt/repo >/tmp/9p-mount.log 2>&1 && test -f /mnt/repo/scripts/stage-package.sh && echo LAB_REPO_MOUNT_OK\r"
+expect {
+    -re {LAB_REPO_MOUNT_OK} {}
+    timeout { puts stderr "read-only repository 9P mount failed"; exit 21 }
+}
+
+send "rm -rf /tmp/uu-wol-helper-qemu-stage; UU_STAGE_DIR=/tmp/uu-wol-helper-qemu-stage sh /mnt/repo/scripts/stage-package.sh openwrt-aarch64\r"
+expect {
+    -re {STAGE_READY} {}
+    timeout { puts stderr "repository stage-package.sh did not reach STAGE_READY"; exit 22 }
+    eof { puts stderr "QEMU exited during package staging"; exit 23 }
+}
+
+send "test -x /tmp/uu-wol-helper-qemu-stage/files/uuplugin && test -x /tmp/uu-wol-helper-qemu-stage/files/xuplugin-guardian && test -f /tmp/uu-wol-helper-qemu-stage/files/uu.conf && test -x /tmp/uu-wol-helper-qemu-stage/files/xtables-nft-multi && echo LAB_STAGE_FILES_OK\r"
+expect {
+    -re {LAB_STAGE_FILES_OK} {}
+    timeout { puts stderr "staged ARM64 package files are incomplete"; exit 24 }
+}
+
+send "rm -rf /tmp/uu-wol-helper-qemu-stage /tmp/udhcpc-wan.log /tmp/9p-mount.log; umount /mnt/repo >/dev/null 2>&1 || true; echo LAB_STAGE_OK\r"
+expect {
+    -re {LAB_STAGE_OK} {}
+    timeout { puts stderr "staging cleanup marker missing"; exit 25 }
+}
+
+send "reboot -f\r"
+set timeout 30
+expect {
+    eof {}
+    timeout {
+        puts stderr "QEMU did not exit after forced reboot with -no-reboot"
+        exit 26
+    }
+}
+
+exit 0

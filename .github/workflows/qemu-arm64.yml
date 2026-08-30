@@ -34,3 +34,6 @@ jobs:
 
       - name: Validate WAN and NetEase ARM64 API
         run: sh labs/qemu/openwrt-aarch64/network-smoke.sh
+
+      - name: Stage official NetEase ARM64 package in guest
+        run: sh labs/qemu/openwrt-aarch64/stage-smoke.sh

@@ -13,7 +13,9 @@ Stage 1 is cloud-verified in GitHub Actions and validates:
 - a virtio network interface is visible;
 - the image is downloaded from OpenWrt at runtime and verified by SHA256 before execution.
 
-Stage 2 adds an isolated second virtio WAN interface and validates guest DHCP plus HTTPS access to the official NetEase `openwrt-aarch64` plugin API without printing signed package URLs into CI logs.
+Stage 2 is cloud-verified in GitHub Actions: an isolated second virtio WAN interface obtains DHCP, reaches the Internet over HTTPS, and validates the official NetEase `openwrt-aarch64` plugin API without printing signed package URLs into CI logs.
+
+Stage 3 mounts the current repository read-only into the guest and runs the real `scripts/stage-package.sh openwrt-aarch64`, so API parsing, signed-download redaction, package download, official MD5 verification, archive validation, and extraction are tested using the project code itself.
 
 The lab does **not** claim to emulate a MediaTek, Qualcomm, Broadcom, Xiaomi, ASUS, TP-Link, or GL.iNet hardware platform. Passing this lab means **Lab Tested**, not physical-device **Verified**.
 
@@ -46,9 +48,8 @@ sh labs/qemu/openwrt-aarch64/boot-smoke.sh
 
 ## Planned next stages
 
-1. finish Stage 2 guest WAN + official NetEase API cloud verification;
-2. stage the current official `openwrt-aarch64` UU package;
-3. run the real ARM64 `uuplugin` and check guardian + UU cloud connection;
-4. move to a persistent rootfs and validate install → reboot → health → rollback;
-5. add a XiaoQiang compatibility shim for the rewritten RB06 migration adapter;
-6. later add a virtual LAN / packet-capture test for WOL Magic Packet emission.
+1. finish Stage 3 repository-driven staging verification;
+2. run the real ARM64 `uuplugin` and check guardian + UU cloud connection;
+3. move to a persistent rootfs and validate install → reboot → health → rollback;
+4. add a XiaoQiang compatibility shim for the rewritten RB06 migration adapter;
+5. later add a virtual LAN / packet-capture test for WOL Magic Packet emission.
