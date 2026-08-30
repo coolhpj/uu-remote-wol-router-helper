@@ -1,6 +1,6 @@
 # Generic OpenWrt 适配说明
 
-本页描述标准 OpenWrt / OpenWrt 衍生固件的**只读诊断层**。它不是“所有 OpenWrt 都已经支持 UU Remote WOL”的承诺。
+本页描述标准 OpenWrt / OpenWrt 衍生固件的分层 adapter。它已经包含只读诊断、临时 smoke-test 和受控 persistence 代码，但这仍然不是“所有 OpenWrt 都已经支持 UU Remote WOL”的承诺。
 
 ## 为什么单独做 Generic OpenWrt adapter
 
@@ -30,7 +30,7 @@ Unknown → collect-info only
 
 随后完成了完整功能链实验：手机默认网关切到 iStoreOS 后，UU主机加速将其识别并绑定为 OpenWrt；Windows 默认网关同样指向 iStoreOS，暂停同账号下 AX86U 的 UU runtime 后，UU远程辅助设备页面从“华硕路由器”切换为通用“路由器”，继续配置后最终在手机关闭 Wi‑Fi、仅使用移动数据时成功唤醒 Windows。
 
-测试后临时 UU 已停止，未写 UCI/`/overlay`；OpenClash 仍在线，`XU_*` 临时 nftables 表无残留，`ip rule`、`ip route` 与归一化后的 nft ruleset 均恢复到测试前结构。AX86U UU 也已恢复。iStoreOS 因此已经证明可以运行网易官方 x86_64 UU 后端并完成 Remote WOL 功能终验，但**持久安装、真实 reboot 后自动恢复和回滚仍未验证**。
+上述最初的临时 runtime 阶段结束后，UU 被停止并清理，OpenClash、`ip rule`、`ip route` 与归一化后的 nft ruleset 均恢复到测试前结构。之后项目又继续完成了真实 `/overlay` 持久安装和真实 reboot 后 procd 自动恢复；当前剩余的部署缺口主要是真实 rollback 与多辅助设备 A/B/C 对照实验。
 
 ## 平台预检与官方通道自动选择
 

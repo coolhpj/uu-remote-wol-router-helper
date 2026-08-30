@@ -262,7 +262,7 @@ uu-remote-wol-router-helper/
 └── .github/
 ```
 
-当前私有草稿阶段先固定架构和验证标准，再实现会修改路由器的安装器。
+当前仍是 Private Draft：项目结构、验证标准和多平台 adapter 已经成形，部分会修改路由器的安装/回滚路径也已进入受控实测；在真实设备复验、rollback、图片脱敏和 CI 权限收口完成前，不转 Public。
 
 ## 项目背景与 AI 使用说明
 

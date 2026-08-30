@@ -54,11 +54,11 @@
 
 在当前交接证据中，不把 RT-AX86U 标成 `Remote WOL Verified`，除非后续补入明确的手机移动数据终验记录。
 
-## Generic OpenWrt 诊断层
+## Generic OpenWrt adapter
 
-仓库已经提供 Generic OpenWrt 的只读 `detect / health`，用于识别标准 OpenWrt / iStoreOS / 厂商 OpenWrt 衍生环境并读取 UU 运行状态。
+仓库已经提供 Generic OpenWrt 的 `detect / health / preflight / stage / smoke-test / persistence` 分层能力，用于标准 OpenWrt / iStoreOS / 厂商 OpenWrt 衍生环境。
 
-这只代表 **Experimental diagnostics**，不代表这些设备已经完成安装、重启或 Remote WOL 验证。具体型号仍需按下面流程逐台进入兼容矩阵。
+这些能力不能被理解成“所有 OpenWrt 都已支持”。只有逐台完成设备档案里的真实安装、reboot、UU云和 Remote WOL 证据，才能升级对应兼容级别。
 
 当前第二环境样本已经用 iStoreOS 24.10.7 / x86_64 实测通过：Generic OpenWrt detect/preflight、`openwrt-x86_64 v14.6.22` 官方 API、MD5、tar、`/tmp` staging、临时 `uuplugin + guardian + :16000 ESTABLISHED` runtime smoke-test、真实 `/overlay` 持久安装，以及真实 reboot 后 procd 自动恢复。重启后 `uuplugin + guardian + :16000 ESTABLISHED` 自动恢复，OpenClash 也随后正常上线，原有上游默认路由保持不变。此前手机默认网关切到 iStoreOS 后，UU主机加速成功识别并绑定 OpenWrt；Windows 默认网关同样切到 iStoreOS 后，UU远程完成辅助设备检测，并最终在手机关闭 Wi‑Fi、仅使用移动数据时成功唤醒 Windows。
 
