@@ -13,6 +13,8 @@ status: experimental
 
 verified:
   platform_detect: true
+  platform_preflight: true
+  channel_auto_select: true
   uu_api: true
   package_md5: true
   package_structure: true

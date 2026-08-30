@@ -30,6 +30,21 @@ Unknown → collect-info only
 
 因此 NAS 上的 iStoreOS 可以作为第二 OpenWrt 环境：先验证 detect / health / staging / 持久化与回滚；真实 runtime 与 WOL 节点实验必须单独授权并保留回滚路径。
 
+## 平台预检与官方通道自动选择
+
+```sh
+sh uu-helper.sh preflight
+```
+
+Generic OpenWrt 当前只对已经真实确认过网易官方 API 的架构做自动映射：
+
+- `aarch64` / `arm64` → `openwrt-aarch64`
+- `x86_64` / `amd64` → `openwrt-x86_64`
+
+其它架构 fail closed，不猜测通道名。ASUSWRT 也不会被通用 `stage auto` 接管，因为它属于官方/model-specific 集成路径。
+
+2026-08-30 已在真实 iStoreOS 24.10.7 / x86_64 上运行预检，自动解析为 `openwrt-x86_64` 并通过工具、root、`/tmp` 空间检查，全程无持久修改。
+
 ## 当前只读检测
 
 ```sh

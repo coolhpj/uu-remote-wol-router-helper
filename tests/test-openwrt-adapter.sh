@@ -101,6 +101,13 @@ helper_output=$(env $common_env sh "$ROOT_DIR/uu-helper.sh" diagnose) || {
 assert_contains "$helper_output" "platform: openwrt" "helper selects generic OpenWrt adapter"
 assert_contains "$helper_output" "health_summary: healthy" "helper reports healthy OpenWrt runtime"
 
+preflight_output=$(env $common_env UU_ARCH_OVERRIDE=x86_64 sh "$ROOT_DIR/uu-helper.sh" preflight) || {
+    echo "not ok - helper preflight should select generic OpenWrt preflight" >&2
+    exit 1
+}
+assert_contains "$preflight_output" "preflight: pass" "helper selects OpenWrt preflight"
+assert_contains "$preflight_output" "channel: openwrt-x86_64" "preflight auto-selects x86_64 official channel"
+
 if UU_OPENWRT_RELEASE_FILE="$TMP_ROOT/missing-release" sh "$ROOT_DIR/platforms/openwrt/detect.sh" >/dev/null 2>&1; then
     echo "not ok - missing openwrt_release should not match" >&2
     exit 1

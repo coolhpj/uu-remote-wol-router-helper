@@ -49,10 +49,10 @@ sh uu-helper.sh diagnose
 sh uu-helper.sh collect-info
 sh uu-helper.sh check-api openwrt-aarch64
 sh uu-helper.sh preflight
-sh uu-helper.sh stage openwrt-aarch64
+sh uu-helper.sh stage auto
 ```
 
-`diagnose / collect-info / check-api / preflight` 都是只读操作。当前 `preflight` 只针对 XiaoQiang adapter，检查平台、AArch64、非 AP 模式、必需工具、`/tmp` 可写和空间阈值。`stage` 只在 `/tmp/uu-wol-helper-*` 下下载、MD5 校验、检查 tar 路径并解压官方包；它不会停止/启动 UU 进程，也不会修改持久目录或注册自启动。
+`diagnose / collect-info / check-api / preflight` 都是只读操作。`preflight` 当前会按已识别平台分流：XiaoQiang 使用已验证的 AArch64/路由模式预检，Generic OpenWrt 则检查架构、官方通道映射、必需工具、`/tmp` 可写和空间阈值；ASUSWRT 不自动套用通用预检。`stage auto` 只对已确认映射的 OpenWrt 架构自动选择官方通道，并在 `/tmp/uu-wol-helper-*` 下下载、MD5 校验、检查 tar 路径并解压官方包；它不会停止/启动 UU 进程，也不会修改持久目录或注册自启动。
 
 `diagnose` 会依次匹配已知平台 adapter。当前 **XiaoQiang**、**ASUSWRT / ASUSWRT-Merlin** 与 **Generic OpenWrt** 都已有只读检测/健康检查；未知平台只进入 `collect-info`，不会猜测型号或执行安装。
 
@@ -294,7 +294,7 @@ uu-remote-wol-router-helper/
 - [ ] RB06 实机复验临时 smoke-test（保护壳与自动恢复逻辑已完成）
 - [ ] 重写 XiaoQiang 持久安装 adapter
 - [x] 完成 ASUSWRT reference adapter 的只读 detect/health
-- [x] 完成 Generic OpenWrt Experimental detect/health
+- [x] 完成 Generic OpenWrt Experimental detect/health + platform-aware preflight + confirmed channel auto-selection
 - [ ] 设计 ASUSWRT 安装/恢复 adapter（官方集成设备优先，不默认覆盖）
 - [x] 第一轮敏感信息扫描（公开前需再次扫描）
 - [x] CI 测试入口已完成：shell 语法、单元/guard 测试与敏感信息扫描

@@ -1,6 +1,8 @@
 #!/bin/sh
 
 ROOT_DIR=$(CDPATH= cd "$(dirname "$0")" 2>/dev/null && pwd) || exit 1
+# shellcheck source=lib/channel.sh
+. "$ROOT_DIR/lib/channel.sh"
 
 print_usage() {
     cat <<'EOF'
@@ -11,15 +13,15 @@ Usage:
   sh uu-helper.sh collect-info
   sh uu-helper.sh check-api [channel]
   sh uu-helper.sh preflight
-  sh uu-helper.sh stage [channel]
+  sh uu-helper.sh stage [channel|auto]
   sh uu-helper.sh help
 
 Commands:
   diagnose      Read-only platform detection and UU health summary.
   collect-info  Read-only environment report for unsupported routers.
   check-api     Read-only NetEase UU plugin API check.
-  preflight     Read-only XiaoQiang readiness checks before staging/smoke-test.
-  stage         Download, verify and extract the official package under /tmp only.
+  preflight     Read-only platform-aware readiness checks before staging/smoke-test.
+  stage         Download, verify and extract the official package under /tmp only; use 'auto' to select a confirmed OpenWrt channel by architecture.
   help          Show this help.
 
 The stage command writes temporary files under /tmp but does not stop/start UU or modify persistent paths.
@@ -136,11 +138,51 @@ case "$command_name" in
         exec sh "$ROOT_DIR/scripts/check-api.sh" "${1:-openwrt-aarch64}"
         ;;
     preflight)
-        exec sh "$ROOT_DIR/platforms/xiaoqiang/preflight.sh"
+        if sh "$ROOT_DIR/platforms/xiaoqiang/detect.sh" >/dev/null 2>&1; then
+            exec sh "$ROOT_DIR/platforms/xiaoqiang/preflight.sh"
+        fi
+        if sh "$ROOT_DIR/platforms/asuswrt/detect.sh" >/dev/null 2>&1; then
+            echo "ASUSWRT uses an official/model-specific integration path; generic preflight is not selected automatically." >&2
+            exit 2
+        fi
+        if sh "$ROOT_DIR/platforms/openwrt/detect.sh" >/dev/null 2>&1; then
+            exec sh "$ROOT_DIR/platforms/openwrt/preflight.sh"
+        fi
+        echo "No supported platform adapter matched for preflight." >&2
+        exit 2
         ;;
     stage)
         shift
-        exec sh "$ROOT_DIR/scripts/stage-package.sh" "${1:-openwrt-aarch64}"
+        requested_channel="${1:-auto}"
+        if [ "$requested_channel" != "auto" ]; then
+            exec sh "$ROOT_DIR/scripts/stage-package.sh" "$requested_channel"
+        fi
+
+        platform=""
+        if sh "$ROOT_DIR/platforms/xiaoqiang/detect.sh" >/dev/null 2>&1; then
+            platform="xiaoqiang"
+        elif sh "$ROOT_DIR/platforms/asuswrt/detect.sh" >/dev/null 2>&1; then
+            platform="asuswrt"
+        elif sh "$ROOT_DIR/platforms/openwrt/detect.sh" >/dev/null 2>&1; then
+            platform="openwrt"
+        else
+            echo "Unable to auto-select a UU channel: no supported platform adapter matched." >&2
+            exit 2
+        fi
+
+        arch=$(uname -m 2>/dev/null || printf 'unknown')
+        if ! channel=$(uu_resolve_channel "$platform" "$arch"); then
+            rc=$?
+            if [ "$rc" -eq 2 ]; then
+                echo "ASUSWRT auto staging is intentionally disabled; use the official/model-specific integration path." >&2
+            else
+                printf 'No confirmed UU channel mapping for platform=%s architecture=%s.\n' "$platform" "$arch" >&2
+            fi
+            exit 3
+        fi
+
+        printf 'auto_channel: %s\n' "$channel"
+        exec sh "$ROOT_DIR/scripts/stage-package.sh" "$channel"
         ;;
     help|-h|--help)
         print_usage
