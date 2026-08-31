@@ -27,11 +27,11 @@ AArch64 is the software ABI used by many current router SoCs across multiple ven
 
 ## Pinned image
 
-The initial CI baseline is OpenWrt `25.12.5`, target `armsr/armv8`, using:
+The initial CI baseline is OpenWrt `25.12.5`, target `armsr/armv8`.
 
-`generic-initramfs-kernel.bin`
+Stages 1-4 use `generic-initramfs-kernel.bin`. Stage 5 uses the official `generic-ext4-combined-efi.img.gz` so the same writable disk can survive multiple QEMU boots.
 
-The image is not stored in this repository. CI downloads it from the official OpenWrt release server and checks the published SHA256 before booting it.
+Images are not stored in this repository. CI downloads them from the official OpenWrt release server and checks the pinned published SHA256 before booting them.
 
 ## Local prerequisites
 
@@ -41,6 +41,7 @@ A Linux host can run the same smoke-test when these commands are available:
 - `expect`
 - `sha256sum`
 - `curl` or `wget`
+- AArch64 QEMU EFI firmware (`qemu-efi-aarch64` on Ubuntu/Debian)
 
 Run:
 

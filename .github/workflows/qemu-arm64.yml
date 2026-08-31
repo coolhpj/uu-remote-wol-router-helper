@@ -19,7 +19,7 @@ permissions:
 jobs:
   boot-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 20
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -27,7 +27,7 @@ jobs:
       - name: Install QEMU ARM64 tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y qemu-system-arm expect
+          sudo apt-get install -y qemu-system-arm qemu-efi-aarch64 expect
 
       - name: Boot official OpenWrt ARM64 image
         run: sh labs/qemu/openwrt-aarch64/boot-smoke.sh
@@ -40,3 +40,6 @@ jobs:
 
       - name: Run official NetEase ARM64 runtime smoke-test in guest
         run: sh labs/qemu/openwrt-aarch64/runtime-smoke.sh
+
+      - name: Validate persistent install reboot health and rollback
+        run: sh labs/qemu/openwrt-aarch64/persistent-smoke.sh

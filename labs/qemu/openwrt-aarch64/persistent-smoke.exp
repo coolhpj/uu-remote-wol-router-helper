@@ -1,0 +1,254 @@
+#!/usr/bin/expect -f
+
+set timeout 420
+
+if {$argc != 3} {
+    puts stderr "usage: persistent-smoke.exp <disk-image> <efi-firmware> <repo-root>"
+    exit 2
+}
+
+set disk [lindex $argv 0]
+set efi [lindex $argv 1]
+set repo [lindex $argv 2]
+
+proc spawn_guest {disk efi repo} {
+    global spawn_id
+    spawn qemu-system-aarch64 \
+        -machine virt \
+        -cpu cortex-a57 \
+        -m 512 \
+        -smp 2 \
+        -nographic \
+        -no-reboot \
+        -bios $efi \
+        -device virtio-rng-pci \
+        -drive file=$disk,format=raw,index=0,media=disk \
+        -netdev user,id=lan0,restrict=on \
+        -device virtio-net-pci,netdev=lan0 \
+        -netdev user,id=wan0 \
+        -device virtio-net-pci,netdev=wan0 \
+        -fsdev local,id=repo_fs,path=$repo,security_model=none,readonly=on \
+        -device virtio-9p-pci,fsdev=repo_fs,mount_tag=repo
+}
+
+proc wait_for_console {phase} {
+    global spawn_id timeout
+    set timeout 240
+    set prompt_ready 0
+    expect {
+        -re {Please press Enter to activate this console\.} {
+            send "\r"
+        }
+        -re {root@[^:\r\n]+:[^\r\n]*# ?} {
+            set prompt_ready 1
+        }
+        timeout {
+            puts stderr "$phase: OpenWrt console did not become ready"
+            exit 10
+        }
+        eof {
+            puts stderr "$phase: QEMU exited before OpenWrt console became ready"
+            exit 11
+        }
+    }
+
+    if {!$prompt_ready} {
+        expect {
+            -re {root@[^:\r\n]+:[^\r\n]*# ?} {}
+            timeout {
+                puts stderr "$phase: OpenWrt root prompt did not appear"
+                exit 12
+            }
+            eof {
+                puts stderr "$phase: QEMU exited before root prompt appeared"
+                exit 13
+            }
+        }
+    }
+    set timeout 420
+}
+
+proc wait_for_network {phase marker} {
+    global spawn_id timeout
+    send "until test -r /sys/class/net/br-lan/operstate && grep -q '^up$' /sys/class/net/br-lan/operstate; do sleep 1; done; echo ${marker}_\"OK\"\r"
+    set timeout 100
+    expect {
+        -re "${marker}_OK" {}
+        timeout { puts stderr "$phase: OpenWrt late network initialization did not settle"; exit 20 }
+        eof { puts stderr "$phase: QEMU exited while waiting for network initialization"; exit 20 }
+    }
+    set timeout 420
+}
+
+proc configure_wan {phase marker} {
+    global spawn_id timeout
+    send "ip link set eth1 up; udhcpc -i eth1 -q -n -t 5 >/tmp/udhcpc-wan.log 2>&1; ip -4 addr show dev eth1 | grep -q 'inet ' && echo ${marker}_\"OK\"\r"
+    expect {
+        -re "${marker}_OK" {}
+        timeout { puts stderr "$phase: QEMU user-network DHCP did not configure eth1"; exit 21 }
+        eof { puts stderr "$phase: QEMU exited during WAN DHCP"; exit 21 }
+    }
+}
+
+proc mount_repo {phase marker} {
+    global spawn_id timeout
+    send "mkdir -p /mnt/repo; modprobe 9pnet_virtio >/dev/null 2>&1 || true; mount -t 9p -o trans=virtio repo /mnt/repo >/tmp/9p-mount.log 2>&1 && test -f /mnt/repo/scripts/stage-package.sh && test -f /mnt/repo/platforms/openwrt/install.sh && test -f /mnt/repo/platforms/openwrt/rollback.sh && echo ${marker}_\"OK\"\r"
+    expect {
+        -re "${marker}_OK" {}
+        timeout { puts stderr "$phase: read-only repository 9P mount failed"; exit 22 }
+        eof { puts stderr "$phase: QEMU exited during repository mount"; exit 22 }
+    }
+}
+
+proc reboot_guest {phase exitcode} {
+    global spawn_id timeout
+    send "sync; reboot -f\r"
+    set timeout 45
+    expect {
+        eof {}
+        timeout {
+            puts stderr "$phase: QEMU did not exit after forced reboot with -no-reboot"
+            exit $exitcode
+        }
+    }
+    set timeout 420
+}
+
+# ---------------------------------------------------------------------------
+# Boot 1: stage -> guarded temporary smoke -> persistent install -> health.
+# ---------------------------------------------------------------------------
+spawn_guest $disk $efi $repo
+wait_for_console "boot1"
+wait_for_network "boot1" "LAB_BOOT1_NETWORK_SETTLED"
+configure_wan "boot1" "LAB_BOOT1_DHCP"
+mount_repo "boot1" "LAB_BOOT1_REPO_MOUNT"
+
+send "rm -rf /tmp/uu-wol-helper-qemu-persist; UU_STAGE_DIR=/tmp/uu-wol-helper-qemu-persist sh /mnt/repo/scripts/stage-package.sh openwrt-aarch64 && echo LAB_BOOT1_STAGE_\"COMMAND_OK\" || echo LAB_BOOT1_STAGE_\"COMMAND_FAILED\"\r"
+set stage_ready 0
+expect {
+    -re {STAGE_READY} {
+        set stage_ready 1
+        exp_continue
+    }
+    -re {LAB_BOOT1_STAGE_COMMAND_OK} {
+        if {!$stage_ready} {
+            puts stderr "boot1: stage-package.sh returned success without STAGE_READY"
+            exit 30
+        }
+    }
+    -re {LAB_BOOT1_STAGE_COMMAND_FAILED} { puts stderr "boot1: stage-package.sh failed"; exit 30 }
+    timeout { puts stderr "boot1: stage-package.sh did not finish"; exit 30 }
+    eof { puts stderr "boot1: QEMU exited during staging"; exit 30 }
+}
+
+send "UU_STAGE_DIR=/tmp/uu-wol-helper-qemu-persist UU_RUNTIME_TEST_CONFIRM=TEMPORARY_RUNTIME_CHANGE UU_SMOKE_TIMEOUT=90 sh /mnt/repo/platforms/openwrt/smoke-test.sh && echo LAB_BOOT1_SMOKE_\"COMMAND_OK\" || echo LAB_BOOT1_SMOKE_\"COMMAND_FAILED\"\r"
+set smoke_pass 0
+expect {
+    -re {SMOKE_TEST_PASS} {
+        set smoke_pass 1
+        exp_continue
+    }
+    -re {LAB_BOOT1_SMOKE_COMMAND_OK} {
+        if {!$smoke_pass} {
+            puts stderr "boot1: smoke-test.sh returned success without SMOKE_TEST_PASS"
+            exit 31
+        }
+    }
+    -re {LAB_BOOT1_SMOKE_COMMAND_FAILED} { puts stderr "boot1: temporary runtime smoke-test failed"; exit 31 }
+    timeout { puts stderr "boot1: temporary runtime smoke-test did not finish"; exit 31 }
+    eof { puts stderr "boot1: QEMU exited during temporary runtime smoke-test"; exit 31 }
+}
+
+send "UU_STAGE_DIR=/tmp/uu-wol-helper-qemu-persist UU_PERSIST_INSTALL_CONFIRM=PERSIST_OPENWRT_UU sh /mnt/repo/platforms/openwrt/install.sh && echo LAB_BOOT1_INSTALL_\"COMMAND_OK\" || echo LAB_BOOT1_INSTALL_\"COMMAND_FAILED\"\r"
+set install_ok 0
+expect {
+    -re {INSTALL_OK} {
+        set install_ok 1
+        exp_continue
+    }
+    -re {LAB_BOOT1_INSTALL_COMMAND_OK} {
+        if {!$install_ok} {
+            puts stderr "boot1: install.sh returned success without INSTALL_OK"
+            exit 32
+        }
+    }
+    -re {LAB_BOOT1_INSTALL_COMMAND_FAILED} { puts stderr "boot1: persistent install failed"; exit 32 }
+    timeout { puts stderr "boot1: persistent install did not finish"; exit 32 }
+    eof { puts stderr "boot1: QEMU exited during persistent install"; exit 32 }
+}
+
+send "test -x /usr/lib/uu-wol-helper/uuplugin && test -x /etc/init.d/uu-wol-helper && test -e /etc/rc.d/S95uu-wol-helper && UU_OPENWRT_PLUGIN_DIR=/usr/lib/uu-wol-helper sh /mnt/repo/platforms/openwrt/health.sh >/dev/null 2>&1 && echo LAB_BOOT1_INSTALL_HEALTH_\"OK\"\r"
+expect {
+    -re {LAB_BOOT1_INSTALL_HEALTH_OK} {}
+    timeout { puts stderr "boot1: installed files/service/cloud health check failed"; exit 33 }
+    eof { puts stderr "boot1: QEMU exited during installed health validation"; exit 33 }
+}
+
+reboot_guest "boot1" 34
+
+# ---------------------------------------------------------------------------
+# Boot 2: same disk -> verify procd auto-restore -> rollback -> reboot.
+# ---------------------------------------------------------------------------
+spawn_guest $disk $efi $repo
+wait_for_console "boot2"
+wait_for_network "boot2" "LAB_BOOT2_NETWORK_SETTLED"
+configure_wan "boot2" "LAB_BOOT2_DHCP"
+mount_repo "boot2" "LAB_BOOT2_REPO_MOUNT"
+
+send "n=0; while test \"\$n\" -lt 90; do if UU_OPENWRT_PLUGIN_DIR=/usr/lib/uu-wol-helper sh /mnt/repo/platforms/openwrt/health.sh >/dev/null 2>&1; then echo LAB_BOOT2_AUTO_HEALTH_\"OK\"; break; fi; sleep 2; n=\$((n+2)); done\r"
+set timeout 110
+expect {
+    -re {LAB_BOOT2_AUTO_HEALTH_OK} {}
+    timeout { puts stderr "boot2: persistent service did not auto-restore uuplugin + guardian + :16000"; exit 40 }
+    eof { puts stderr "boot2: QEMU exited while waiting for persistent service health"; exit 40 }
+}
+set timeout 420
+
+send "test -e /etc/rc.d/S95uu-wol-helper && test -f /etc/uu-wol-helper/last-backup && echo LAB_BOOT2_PERSISTENCE_\"OK\"\r"
+expect {
+    -re {LAB_BOOT2_PERSISTENCE_OK} {}
+    timeout { puts stderr "boot2: persistent service enable/backup state did not survive reboot"; exit 41 }
+}
+
+send "UU_ROLLBACK_CONFIRM=ROLLBACK_OPENWRT_UU sh /mnt/repo/platforms/openwrt/rollback.sh && echo LAB_BOOT2_ROLLBACK_\"COMMAND_OK\" || echo LAB_BOOT2_ROLLBACK_\"COMMAND_FAILED\"\r"
+set rollback_ok 0
+expect {
+    -re {ROLLBACK_OK} {
+        set rollback_ok 1
+        exp_continue
+    }
+    -re {LAB_BOOT2_ROLLBACK_COMMAND_OK} {
+        if {!$rollback_ok} {
+            puts stderr "boot2: rollback.sh returned success without ROLLBACK_OK"
+            exit 42
+        }
+    }
+    -re {LAB_BOOT2_ROLLBACK_COMMAND_FAILED} { puts stderr "boot2: rollback failed"; exit 42 }
+    timeout { puts stderr "boot2: rollback did not finish"; exit 42 }
+    eof { puts stderr "boot2: QEMU exited during rollback"; exit 42 }
+}
+
+send "test ! -e /usr/lib/uu-wol-helper && test ! -e /etc/init.d/uu-wol-helper && test ! -e /etc/rc.d/S95uu-wol-helper && test -f /etc/uu-wol-helper/last-rollback && test ! -f /etc/uu-wol-helper/last-backup && echo LAB_BOOT2_ROLLBACK_STATE_\"OK\"\r"
+expect {
+    -re {LAB_BOOT2_ROLLBACK_STATE_OK} {}
+    timeout { puts stderr "boot2: rollback did not restore clean pre-install filesystem state"; exit 43 }
+}
+
+reboot_guest "boot2" 44
+
+# ---------------------------------------------------------------------------
+# Boot 3: same disk again -> prove rollback state survives another reboot.
+# ---------------------------------------------------------------------------
+spawn_guest $disk $efi $repo
+wait_for_console "boot3"
+wait_for_network "boot3" "LAB_BOOT3_NETWORK_SETTLED"
+
+send "test ! -e /usr/lib/uu-wol-helper && test ! -e /etc/init.d/uu-wol-helper && test ! -e /etc/rc.d/S95uu-wol-helper && test -f /etc/uu-wol-helper/last-rollback && test ! -f /etc/uu-wol-helper/last-backup && ! pidof uuplugin >/dev/null 2>&1 && ! pidof xuplugin-guardian >/dev/null 2>&1 && echo LAB_BOOT3_CLEAN_\"OK\"\r"
+expect {
+    -re {LAB_BOOT3_CLEAN_OK} {}
+    timeout { puts stderr "boot3: rolled-back state did not remain clean after reboot"; exit 50 }
+    eof { puts stderr "boot3: QEMU exited during final rollback-state validation"; exit 50 }
+}
+
+reboot_guest "boot3" 51
+exit 0
