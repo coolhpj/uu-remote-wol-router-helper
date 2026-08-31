@@ -16,7 +16,7 @@
 |---|---|---|---|---|---|---|---:|---:|---:|---:|---|
 | Redmi | AX6000 | RB06 | XiaoQiang / OpenWrt-derived | MT7986 / AArch64 | `openwrt-aarch64` | Required for manual adaptation | ✅ | ✅ | ✅ | ✅ | **Verified** |
 | ASUS | RT-AX86U | RT-AX86U | ASUSWRT / Merlin-KoolShare | AArch64 | `static-asuswrt` | Not required for official UI; required for advanced adaptation/diagnostics | ✅ | ✅ | ✅ | ✅ | **Verified** |
-| iStoreOS | x86_64 VM sample | generic-openwrt-x86_64 | OpenWrt / iStoreOS 24.10.7 | x86_64 / x86/64 | `openwrt-x86_64` | Available | ✅* | ✅* | ✅ | ✅* | Experimental: persistent install + reboot + mobile-data WOL verified; rollback pending |
+| iStoreOS | x86_64 VM sample | generic-openwrt-x86_64 | OpenWrt / iStoreOS 24.10.7 | x86_64 / x86/64 | `openwrt-x86_64` | Available | ✅* | ✅* | ✅ | ✅* | **Verified (this sample)**: install + reboot + mobile-data WOL + rollback + post-rollback reboot verified |
 
 ## Redmi AX6000 / RB06
 
@@ -64,7 +64,9 @@
 
 当前第二环境样本已经用 iStoreOS 24.10.7 / x86_64 实测通过：Generic OpenWrt detect/preflight、`openwrt-x86_64 v14.6.22` 官方 API、MD5、tar、`/tmp` staging、临时 `uuplugin + guardian + :16000 ESTABLISHED` runtime smoke-test、真实 `/overlay` 持久安装，以及真实 reboot 后 procd 自动恢复。重启后 `uuplugin + guardian + :16000 ESTABLISHED` 自动恢复，OpenClash 也随后正常上线，原有上游默认路由保持不变。此前手机默认网关切到 iStoreOS 后，UU主机加速成功识别并绑定 OpenWrt；Windows 默认网关同样切到 iStoreOS 后，UU远程完成辅助设备检测，并最终在手机关闭 Wi‑Fi、仅使用移动数据时成功唤醒 Windows。
 
-> `Install = ✅*` 与 `Reboot = ✅*` 表示真实持久安装和真实 reboot 后自动恢复均已成功；`Remote WOL = ✅*` 表示功能链路终验成功。由于真实 rollback 尚未执行，整体状态仍保持 Experimental，而不是完整 Verified。
+随后又实机执行了当前仓库正式 `platforms/openwrt/rollback.sh`：安装前 manifest 为 `had_install=no / had_init=no / previous_enabled=no`，rollback 返回 `ROLLBACK_OK`，项目 install/init/`S95/K10` 全部清除且 `last-rollback` 被保留。再次 reboot 后，项目 UU runtime 没有反弹，OpenClash 恢复 running，默认路由保持原上游，网易 API 连通正常。
+
+> `Install = ✅*`、`Reboot = ✅*`、`Remote WOL = ✅*` 都只对应当前 iStoreOS x86_64 样本。这个样本已满足 `Verified` 定义，但 Generic OpenWrt 仍必须逐台完成同等级实机证据，不能因为架构相同自动继承 Verified。
 
 ## 新设备进入兼容矩阵的流程
 

@@ -122,10 +122,10 @@ sh uu-helper.sh stage auto
 |---|---|---|---:|---:|---:|---:|---|
 | Redmi AX6000 / RB06 | XiaoQiang / OpenWrt-derived | `openwrt-aarch64` | ✅ | ✅ | ✅ | ✅ | **Verified** |
 | ASUS RT-AX86U | ASUSWRT / Merlin-KoolShare | `static-asuswrt` | ✅ | ✅ | ✅ | ✅ | **Verified** |
-| Generic OpenWrt / iStoreOS | OpenWrt | `openwrt-aarch64` / `openwrt-x86_64` 等按架构选择 | ✅* | ✅* | ✅* | ✅* | Experimental; iStoreOS x86_64 persistent install + reboot + mobile-data WOL verified; rollback pending |
+| Generic OpenWrt / iStoreOS | OpenWrt | `openwrt-aarch64` / `openwrt-x86_64` 等按架构选择 | ✅* | ✅* | ✅* | ✅* | **Verified (iStoreOS x86_64 sample)**; Generic OpenWrt 仍需逐台验证 |
 | Other vendors | Vendor firmware | Unknown | ❓ | ❓ | ❓ | ❓ | Community research |
 
-> `Remote WOL = ✅` 只用于已经有真实远程开机证据的设备。不会因为插件能启动就标记兼容。RT-AX86U 已补齐手机移动数据 Remote WOL 与 LAN Magic Packet 抓包证据；iStoreOS 行的 `✅*` 表示：真实持久安装、真实 reboot 后自动恢复、UU云连接和移动数据 Remote WOL 都已验收通过；真实 rollback 仍未执行，所以暂时保持 Experimental。
+> `Remote WOL = ✅` 只用于已经有真实远程开机证据的设备。不会因为插件能启动就标记兼容。RT-AX86U 已补齐手机移动数据 Remote WOL 与 LAN Magic Packet 抓包证据；iStoreOS 行的 `✅*` 只表示这些能力由当前 iStoreOS x86_64 样本实机完成：真实持久安装、真实 reboot 后自动恢复、UU云连接、移动数据 Remote WOL、正式 rollback，以及 rollback 后再次 reboot 的恢复验收均已通过。该结论不外推到所有 Generic OpenWrt。
 
 完整矩阵见 [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md)。SSH/root 使用边界见 [`docs/SSH-ACCESS.md`](docs/SSH-ACCESS.md)。XiaoQiang 适配说明见 [`docs/XIAOQIANG.md`](docs/XIAOQIANG.md)，ASUSWRT 参考适配见 [`docs/ASUSWRT.md`](docs/ASUSWRT.md)，Generic OpenWrt 诊断层见 [`docs/OPENWRT.md`](docs/OPENWRT.md)。同账号存在多个辅助路由器时的已知事实与 A/B/C 验证方法见 [`docs/MULTI-AUX-DEVICE.md`](docs/MULTI-AUX-DEVICE.md)。
 
@@ -304,7 +304,7 @@ uu-remote-wol-router-helper/
 - [ ] 从原始证据中挑选并脱敏 README 图片
 - [x] 第二环境第一阶段：NAS iStoreOS 24.10.7 / x86_64 已通过 detect/preflight + `stage auto` + 官方 `openwrt-x86_64 v14.6.22` 临时 runtime / `:16000` 云连接；未改 UCI/overlay，测试后规则恢复基线
 - [x] 第二环境第二阶段（功能终验）：UU主机加速绑定 OpenWrt、UU远程辅助设备检测、手机关闭 Wi‑Fi 后仅用移动数据远程开机均已成功
-- [ ] 第二环境第三阶段（部署终验）：真实 iStoreOS 持久安装、reboot 后自动恢复、移动数据 Remote WOL，以及多辅助设备 A/B/C 对照实验均已完成；剩余真实 rollback，以及 rollback 后恢复验收。
+- [x] 第二环境第三阶段（部署终验）：真实 iStoreOS 持久安装、reboot 后自动恢复、移动数据 Remote WOL、多辅助设备 A/B/C、正式 rollback，以及 rollback 后再次 reboot 的 OpenClash/默认路由/网易 API 恢复验收均已完成。
 - [ ] 第三设备候选：闲置 RS2，后续用于扩展真实硬件兼容验证
 - [ ] Private review（发布门禁与剩余硬阻塞见 [`docs/PRIVATE-REVIEW.md`](docs/PRIVATE-REVIEW.md)）
 - [ ] Public release

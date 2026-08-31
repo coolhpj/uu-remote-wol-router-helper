@@ -41,7 +41,9 @@
 - [x] persistence adapter 离线回归；
 - [x] 真实持久安装；
 - [x] 真实 reboot 后 procd 自动恢复；
-- [x] reboot 后 UU 云连接与 OpenClash 恢复。
+- [x] reboot 后 UU 云连接与 OpenClash 恢复；
+- [x] 正式 `rollback.sh` 实机执行成功；
+- [x] rollback 后再次 reboot，项目 install/init/自启动保持清除，OpenClash、默认路由与网易 API 恢复正常。
 
 ### ASUSWRT
 
@@ -65,9 +67,10 @@
 ### 2. iStoreOS 部署链最后验收
 
 - [x] reboot 之后已完成手机移动数据 Remote WOL；
-- [ ] 真实执行一次 rollback；
-- [ ] rollback 后确认 UU / OpenClash / 网络规则恢复到预期状态；
-- [ ] 如需要继续保留实验安装，再重新按已验证路径安装，而不是手工拼回文件。
+- [x] 真实执行正式 `rollback.sh`，返回 `ROLLBACK_OK`；
+- [x] rollback 后项目 install/init/`S95/K10` 均清除，`last-rollback` 持久记录，UU runtime 未残留；
+- [x] rollback 后再次 reboot，OpenClash、默认路由与网易 API 恢复正常，已确认不会反弹项目 UU runtime；
+- [x] 当前样本选择保持 rollback 后干净状态；以后如需再次启用，必须重新走已验证安装流程，不手工拼回文件。
 
 ### 3. 多辅助设备行为收口
 
