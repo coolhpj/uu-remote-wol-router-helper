@@ -131,8 +131,6 @@ fixture_step "xq-boot1" "printf '%s\\n' 'plugin_id = \"2882303761518031252\";' '
 
 fixture_step "xq-boot1" "printf '%s\\n' '{\"id\":\"2882303761518031252\",\"version\": \"4.0.2\",\"isEnable\":true}' > /userdisk/appdata/installPlugin/2882303761518031252.json; printf '%s\\n' 'legacy-helper' > /data/uu-v14/legacy.txt; printf '%s\\n' '#!/bin/sh' 'exit 0' > /data/uu-v14/auto.sh; chmod 0755 /data/uu-v14/auto.sh; printf '%s\\n' '#!/bin/sh' 'exit 0' > /data/legacy-uu/auto.sh; chmod 0755 /data/legacy-uu/auto.sh" "LAB_XQ_FIXTURE_HELPERS" 35
 
-fixture_step "xq-boot1" "if ! command -v curl >/dev/null 2>&1; then printf '%s\\n' '#!/bin/sh' 'url=' 'for arg in \"\$@\"; do case \"\$arg\" in http://*|https://*) url=\"\$arg\" ;; esac; done' 'test -n \"\$url\" || exit 2' 'exec wget -qO- \"\$url\"' > /usr/bin/curl; chmod 0755 /usr/bin/curl; fi" "LAB_XQ_FIXTURE_CURL" 36
-
 send "uci -q get xiaoqiang.common.NETMODE | grep -qx 'whc_cap' && uci -q get firewall.uuplugin.path | grep -qx '/data/legacy-uu/auto.sh' && sh /mnt/repo/platforms/xiaoqiang/preflight.sh >/dev/null 2>&1 && echo LAB_XQ_PREFLIGHT_\"OK\"\r"
 expect {
     -re {LAB_XQ_PREFLIGHT_OK} {}
@@ -181,7 +179,12 @@ expect {
     timeout { puts stderr "xq-boot1: migrated XiaoQiang state/health validation failed"; exit 35 }
 }
 
-reboot_guest "xq-boot1" 36
+# The RB06 boot helper uses curl only for a lightweight API reachability check.
+# Inject a minimal persistent curl shim only after staging/install so the project
+# downloader continues to exercise OpenWrt's native wget path.
+fixture_step "xq-boot1" "if ! command -v curl >/dev/null 2>&1; then printf '%s\\n' '#!/bin/sh' 'url=' 'for arg in \"\$@\"; do case \"\$arg\" in http://*|https://*) url=\"\$arg\" ;; esac; done' 'test -n \"\$url\" || exit 2' 'exec wget -qO- \"\$url\"' > /usr/bin/curl; chmod 0755 /usr/bin/curl; fi" "LAB_XQ_BOOT_HELPER_CURL" 36
+
+reboot_guest "xq-boot1" 37
 
 # ---------------------------------------------------------------------------
 # Boot 2: verify firewall include/auto helper restores migrated runtime.
