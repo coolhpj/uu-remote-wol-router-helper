@@ -57,7 +57,7 @@
 
 朋友 RB06 不再作为新版代码的日常复现设备。现有真实 RB06 的 reboot / UU 云连接 / 手机移动数据 Remote WOL 终验继续作为硬件事实；新版 installer / rollback 改由可重复实验室验证。
 
-- [x] 建立 ARM64 OpenWrt QEMU Lab；官方 OpenWrt 25.12.5 / `armsr/armv8` 已在 GitHub Actions QEMU 中真实启动并完成 Boot smoke；
+- [x] 建立 ARM64 OpenWrt QEMU Lab；官方 OpenWrt 25.12.5 / `armsr/armv8` 已完成 Boot、WAN/DHCP、网易 `openwrt-aarch64` API、真实 staging，以及官方 `uuplugin + guardian + :16000 ESTABLISHED` 临时 runtime smoke；
 - [ ] 在 Lab 上加入 XiaoQiang compatibility shim（`/data`、`/userdisk/appdata`、NETMODE、`firewall.uuplugin`）；
 - [ ] 跑通 rewritten smoke-test / legacy-migration installer / rollback；
 - [ ] QEMU Lab 只证明软件回归，不冒充新的 RB06 实体硬件终验。
@@ -82,12 +82,12 @@
 
 - [x] 当前 `gh` OAuth Token 已包含 `workflow` scope；
 - [x] `.github/workflows/ci.yml` 已正常 push；
-- [x] 普通 CI 已在 GitHub 云端实际运行并全绿；ARM64 QEMU Boot Lab 也已完成一次真实云端成功运行。
+- [x] 普通 CI 与 ARM64 QEMU Lab 均已在 GitHub 云端实际全绿；QEMU 当前已验证到官方 ARM64 runtime、guardian、`:16000 ESTABLISHED` 与临时运行态清理。
 
 ### 5. 最终公开前安全审计
 
 - [ ] 再跑一次全仓库 sensitive scan；
-- [x] 当前 53 个历史 commit 已用 `tests/scan-history-sensitive.sh` 扫描，未发现规则命中的真实 IP/MAC/GitHub Token/网易临时 key；切 Public 前仍需在最终 HEAD 再跑一次；
+- [x] 最新完整 Git 历史已用 `tests/scan-history-sensitive.sh` 扫描并通过；未发现规则命中的真实 IP/MAC/GitHub Token/网易临时 key；切 Public 前仍需在最终 HEAD 再跑一次；
 - [ ] 检查 README 和设备档案没有把测试环境的私网地址写成通用配置；
 - [ ] 确认仓库不包含原始完整聊天、PDF、第三方闭源 UU 二进制或未授权第三方代码。
 
