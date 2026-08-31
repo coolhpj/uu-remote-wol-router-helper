@@ -15,7 +15,9 @@ Stage 1 is cloud-verified in GitHub Actions and validates:
 
 Stage 2 is cloud-verified in GitHub Actions: an isolated second virtio WAN interface obtains DHCP, reaches the Internet over HTTPS, and validates the official NetEase `openwrt-aarch64` plugin API without printing signed package URLs into CI logs.
 
-Stage 3 mounts the current repository read-only into the guest and runs the real `scripts/stage-package.sh openwrt-aarch64`, so API parsing, signed-download redaction, package download, official MD5 verification, archive validation, and extraction are tested using the project code itself.
+Stage 3 is cloud-verified in GitHub Actions: it mounts the current repository read-only into the guest and runs the real `scripts/stage-package.sh openwrt-aarch64`, so API parsing, signed-download redaction, package download, official MD5 verification, archive validation, and extraction are tested using the project code itself.
+
+Stage 4 runs the project's real guarded `platforms/openwrt/smoke-test.sh` against that staged official ARM64 package. It requires `uuplugin + xuplugin-guardian + :16000 ESTABLISHED`, then stops the temporary runtime, checks for process/firewall residue, and requires the normal stage-MD5-bound smoke-pass evidence. No persistent install is performed in this stage.
 
 The lab does **not** claim to emulate a MediaTek, Qualcomm, Broadcom, Xiaomi, ASUS, TP-Link, or GL.iNet hardware platform. Passing this lab means **Lab Tested**, not physical-device **Verified**.
 
@@ -48,8 +50,7 @@ sh labs/qemu/openwrt-aarch64/boot-smoke.sh
 
 ## Planned next stages
 
-1. finish Stage 3 repository-driven staging verification;
-2. run the real ARM64 `uuplugin` and check guardian + UU cloud connection;
-3. move to a persistent rootfs and validate install → reboot → health → rollback;
-4. add a XiaoQiang compatibility shim for the rewritten RB06 migration adapter;
-5. later add a virtual LAN / packet-capture test for WOL Magic Packet emission.
+1. cloud-verify Stage 4 real ARM64 `uuplugin` + guardian + UU cloud runtime;
+2. move to a persistent rootfs and validate install → reboot → health → rollback;
+3. add a XiaoQiang compatibility shim for the rewritten RB06 migration adapter;
+4. later add a virtual LAN / packet-capture test for WOL Magic Packet emission.

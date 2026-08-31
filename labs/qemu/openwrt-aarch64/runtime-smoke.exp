@@ -1,0 +1,150 @@
+#!/usr/bin/expect -f
+
+set timeout 360
+
+if {$argc != 2} {
+    puts stderr "usage: runtime-smoke.exp <kernel-image> <repo-root>"
+    exit 2
+}
+
+set image [lindex $argv 0]
+set repo [lindex $argv 1]
+
+spawn qemu-system-aarch64 \
+    -machine virt \
+    -cpu cortex-a57 \
+    -m 384 \
+    -smp 2 \
+    -nographic \
+    -no-reboot \
+    -kernel $image \
+    -netdev user,id=lan0,restrict=on \
+    -device virtio-net-pci,netdev=lan0 \
+    -netdev user,id=wan0 \
+    -device virtio-net-pci,netdev=wan0 \
+    -fsdev local,id=repo_fs,path=$repo,security_model=none,readonly=on \
+    -device virtio-9p-pci,fsdev=repo_fs,mount_tag=repo
+
+set prompt_ready 0
+expect {
+    -re {Please press Enter to activate this console\.} {
+        send "\r"
+    }
+    -re {root@[^:\r\n]+:[^\r\n]*# ?} {
+        set prompt_ready 1
+    }
+    timeout {
+        puts stderr "OpenWrt console did not become ready"
+        exit 10
+    }
+    eof {
+        puts stderr "QEMU exited before OpenWrt console became ready"
+        exit 11
+    }
+}
+
+if {!$prompt_ready} {
+    expect {
+        -re {root@[^:\r\n]+:[^\r\n]*# ?} {}
+        timeout {
+            puts stderr "OpenWrt root prompt did not appear after activating console"
+            exit 12
+        }
+        eof {
+            puts stderr "QEMU exited before root prompt appeared"
+            exit 13
+        }
+    }
+}
+
+# Wait for OpenWrt's own late network initialization before borrowing eth1 as
+# the isolated WAN. This is intentionally state-based rather than a fixed sleep.
+send "until test -r /sys/class/net/br-lan/operstate && grep -q '^up$' /sys/class/net/br-lan/operstate; do sleep 1; done; echo LAB_NETWORK_SETTLED_\"OK\"\r"
+set timeout 75
+expect {
+    -re {LAB_NETWORK_SETTLED_OK} {}
+    timeout { puts stderr "OpenWrt late network initialization did not settle"; exit 20 }
+}
+set timeout 360
+
+send "ip link set eth1 up; udhcpc -i eth1 -q -n -t 5 >/tmp/udhcpc-wan.log 2>&1; ip -4 addr show dev eth1 | grep -q 'inet ' && echo LAB_DHCP_\"OK\"\r"
+expect {
+    -re {LAB_DHCP_OK} {}
+    timeout { puts stderr "QEMU user-network DHCP did not configure eth1"; exit 21 }
+}
+
+send "mkdir -p /mnt/repo; modprobe 9pnet_virtio >/dev/null 2>&1 || true; mount -t 9p -o trans=virtio repo /mnt/repo >/tmp/9p-mount.log 2>&1 && test -f /mnt/repo/scripts/stage-package.sh && test -f /mnt/repo/platforms/openwrt/smoke-test.sh && echo LAB_REPO_MOUNT_\"OK\"\r"
+expect {
+    -re {LAB_REPO_MOUNT_OK} {}
+    timeout { puts stderr "read-only repository 9P mount failed"; exit 22 }
+}
+
+send "rm -rf /tmp/uu-wol-helper-qemu-runtime; UU_STAGE_DIR=/tmp/uu-wol-helper-qemu-runtime sh /mnt/repo/scripts/stage-package.sh openwrt-aarch64 && echo LAB_STAGE_\"COMMAND_OK\" || echo LAB_STAGE_\"COMMAND_FAILED\"\r"
+set stage_ready 0
+expect {
+    -re {STAGE_READY} {
+        set stage_ready 1
+        exp_continue
+    }
+    -re {LAB_STAGE_COMMAND_OK} {
+        if {!$stage_ready} {
+            puts stderr "stage-package.sh returned success without STAGE_READY"
+            exit 23
+        }
+    }
+    -re {LAB_STAGE_COMMAND_FAILED} {
+        puts stderr "repository stage-package.sh returned failure"
+        exit 23
+    }
+    timeout { puts stderr "repository stage-package.sh did not finish"; exit 23 }
+    eof { puts stderr "QEMU exited during package staging"; exit 23 }
+}
+
+# Run the project's real guarded temporary-runtime smoke test. The guest is
+# disposable, but the production safety gate remains enabled deliberately.
+send "UU_STAGE_DIR=/tmp/uu-wol-helper-qemu-runtime UU_RUNTIME_TEST_CONFIRM=TEMPORARY_RUNTIME_CHANGE UU_SMOKE_TIMEOUT=75 sh /mnt/repo/platforms/openwrt/smoke-test.sh && echo LAB_RUNTIME_\"COMMAND_OK\" || echo LAB_RUNTIME_\"COMMAND_FAILED\"\r"
+set smoke_pass 0
+expect {
+    -re {SMOKE_TEST_PASS} {
+        set smoke_pass 1
+        exp_continue
+    }
+    -re {LAB_RUNTIME_COMMAND_OK} {
+        if {!$smoke_pass} {
+            puts stderr "smoke-test.sh returned success without SMOKE_TEST_PASS"
+            exit 24
+        }
+    }
+    -re {LAB_RUNTIME_COMMAND_FAILED} {
+        puts stderr "repository OpenWrt runtime smoke-test returned failure"
+        exit 24
+    }
+    timeout { puts stderr "repository OpenWrt runtime smoke-test did not finish"; exit 24 }
+    eof { puts stderr "QEMU exited during OpenWrt runtime smoke-test"; exit 24 }
+}
+
+# A successful smoke test must leave stage-bound evidence and no live UU
+# processes; cleanup residue is already checked inside smoke-test.sh.
+send "test -f /tmp/uu-wol-helper-qemu-runtime/smoke-pass && ! ps 2>/dev/null | grep '[u]uplugin .*uu.conf' >/dev/null 2>&1 && ! ps 2>/dev/null | grep '[x]uplugin-guardian' >/dev/null 2>&1 && echo LAB_RUNTIME_CLEAN_\"OK\"\r"
+expect {
+    -re {LAB_RUNTIME_CLEAN_OK} {}
+    timeout { puts stderr "runtime smoke-test did not leave a clean stopped state"; exit 25 }
+}
+
+send "rm -rf /tmp/uu-wol-helper-qemu-runtime /tmp/udhcpc-wan.log /tmp/9p-mount.log; umount /mnt/repo >/dev/null 2>&1 || true; echo LAB_RUNTIME_\"OK\"\r"
+expect {
+    -re {LAB_RUNTIME_OK} {}
+    timeout { puts stderr "runtime staging cleanup marker missing"; exit 26 }
+}
+
+send "reboot -f\r"
+set timeout 30
+expect {
+    eof {}
+    timeout {
+        puts stderr "QEMU did not exit after forced reboot with -no-reboot"
+        exit 27
+    }
+}
+
+exit 0

@@ -37,3 +37,6 @@ jobs:
 
       - name: Stage official NetEase ARM64 package in guest
         run: sh labs/qemu/openwrt-aarch64/stage-smoke.sh
+
+      - name: Run official NetEase ARM64 runtime smoke-test in guest
+        run: sh labs/qemu/openwrt-aarch64/runtime-smoke.sh
