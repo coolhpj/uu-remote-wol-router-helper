@@ -123,12 +123,13 @@ expect {
     eof { puts stderr "QEMU exited during OpenWrt runtime smoke-test"; exit 24 }
 }
 
-# A successful smoke test must leave stage-bound evidence and no live UU
-# processes; cleanup residue is already checked inside smoke-test.sh.
-send "test -f /tmp/uu-wol-helper-qemu-runtime/smoke-pass && ! ps 2>/dev/null | grep '[u]uplugin .*uu.conf' >/dev/null 2>&1 && ! ps 2>/dev/null | grep '[x]uplugin-guardian' >/dev/null 2>&1 && echo LAB_RUNTIME_CLEAN_\"OK\"\r"
+# SMOKE_TEST_PASS is emitted only after smoke-test.sh has stopped the runtime
+# and passed its process/firewall residue guard. Here we independently require
+# the stage-MD5-bound evidence marker without duplicating shell regexes in Tcl.
+send "test -f /tmp/uu-wol-helper-qemu-runtime/smoke-pass && echo LAB_RUNTIME_CLEAN_\"OK\"\r"
 expect {
     -re {LAB_RUNTIME_CLEAN_OK} {}
-    timeout { puts stderr "runtime smoke-test did not leave a clean stopped state"; exit 25 }
+    timeout { puts stderr "runtime smoke-test did not leave smoke-pass evidence"; exit 25 }
 }
 
 send "rm -rf /tmp/uu-wol-helper-qemu-runtime /tmp/udhcpc-wan.log /tmp/9p-mount.log; umount /mnt/repo >/dev/null 2>&1 || true; echo LAB_RUNTIME_\"OK\"\r"
