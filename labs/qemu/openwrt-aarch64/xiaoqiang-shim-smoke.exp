@@ -96,10 +96,11 @@ proc reboot_guest {phase exitcode} {
 
 proc fixture_step {phase command marker exitcode} {
     global spawn_id timeout
-    send "$command; echo ${marker}_\"OK\"\r"
+    send "(set -e; $command) && echo ${marker}_\"OK\" || echo ${marker}_\"FAILED\"\r"
     set timeout 45
     expect {
         -re "${marker}_OK" {}
+        -re "${marker}_FAILED" { puts stderr "$phase: fixture step command failed: $marker"; exit $exitcode }
         timeout { puts stderr "$phase: fixture step failed: $marker"; exit $exitcode }
         eof { puts stderr "$phase: QEMU exited during fixture step: $marker"; exit $exitcode }
     }
@@ -173,11 +174,9 @@ expect {
     eof { puts stderr "xq-boot1: QEMU exited during legacy migration"; exit 34 }
 }
 
-send "test -x /userdisk/appdata/2882303761518031252/uuplugin && test -x /userdisk/appdata/2882303761518031252/xnetease-uu && test -x /data/uu-v14/auto.sh && grep -q '^managed_by=uu-remote-wol-router-helper$' /data/uu-v14/install.meta && uci -q get firewall.uuplugin.path | grep -qx '/data/uu-v14/auto.sh' && ! grep -q 'version = \"4.0.2\";' /userdisk/appdata/2882303761518031252/manifest && UU_PLUGIN_DIR=/userdisk/appdata/2882303761518031252 sh /mnt/repo/platforms/xiaoqiang/health.sh >/dev/null 2>&1 && echo LAB_XQ_INSTALL_STATE_\"OK\"\r"
-expect {
-    -re {LAB_XQ_INSTALL_STATE_OK} {}
-    timeout { puts stderr "xq-boot1: migrated XiaoQiang state/health validation failed"; exit 35 }
-}
+fixture_step "xq-boot1" "test -x /userdisk/appdata/2882303761518031252/uuplugin; test -x /userdisk/appdata/2882303761518031252/xnetease-uu; test -x /data/uu-v14/auto.sh; grep -q '^managed_by=uu-remote-wol-router-helper$' /data/uu-v14/install.meta" "LAB_XQ_INSTALL_FILES" 35
+fixture_step "xq-boot1" "uci -q get firewall.uuplugin.path | grep -qx '/data/uu-v14/auto.sh'; ! grep -q 'version = \"4.0.2\";' /userdisk/appdata/2882303761518031252/manifest" "LAB_XQ_INSTALL_METADATA" 35
+fixture_step "xq-boot1" "UU_PLUGIN_DIR=/userdisk/appdata/2882303761518031252 sh /mnt/repo/platforms/xiaoqiang/health.sh >/dev/null 2>&1" "LAB_XQ_INSTALL_HEALTH" 35
 
 # The RB06 boot helper uses curl only for a lightweight API reachability check.
 # Inject a minimal persistent curl shim only after staging/install so the project
@@ -222,11 +221,9 @@ expect {
     eof { puts stderr "xq-boot2: QEMU exited during XiaoQiang rollback"; exit 42 }
 }
 
-send "grep -q '^legacy-plugin$' /userdisk/appdata/2882303761518031252/uuplugin && grep -q 'version = \"4.0.2\";' /userdisk/appdata/2882303761518031252/manifest && grep -q '\"version\": \"4.0.2\"' /userdisk/appdata/installPlugin/2882303761518031252.json && test -f /data/uu-v14/legacy.txt && test ! -f /data/uu-v14/install.meta && uci -q get firewall.uuplugin.path | grep -qx '/data/legacy-uu/auto.sh' && test -f /data/uu-wol-helper-state/last-rollback && test ! -f /data/uu-wol-helper-state/last-backup && echo LAB_XQ_ROLLBACK_STATE_\"OK\"\r"
-expect {
-    -re {LAB_XQ_ROLLBACK_STATE_OK} {}
-    timeout { puts stderr "xq-boot2: rollback did not restore legacy XiaoQiang state"; exit 43 }
-}
+fixture_step "xq-boot2" "grep -q '^legacy-plugin$' /userdisk/appdata/2882303761518031252/uuplugin; grep -q 'version = \"4.0.2\";' /userdisk/appdata/2882303761518031252/manifest; grep -q '\"version\": \"4.0.2\"' /userdisk/appdata/installPlugin/2882303761518031252.json" "LAB_XQ_ROLLBACK_METADATA" 43
+fixture_step "xq-boot2" "test -f /data/uu-v14/legacy.txt; test ! -f /data/uu-v14/install.meta; uci -q get firewall.uuplugin.path | grep -qx '/data/legacy-uu/auto.sh'" "LAB_XQ_ROLLBACK_HELPER" 43
+fixture_step "xq-boot2" "test -f /data/uu-wol-helper-state/last-rollback; test ! -f /data/uu-wol-helper-state/last-backup" "LAB_XQ_ROLLBACK_STATE" 43
 
 reboot_guest "xq-boot2" 44
 
@@ -237,12 +234,9 @@ spawn_guest $disk $efi $repo
 wait_for_console "xq-boot3"
 wait_for_network "xq-boot3" "LAB_XQ_BOOT3_NETWORK_SETTLED"
 
-send "uci -q get xiaoqiang.common.NETMODE | grep -qx 'whc_cap' && uci -q get firewall.uuplugin.path | grep -qx '/data/legacy-uu/auto.sh' && grep -q '^legacy-plugin$' /userdisk/appdata/2882303761518031252/uuplugin && grep -q 'version = \"4.0.2\";' /userdisk/appdata/2882303761518031252/manifest && test -f /data/uu-v14/legacy.txt && test ! -f /data/uu-v14/install.meta && test -f /data/uu-wol-helper-state/last-rollback && ! pidof uuplugin >/dev/null 2>&1 && ! pidof xuplugin-guardian >/dev/null 2>&1 && echo LAB_XQ_BOOT3_CLEAN_\"OK\"\r"
-expect {
-    -re {LAB_XQ_BOOT3_CLEAN_OK} {}
-    timeout { puts stderr "xq-boot3: restored legacy state was not stable after reboot"; exit 50 }
-    eof { puts stderr "xq-boot3: QEMU exited during final shim validation"; exit 50 }
-}
+fixture_step "xq-boot3" "uci -q get xiaoqiang.common.NETMODE | grep -qx 'whc_cap'; uci -q get firewall.uuplugin.path | grep -qx '/data/legacy-uu/auto.sh'" "LAB_XQ_BOOT3_NETWORK_STATE" 50
+fixture_step "xq-boot3" "grep -q '^legacy-plugin$' /userdisk/appdata/2882303761518031252/uuplugin; grep -q 'version = \"4.0.2\";' /userdisk/appdata/2882303761518031252/manifest; test -f /data/uu-v14/legacy.txt; test ! -f /data/uu-v14/install.meta" "LAB_XQ_BOOT3_LEGACY_STATE" 50
+fixture_step "xq-boot3" "test -f /data/uu-wol-helper-state/last-rollback; ! pidof uuplugin >/dev/null 2>&1; ! pidof xuplugin-guardian >/dev/null 2>&1" "LAB_XQ_BOOT3_RUNTIME_CLEAN" 50
 
 reboot_guest "xq-boot3" 51
 exit 0
