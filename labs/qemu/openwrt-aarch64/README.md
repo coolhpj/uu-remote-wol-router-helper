@@ -21,6 +21,10 @@ Stage 4 is cloud-verified in GitHub Actions: it runs the project's real guarded 
 
 Stage 5 is cloud-verified in GitHub Actions using the official writable `generic-ext4-combined-efi` image. The same disk completed install → reboot → automatic procd/cloud health → rollback → second reboot. The final boot confirmed the managed install directory, init script and startup link remained removed, no UU runtime reappeared, and rollback state persisted.
 
+Stage 6 is cloud-verified using a software-only XiaoQiang/RB06 compatibility fixture. The fixture models the verified `/data`, `/userdisk/appdata`, `whc_cap` NETMODE, legacy metadata and `firewall.uuplugin` state, then runs the repository's real XiaoQiang smoke-test, migration installer, reboot auto-recovery, rollback and final reboot cleanup. It does not emulate MT7986 hardware, Xiaomi boot firmware, radio, switch or NAND behavior.
+
+Stage 7 is cloud-verified in two separate evidence layers. The staged official ARM64 `uuplugin` is checked for its embedded `uu_router_messages.Wol` and `WolReply` handlers. Separately, an isolated synthetic virtual LAN + pcap harness validates the standard 102-byte Magic Packet over UDP/9 and raw EtherType `0x0842`. The synthetic harness validates packet format/capture behavior only; it does **not** claim that GitHub Actions reproduced a real NetEase cloud WOL dispatch.
+
 The lab does **not** claim to emulate a MediaTek, Qualcomm, Broadcom, Xiaomi, ASUS, TP-Link, or GL.iNet hardware platform. Passing this lab means **Lab Tested**, not physical-device **Verified**.
 
 ## Why ARM64 first
@@ -51,8 +55,8 @@ Run:
 sh labs/qemu/openwrt-aarch64/boot-smoke.sh
 ```
 
-## Planned next stages
+## Current boundary
 
-1. add a XiaoQiang compatibility shim for the rewritten RB06 migration adapter;
-2. validate the rewritten XiaoQiang smoke-test / legacy-migration installer / rollback against that shim;
-3. later add a virtual LAN / packet-capture test for WOL Magic Packet emission.
+The repeatable ARM64 software regression path is now complete through Stage 7. Future work should prioritize real-device compatibility samples and release review rather than adding more synthetic stages unless a concrete regression requires them.
+
+Real NetEase cloud WOL dispatch remains a physical/bound-environment verification item. Existing AX86U mobile-data testing and LAN captures provide that real-device evidence; the synthetic Stage 7 harness is deliberately kept separate.

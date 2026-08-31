@@ -58,13 +58,13 @@
 朋友 RB06 不再作为新版代码的日常复现设备。现有真实 RB06 的 reboot / UU 云连接 / 手机移动数据 Remote WOL 终验继续作为硬件事实；新版 installer / rollback 改由可重复实验室验证。
 
 - [x] 建立 ARM64 OpenWrt QEMU Lab；官方 OpenWrt 25.12.5 / `armsr/armv8` 已完成 Boot、WAN/DHCP、网易 `openwrt-aarch64` API、真实 staging、官方 `uuplugin + guardian + :16000 ESTABLISHED` 临时 runtime smoke，以及 writable ext4 的 install → reboot → 自动健康 → rollback → 再 reboot 完整持久生命周期；
-- [ ] 在 Lab 上加入 XiaoQiang compatibility shim（`/data`、`/userdisk/appdata`、NETMODE、`firewall.uuplugin`）；
-- [ ] 跑通 rewritten smoke-test / legacy-migration installer / rollback；
-- [ ] QEMU Lab 只证明软件回归，不冒充新的 RB06 实体硬件终验。
+- [x] 在 Lab 上加入 XiaoQiang compatibility shim（`/data`、`/userdisk/appdata`、NETMODE、`firewall.uuplugin`）；
+- [x] 跑通 rewritten smoke-test / legacy-migration installer / reboot 自动恢复 / rollback / 再 reboot 清理；
+- [x] QEMU Lab 明确只证明软件回归，不冒充新的 RB06 实体硬件终验；Stage 7 另外验证官方 ARM64 `uuplugin` 含 `Wol/WolReply` handler，并用隔离虚拟 LAN + pcap 合成验证 UDP/9 与 EtherType `0x0842` Magic Packet 格式，但不把合成发包写成网易云真实下发。
 
 ### 2. iStoreOS 部署链最后验收
 
-- [ ] reboot 之后再做一次手机移动数据 Remote WOL；
+- [x] reboot 之后已完成手机移动数据 Remote WOL；
 - [ ] 真实执行一次 rollback；
 - [ ] rollback 后确认 UU / OpenClash / 网络规则恢复到预期状态；
 - [ ] 如需要继续保留实验安装，再重新按已验证路径安装，而不是手工拼回文件。
@@ -82,14 +82,14 @@
 
 - [x] 当前 `gh` OAuth Token 已包含 `workflow` scope；
 - [x] `.github/workflows/ci.yml` 已正常 push；
-- [x] 普通 CI 与 ARM64 QEMU Lab 均已在 GitHub 云端实际全绿；QEMU 当前已验证到官方 ARM64 runtime、guardian、`:16000 ESTABLISHED`、临时运行态清理，以及 Generic OpenWrt ARM64 的持久安装/重启自动恢复/rollback/二次重启清理。
+- [x] 普通 CI 与 ARM64 QEMU Lab 均已在 GitHub 云端实际全绿；QEMU 当前已验证官方 ARM64 runtime、guardian、`:16000 ESTABLISHED`、临时运行态清理、Generic OpenWrt ARM64 完整持久生命周期、XiaoQiang/RB06 软件迁移完整生命周期，以及 Stage 7 的官方 WOL handler 探针与合成虚拟 LAN Magic Packet 抓包。
 
 ### 5. 最终公开前安全审计
 
-- [ ] 再跑一次全仓库 sensitive scan；
-- [x] 最新完整 Git 历史已用 `tests/scan-history-sensitive.sh` 扫描并通过；未发现规则命中的真实 IP/MAC/GitHub Token/网易临时 key；切 Public 前仍需在最终 HEAD 再跑一次；
-- [ ] 检查 README 和设备档案没有把测试环境的私网地址写成通用配置；
-- [ ] 确认仓库不包含原始完整聊天、PDF、第三方闭源 UU 二进制或未授权第三方代码。
+- [x] 已在当前收口工作树重新运行全仓库 sensitive scan，并通过；
+- [x] 最新完整 Git 历史已用 `tests/scan-history-sensitive.sh` 扫描并通过，当前覆盖 74 个 commit；未发现规则命中的真实 IP/MAC/GitHub Token/网易临时 key；最终公开动作前若 HEAD 再变化仍需重跑；
+- [x] 已检查 README、设备档案与 Lab 文档，没有把测试环境真实私网地址写成通用配置；
+- [x] 已检查 tracked 文件名、可疑二进制/归档类型和大文件列表；仓库当前不包含原始完整聊天、PDF、pcap、第三方闭源 UU 二进制或压缩包。
 
 ## 推荐完成，但不是代码正确性的硬阻塞
 

@@ -291,7 +291,7 @@ uu-remote-wol-router-helper/
 - [x] 完成官方包下载 / MD5 / staging 链
 - [x] 完成 XiaoQiang 只读 preflight
 - [x] 从 RB06 最终证据提取 monitor / wrapper / boot-helper runtime 模板并加入离线回归测试
-- [ ] 建立 ARM64 OpenWrt QEMU Lab，并在其上加入 XiaoQiang compatibility shim；新版 smoke-test / legacy-migration installer / rollback 改由 Lab 做持续回归，不再要求朋友 RB06 日常复现
+- [x] 建立 ARM64 OpenWrt QEMU Lab，并加入 XiaoQiang compatibility shim；新版 smoke-test / legacy-migration installer / rollback 已改由 Lab 做持续回归，不再要求朋友 RB06 日常复现
 - [x] 完成 XiaoQiang legacy-migration 持久化 adapter 草稿：smoke-pass 闸门、旧插件/metadata/helper/firewall 备份、官方 runtime 迁移、动态显示版本更新与 rollback；裸机 fresh install 明确 fail closed，真实 RB06 历史终验与新版软件回归分开记录
 - [x] 完成 ASUSWRT reference adapter 的只读 detect/health
 - [x] 完成 Generic OpenWrt Experimental detect/health + platform-aware preflight + confirmed channel auto-selection
@@ -304,7 +304,7 @@ uu-remote-wol-router-helper/
 - [ ] 从原始证据中挑选并脱敏 README 图片
 - [x] 第二环境第一阶段：NAS iStoreOS 24.10.7 / x86_64 已通过 detect/preflight + `stage auto` + 官方 `openwrt-x86_64 v14.6.22` 临时 runtime / `:16000` 云连接；未改 UCI/overlay，测试后规则恢复基线
 - [x] 第二环境第二阶段（功能终验）：UU主机加速绑定 OpenWrt、UU远程辅助设备检测、手机关闭 Wi‑Fi 后仅用移动数据远程开机均已成功
-- [ ] 第二环境第三阶段（部署终验）：真实 iStoreOS 持久安装与 reboot 后自动恢复均已通过；多辅助设备 A/B/C 对照实验已全部完成，其中双在线抓包确认当前样本由 AX86U 实际发送 WOL；剩余真实 rollback，以及 rollback 后恢复验收。
+- [ ] 第二环境第三阶段（部署终验）：真实 iStoreOS 持久安装、reboot 后自动恢复、移动数据 Remote WOL，以及多辅助设备 A/B/C 对照实验均已完成；剩余真实 rollback，以及 rollback 后恢复验收。
 - [ ] 第三设备候选：闲置 RS2，后续用于扩展真实硬件兼容验证
 - [ ] Private review（发布门禁与剩余硬阻塞见 [`docs/PRIVATE-REVIEW.md`](docs/PRIVATE-REVIEW.md)）
 - [ ] Public release
