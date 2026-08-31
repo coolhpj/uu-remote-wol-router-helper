@@ -94,6 +94,18 @@ proc reboot_guest {phase exitcode} {
     set timeout 480
 }
 
+proc fixture_step {phase command marker exitcode} {
+    global spawn_id timeout
+    send "$command; echo ${marker}_\"OK\"\r"
+    set timeout 45
+    expect {
+        -re "${marker}_OK" {}
+        timeout { puts stderr "$phase: fixture step failed: $marker"; exit $exitcode }
+        eof { puts stderr "$phase: QEMU exited during fixture step: $marker"; exit $exitcode }
+    }
+    set timeout 480
+}
+
 # ---------------------------------------------------------------------------
 # Boot 1: create a software-only XiaoQiang fixture, smoke, migrate and verify.
 # ---------------------------------------------------------------------------
@@ -105,11 +117,21 @@ mount_repo "xq-boot1" "LAB_XQ_BOOT1_REPO_MOUNT"
 
 # The fixture intentionally mirrors only software state observed/used by the
 # verified RB06 migration path. It does not emulate Xiaomi hardware or kernel.
-send "mkdir -p /userdisk/appdata/2882303761518031252 /userdisk/appdata/installPlugin /data/uu-v14 /data/legacy-uu; : > /etc/config/xiaoqiang; uci set xiaoqiang.common=common; uci set xiaoqiang.common.NETMODE='whc_cap'; uci commit xiaoqiang; uci -q delete firewall.uuplugin >/dev/null 2>&1 || true; uci set firewall.uuplugin=include; uci set firewall.uuplugin.type='script'; uci set firewall.uuplugin.path='/data/legacy-uu/auto.sh'; uci set firewall.uuplugin.enabled='1'; uci commit firewall; printf '%s\\n' 'legacy-plugin' > /userdisk/appdata/2882303761518031252/uuplugin; printf '%s\\n' 'legacy-guardian' > /userdisk/appdata/2882303761518031252/xuplugin-guardian; printf '%s\\n' 'legacy-nft' > /userdisk/appdata/2882303761518031252/xtables-nft-multi; printf '%s\\n' 'log_level=info' 'version=v-old' > /userdisk/appdata/2882303761518031252/uu.conf; printf '%s\\n' '#!/bin/sh' 'exit 0' > /userdisk/appdata/2882303761518031252/uuplugin_monitor.sh; printf '%s\\n' '#!/bin/sh' 'exit 0' > /userdisk/appdata/2882303761518031252/xnetease-uu; chmod 0755 /userdisk/appdata/2882303761518031252/uuplugin_monitor.sh /userdisk/appdata/2882303761518031252/xnetease-uu; printf '%s\\n' 'plugin_id = \"2882303761518031252\";' 'name = \"UU\";' 'version = \"4.0.2\";' 'control_url = \"https://router.uu.163.com/xiaomi/index.html\";' > /userdisk/appdata/2882303761518031252/manifest; printf '%s\\n' 'RUN ./xnetease-uu plugon' 'STOP /userdisk/appdata/2882303761518031252/xnetease-uu plugoff' > /userdisk/appdata/2882303761518031252/start_script; printf '%s\\n' '{\"id\":\"2882303761518031252\",\"version\": \"4.0.2\",\"isEnable\":true}' > /userdisk/appdata/installPlugin/2882303761518031252.json; printf '%s\\n' 'legacy-helper' > /data/uu-v14/legacy.txt; printf '%s\\n' '#!/bin/sh' 'exit 0' > /data/uu-v14/auto.sh; chmod 0755 /data/uu-v14/auto.sh; printf '%s\\n' '#!/bin/sh' 'exit 0' > /data/legacy-uu/auto.sh; chmod 0755 /data/legacy-uu/auto.sh; if ! command -v curl >/dev/null 2>&1; then printf '%s\\n' '#!/bin/sh' 'url=' 'for arg in \"\$@\"; do case \"\$arg\" in http://*|https://*) url=\"\$arg\" ;; esac; done' 'test -n \"\$url\" || exit 2' 'exec wget -qO- \"\$url\"' > /usr/bin/curl; chmod 0755 /usr/bin/curl; fi; echo LAB_XQ_FIXTURE_\"OK\"\r"
-expect {
-    -re {LAB_XQ_FIXTURE_OK} {}
-    timeout { puts stderr "xq-boot1: failed to create XiaoQiang software fixture"; exit 30 }
-}
+# Keep each serial command short so QEMU/console echo cannot truncate a single
+# monolithic fixture command and hide the exact failing checkpoint.
+fixture_step "xq-boot1" "mkdir -p /userdisk/appdata/2882303761518031252 /userdisk/appdata/installPlugin /data/uu-v14 /data/legacy-uu /etc/config; : > /etc/config/xiaoqiang; uci set xiaoqiang.common=common; uci set xiaoqiang.common.NETMODE='whc_cap'; uci commit xiaoqiang" "LAB_XQ_FIXTURE_BASE" 30
+
+fixture_step "xq-boot1" "uci -q delete firewall.uuplugin >/dev/null 2>&1 || true; uci set firewall.uuplugin=include; uci set firewall.uuplugin.type='script'; uci set firewall.uuplugin.path='/data/legacy-uu/auto.sh'; uci set firewall.uuplugin.enabled='1'; uci commit firewall" "LAB_XQ_FIXTURE_FIREWALL" 31
+
+fixture_step "xq-boot1" "printf '%s\\n' 'legacy-plugin' > /userdisk/appdata/2882303761518031252/uuplugin; printf '%s\\n' 'legacy-guardian' > /userdisk/appdata/2882303761518031252/xuplugin-guardian; printf '%s\\n' 'legacy-nft' > /userdisk/appdata/2882303761518031252/xtables-nft-multi; printf '%s\\n' 'log_level=info' 'version=v-old' > /userdisk/appdata/2882303761518031252/uu.conf" "LAB_XQ_FIXTURE_RUNTIME" 32
+
+fixture_step "xq-boot1" "printf '%s\\n' '#!/bin/sh' 'exit 0' > /userdisk/appdata/2882303761518031252/uuplugin_monitor.sh; printf '%s\\n' '#!/bin/sh' 'exit 0' > /userdisk/appdata/2882303761518031252/xnetease-uu; chmod 0755 /userdisk/appdata/2882303761518031252/uuplugin_monitor.sh /userdisk/appdata/2882303761518031252/xnetease-uu" "LAB_XQ_FIXTURE_WRAPPERS" 33
+
+fixture_step "xq-boot1" "printf '%s\\n' 'plugin_id = \"2882303761518031252\";' 'name = \"UU\";' 'version = \"4.0.2\";' 'control_url = \"https://router.uu.163.com/xiaomi/index.html\";' > /userdisk/appdata/2882303761518031252/manifest; printf '%s\\n' 'RUN ./xnetease-uu plugon' 'STOP /userdisk/appdata/2882303761518031252/xnetease-uu plugoff' > /userdisk/appdata/2882303761518031252/start_script" "LAB_XQ_FIXTURE_METADATA" 34
+
+fixture_step "xq-boot1" "printf '%s\\n' '{\"id\":\"2882303761518031252\",\"version\": \"4.0.2\",\"isEnable\":true}' > /userdisk/appdata/installPlugin/2882303761518031252.json; printf '%s\\n' 'legacy-helper' > /data/uu-v14/legacy.txt; printf '%s\\n' '#!/bin/sh' 'exit 0' > /data/uu-v14/auto.sh; chmod 0755 /data/uu-v14/auto.sh; printf '%s\\n' '#!/bin/sh' 'exit 0' > /data/legacy-uu/auto.sh; chmod 0755 /data/legacy-uu/auto.sh" "LAB_XQ_FIXTURE_HELPERS" 35
+
+fixture_step "xq-boot1" "if ! command -v curl >/dev/null 2>&1; then printf '%s\\n' '#!/bin/sh' 'url=' 'for arg in \"\$@\"; do case \"\$arg\" in http://*|https://*) url=\"\$arg\" ;; esac; done' 'test -n \"\$url\" || exit 2' 'exec wget -qO- \"\$url\"' > /usr/bin/curl; chmod 0755 /usr/bin/curl; fi" "LAB_XQ_FIXTURE_CURL" 36
 
 send "test \"$(uci -q get xiaoqiang.common.NETMODE)\" = whc_cap && test \"$(uci -q get firewall.uuplugin.path)\" = /data/legacy-uu/auto.sh && sh /mnt/repo/platforms/xiaoqiang/preflight.sh >/dev/null 2>&1 && echo LAB_XQ_PREFLIGHT_\"OK\"\r"
 expect {
