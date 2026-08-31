@@ -57,7 +57,7 @@
 
 朋友 RB06 不再作为新版代码的日常复现设备。现有真实 RB06 的 reboot / UU 云连接 / 手机移动数据 Remote WOL 终验继续作为硬件事实；新版 installer / rollback 改由可重复实验室验证。
 
-- [x] 建立 ARM64 OpenWrt QEMU Lab；官方 OpenWrt 25.12.5 / `armsr/armv8` 已完成 Boot、WAN/DHCP、网易 `openwrt-aarch64` API、真实 staging，以及官方 `uuplugin + guardian + :16000 ESTABLISHED` 临时 runtime smoke；
+- [x] 建立 ARM64 OpenWrt QEMU Lab；官方 OpenWrt 25.12.5 / `armsr/armv8` 已完成 Boot、WAN/DHCP、网易 `openwrt-aarch64` API、真实 staging、官方 `uuplugin + guardian + :16000 ESTABLISHED` 临时 runtime smoke，以及 writable ext4 的 install → reboot → 自动健康 → rollback → 再 reboot 完整持久生命周期；
 - [ ] 在 Lab 上加入 XiaoQiang compatibility shim（`/data`、`/userdisk/appdata`、NETMODE、`firewall.uuplugin`）；
 - [ ] 跑通 rewritten smoke-test / legacy-migration installer / rollback；
 - [ ] QEMU Lab 只证明软件回归，不冒充新的 RB06 实体硬件终验。
@@ -82,7 +82,7 @@
 
 - [x] 当前 `gh` OAuth Token 已包含 `workflow` scope；
 - [x] `.github/workflows/ci.yml` 已正常 push；
-- [x] 普通 CI 与 ARM64 QEMU Lab 均已在 GitHub 云端实际全绿；QEMU 当前已验证到官方 ARM64 runtime、guardian、`:16000 ESTABLISHED` 与临时运行态清理。
+- [x] 普通 CI 与 ARM64 QEMU Lab 均已在 GitHub 云端实际全绿；QEMU 当前已验证到官方 ARM64 runtime、guardian、`:16000 ESTABLISHED`、临时运行态清理，以及 Generic OpenWrt ARM64 的持久安装/重启自动恢复/rollback/二次重启清理。
 
 ### 5. 最终公开前安全审计
 

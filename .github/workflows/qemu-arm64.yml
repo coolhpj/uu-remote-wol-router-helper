@@ -19,7 +19,7 @@ permissions:
 jobs:
   boot-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 28
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -43,3 +43,6 @@ jobs:
 
       - name: Validate persistent install reboot health and rollback
         run: sh labs/qemu/openwrt-aarch64/persistent-smoke.sh
+
+      - name: Validate XiaoQiang migration reboot and rollback shim
+        run: sh labs/qemu/openwrt-aarch64/xiaoqiang-shim-smoke.sh

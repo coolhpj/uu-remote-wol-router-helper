@@ -1,0 +1,223 @@
+#!/usr/bin/expect -f
+
+set timeout 480
+
+if {$argc != 3} {
+    puts stderr "usage: xiaoqiang-shim-smoke.exp <disk-image> <efi-firmware> <repo-root>"
+    exit 2
+}
+
+set disk [lindex $argv 0]
+set efi [lindex $argv 1]
+set repo [lindex $argv 2]
+
+proc spawn_guest {disk efi repo} {
+    global spawn_id
+    spawn qemu-system-aarch64 \
+        -machine virt \
+        -cpu cortex-a57 \
+        -m 512 \
+        -smp 2 \
+        -nographic \
+        -no-reboot \
+        -bios $efi \
+        -device virtio-rng-pci \
+        -drive file=$disk,format=raw,index=0,media=disk \
+        -netdev user,id=lan0,restrict=on \
+        -device virtio-net-pci,netdev=lan0 \
+        -netdev user,id=wan0 \
+        -device virtio-net-pci,netdev=wan0 \
+        -fsdev local,id=repo_fs,path=$repo,security_model=none,readonly=on \
+        -device virtio-9p-pci,fsdev=repo_fs,mount_tag=repo
+}
+
+proc wait_for_console {phase} {
+    global spawn_id timeout
+    set timeout 240
+    set prompt_ready 0
+    expect {
+        -re {Please press Enter to activate this console\.} { send "\r" }
+        -re {root@[^:\r\n]+:[^\r\n]*# ?} { set prompt_ready 1 }
+        timeout { puts stderr "$phase: OpenWrt console did not become ready"; exit 10 }
+        eof { puts stderr "$phase: QEMU exited before console became ready"; exit 11 }
+    }
+    if {!$prompt_ready} {
+        expect {
+            -re {root@[^:\r\n]+:[^\r\n]*# ?} {}
+            timeout { puts stderr "$phase: OpenWrt root prompt did not appear"; exit 12 }
+            eof { puts stderr "$phase: QEMU exited before root prompt appeared"; exit 13 }
+        }
+    }
+    set timeout 480
+}
+
+proc wait_for_network {phase marker} {
+    global spawn_id timeout
+    send "until test -r /sys/class/net/br-lan/operstate && grep -q '^up$' /sys/class/net/br-lan/operstate; do sleep 1; done; echo ${marker}_\"OK\"\r"
+    set timeout 100
+    expect {
+        -re "${marker}_OK" {}
+        timeout { puts stderr "$phase: OpenWrt late network initialization did not settle"; exit 20 }
+        eof { puts stderr "$phase: QEMU exited while waiting for network"; exit 20 }
+    }
+    set timeout 480
+}
+
+proc configure_wan {phase marker} {
+    global spawn_id timeout
+    send "ip link set eth1 up; udhcpc -i eth1 -q -n -t 5 >/tmp/udhcpc-wan.log 2>&1; ip -4 addr show dev eth1 | grep -q 'inet ' && echo ${marker}_\"OK\"\r"
+    expect {
+        -re "${marker}_OK" {}
+        timeout { puts stderr "$phase: QEMU user-network DHCP did not configure eth1"; exit 21 }
+        eof { puts stderr "$phase: QEMU exited during WAN DHCP"; exit 21 }
+    }
+}
+
+proc mount_repo {phase marker} {
+    global spawn_id timeout
+    send "mkdir -p /mnt/repo; modprobe 9pnet_virtio >/dev/null 2>&1 || true; mount -t 9p -o trans=virtio repo /mnt/repo >/tmp/9p-mount.log 2>&1 && test -f /mnt/repo/platforms/xiaoqiang/install.sh && test -f /mnt/repo/platforms/xiaoqiang/rollback.sh && echo ${marker}_\"OK\"\r"
+    expect {
+        -re "${marker}_OK" {}
+        timeout { puts stderr "$phase: read-only repository 9P mount failed"; exit 22 }
+        eof { puts stderr "$phase: QEMU exited during repository mount"; exit 22 }
+    }
+}
+
+proc reboot_guest {phase exitcode} {
+    global spawn_id timeout
+    send "sync; reboot -f\r"
+    set timeout 45
+    expect {
+        eof {}
+        timeout { puts stderr "$phase: QEMU did not exit after forced reboot"; exit $exitcode }
+    }
+    set timeout 480
+}
+
+# ---------------------------------------------------------------------------
+# Boot 1: create a software-only XiaoQiang fixture, smoke, migrate and verify.
+# ---------------------------------------------------------------------------
+spawn_guest $disk $efi $repo
+wait_for_console "xq-boot1"
+wait_for_network "xq-boot1" "LAB_XQ_BOOT1_NETWORK_SETTLED"
+configure_wan "xq-boot1" "LAB_XQ_BOOT1_DHCP"
+mount_repo "xq-boot1" "LAB_XQ_BOOT1_REPO_MOUNT"
+
+# The fixture intentionally mirrors only software state observed/used by the
+# verified RB06 migration path. It does not emulate Xiaomi hardware or kernel.
+send "mkdir -p /userdisk/appdata/2882303761518031252 /userdisk/appdata/installPlugin /data/uu-v14 /data/legacy-uu; : > /etc/config/xiaoqiang; uci set xiaoqiang.common=common; uci set xiaoqiang.common.NETMODE='whc_cap'; uci commit xiaoqiang; uci -q delete firewall.uuplugin >/dev/null 2>&1 || true; uci set firewall.uuplugin=include; uci set firewall.uuplugin.type='script'; uci set firewall.uuplugin.path='/data/legacy-uu/auto.sh'; uci set firewall.uuplugin.enabled='1'; uci commit firewall; printf '%s\\n' 'legacy-plugin' > /userdisk/appdata/2882303761518031252/uuplugin; printf '%s\\n' 'legacy-guardian' > /userdisk/appdata/2882303761518031252/xuplugin-guardian; printf '%s\\n' 'legacy-nft' > /userdisk/appdata/2882303761518031252/xtables-nft-multi; printf '%s\\n' 'log_level=info' 'version=v-old' > /userdisk/appdata/2882303761518031252/uu.conf; printf '%s\\n' '#!/bin/sh' 'exit 0' > /userdisk/appdata/2882303761518031252/uuplugin_monitor.sh; printf '%s\\n' '#!/bin/sh' 'exit 0' > /userdisk/appdata/2882303761518031252/xnetease-uu; chmod 0755 /userdisk/appdata/2882303761518031252/uuplugin_monitor.sh /userdisk/appdata/2882303761518031252/xnetease-uu; printf '%s\\n' 'plugin_id = \"2882303761518031252\";' 'name = \"UU\";' 'version = \"4.0.2\";' 'control_url = \"https://router.uu.163.com/xiaomi/index.html\";' > /userdisk/appdata/2882303761518031252/manifest; printf '%s\\n' 'RUN ./xnetease-uu plugon' 'STOP /userdisk/appdata/2882303761518031252/xnetease-uu plugoff' > /userdisk/appdata/2882303761518031252/start_script; printf '%s\\n' '{\"id\":\"2882303761518031252\",\"version\": \"4.0.2\",\"isEnable\":true}' > /userdisk/appdata/installPlugin/2882303761518031252.json; printf '%s\\n' 'legacy-helper' > /data/uu-v14/legacy.txt; printf '%s\\n' '#!/bin/sh' 'exit 0' > /data/uu-v14/auto.sh; chmod 0755 /data/uu-v14/auto.sh; printf '%s\\n' '#!/bin/sh' 'exit 0' > /data/legacy-uu/auto.sh; chmod 0755 /data/legacy-uu/auto.sh; if ! command -v curl >/dev/null 2>&1; then printf '%s\\n' '#!/bin/sh' 'url=' 'for arg in \"\$@\"; do case \"\$arg\" in http://*|https://*) url=\"\$arg\" ;; esac; done' 'test -n \"\$url\" || exit 2' 'exec wget -qO- \"\$url\"' > /usr/bin/curl; chmod 0755 /usr/bin/curl; fi; echo LAB_XQ_FIXTURE_\"OK\"\r"
+expect {
+    -re {LAB_XQ_FIXTURE_OK} {}
+    timeout { puts stderr "xq-boot1: failed to create XiaoQiang software fixture"; exit 30 }
+}
+
+send "test \"$(uci -q get xiaoqiang.common.NETMODE)\" = whc_cap && test \"$(uci -q get firewall.uuplugin.path)\" = /data/legacy-uu/auto.sh && sh /mnt/repo/platforms/xiaoqiang/preflight.sh >/dev/null 2>&1 && echo LAB_XQ_PREFLIGHT_\"OK\"\r"
+expect {
+    -re {LAB_XQ_PREFLIGHT_OK} {}
+    timeout { puts stderr "xq-boot1: XiaoQiang shim preflight failed"; exit 31 }
+}
+
+send "rm -rf /tmp/uu-wol-helper-qemu-xq; UU_STAGE_DIR=/tmp/uu-wol-helper-qemu-xq sh /mnt/repo/scripts/stage-package.sh openwrt-aarch64 && echo LAB_XQ_STAGE_\"COMMAND_OK\" || echo LAB_XQ_STAGE_\"COMMAND_FAILED\"\r"
+set stage_ready 0
+expect {
+    -re {STAGE_READY} { set stage_ready 1; exp_continue }
+    -re {LAB_XQ_STAGE_COMMAND_OK} {
+        if {!$stage_ready} { puts stderr "xq-boot1: staging succeeded without STAGE_READY"; exit 32 }
+    }
+    -re {LAB_XQ_STAGE_COMMAND_FAILED} { puts stderr "xq-boot1: official package staging failed"; exit 32 }
+    timeout { puts stderr "xq-boot1: package staging did not finish"; exit 32 }
+    eof { puts stderr "xq-boot1: QEMU exited during staging"; exit 32 }
+}
+
+send "UU_STAGE_DIR=/tmp/uu-wol-helper-qemu-xq UU_RUNTIME_TEST_CONFIRM=TEMPORARY_RUNTIME_CHANGE UU_SMOKE_TIMEOUT=90 sh /mnt/repo/platforms/xiaoqiang/smoke-test.sh && echo LAB_XQ_SMOKE_\"COMMAND_OK\" || echo LAB_XQ_SMOKE_\"COMMAND_FAILED\"\r"
+set smoke_pass 0
+expect {
+    -re {SMOKE_TEST_PASS} { set smoke_pass 1; exp_continue }
+    -re {LAB_XQ_SMOKE_COMMAND_OK} {
+        if {!$smoke_pass} { puts stderr "xq-boot1: XiaoQiang smoke succeeded without SMOKE_TEST_PASS"; exit 33 }
+    }
+    -re {LAB_XQ_SMOKE_COMMAND_FAILED} { puts stderr "xq-boot1: XiaoQiang runtime smoke-test failed"; exit 33 }
+    timeout { puts stderr "xq-boot1: XiaoQiang runtime smoke-test did not finish"; exit 33 }
+    eof { puts stderr "xq-boot1: QEMU exited during XiaoQiang smoke-test"; exit 33 }
+}
+
+send "UU_STAGE_DIR=/tmp/uu-wol-helper-qemu-xq UU_XQ_INSTALL_CONFIRM=MIGRATE_XIAOQIANG_UU sh /mnt/repo/platforms/xiaoqiang/install.sh && echo LAB_XQ_INSTALL_\"COMMAND_OK\" || echo LAB_XQ_INSTALL_\"COMMAND_FAILED\"\r"
+set install_ok 0
+expect {
+    -re {INSTALL_OK} { set install_ok 1; exp_continue }
+    -re {LAB_XQ_INSTALL_COMMAND_OK} {
+        if {!$install_ok} { puts stderr "xq-boot1: migration succeeded without INSTALL_OK"; exit 34 }
+    }
+    -re {LAB_XQ_INSTALL_COMMAND_FAILED} { puts stderr "xq-boot1: legacy migration failed"; exit 34 }
+    timeout { puts stderr "xq-boot1: legacy migration did not finish"; exit 34 }
+    eof { puts stderr "xq-boot1: QEMU exited during legacy migration"; exit 34 }
+}
+
+send "test -x /userdisk/appdata/2882303761518031252/uuplugin && test -x /userdisk/appdata/2882303761518031252/xnetease-uu && test -x /data/uu-v14/auto.sh && grep -q '^managed_by=uu-remote-wol-router-helper$' /data/uu-v14/install.meta && test \"$(uci -q get firewall.uuplugin.path)\" = /data/uu-v14/auto.sh && ! grep -q 'version = \"4.0.2\";' /userdisk/appdata/2882303761518031252/manifest && UU_PLUGIN_DIR=/userdisk/appdata/2882303761518031252 sh /mnt/repo/platforms/xiaoqiang/health.sh >/dev/null 2>&1 && echo LAB_XQ_INSTALL_STATE_\"OK\"\r"
+expect {
+    -re {LAB_XQ_INSTALL_STATE_OK} {}
+    timeout { puts stderr "xq-boot1: migrated XiaoQiang state/health validation failed"; exit 35 }
+}
+
+reboot_guest "xq-boot1" 36
+
+# ---------------------------------------------------------------------------
+# Boot 2: verify firewall include/auto helper restores migrated runtime.
+# ---------------------------------------------------------------------------
+spawn_guest $disk $efi $repo
+wait_for_console "xq-boot2"
+wait_for_network "xq-boot2" "LAB_XQ_BOOT2_NETWORK_SETTLED"
+configure_wan "xq-boot2" "LAB_XQ_BOOT2_DHCP"
+mount_repo "xq-boot2" "LAB_XQ_BOOT2_REPO_MOUNT"
+
+send "n=0; while test \"\$n\" -lt 120; do if UU_PLUGIN_DIR=/userdisk/appdata/2882303761518031252 sh /mnt/repo/platforms/xiaoqiang/health.sh >/dev/null 2>&1; then echo LAB_XQ_BOOT2_AUTO_HEALTH_\"OK\"; break; fi; sleep 2; n=\$((n+2)); done\r"
+set timeout 140
+expect {
+    -re {LAB_XQ_BOOT2_AUTO_HEALTH_OK} {}
+    timeout { puts stderr "xq-boot2: firewall include/auto helper did not restore migrated runtime"; exit 40 }
+    eof { puts stderr "xq-boot2: QEMU exited while waiting for migrated runtime"; exit 40 }
+}
+set timeout 480
+
+send "test \"$(uci -q get firewall.uuplugin.path)\" = /data/uu-v14/auto.sh && test -f /data/uu-wol-helper-state/last-backup && echo LAB_XQ_BOOT2_PERSISTENCE_\"OK\"\r"
+expect {
+    -re {LAB_XQ_BOOT2_PERSISTENCE_OK} {}
+    timeout { puts stderr "xq-boot2: migrated metadata/firewall state did not persist"; exit 41 }
+}
+
+send "UU_XQ_ROLLBACK_CONFIRM=ROLLBACK_XIAOQIANG_UU sh /mnt/repo/platforms/xiaoqiang/rollback.sh && echo LAB_XQ_ROLLBACK_\"COMMAND_OK\" || echo LAB_XQ_ROLLBACK_\"COMMAND_FAILED\"\r"
+set rollback_ok 0
+expect {
+    -re {ROLLBACK_OK} { set rollback_ok 1; exp_continue }
+    -re {LAB_XQ_ROLLBACK_COMMAND_OK} {
+        if {!$rollback_ok} { puts stderr "xq-boot2: rollback succeeded without ROLLBACK_OK"; exit 42 }
+    }
+    -re {LAB_XQ_ROLLBACK_COMMAND_FAILED} { puts stderr "xq-boot2: XiaoQiang rollback failed"; exit 42 }
+    timeout { puts stderr "xq-boot2: XiaoQiang rollback did not finish"; exit 42 }
+    eof { puts stderr "xq-boot2: QEMU exited during XiaoQiang rollback"; exit 42 }
+}
+
+send "grep -q '^legacy-plugin$' /userdisk/appdata/2882303761518031252/uuplugin && grep -q 'version = \"4.0.2\";' /userdisk/appdata/2882303761518031252/manifest && grep -q '\"version\": \"4.0.2\"' /userdisk/appdata/installPlugin/2882303761518031252.json && test -f /data/uu-v14/legacy.txt && test ! -f /data/uu-v14/install.meta && test \"$(uci -q get firewall.uuplugin.path)\" = /data/legacy-uu/auto.sh && test -f /data/uu-wol-helper-state/last-rollback && test ! -f /data/uu-wol-helper-state/last-backup && echo LAB_XQ_ROLLBACK_STATE_\"OK\"\r"
+expect {
+    -re {LAB_XQ_ROLLBACK_STATE_OK} {}
+    timeout { puts stderr "xq-boot2: rollback did not restore legacy XiaoQiang state"; exit 43 }
+}
+
+reboot_guest "xq-boot2" 44
+
+# ---------------------------------------------------------------------------
+# Boot 3: prove restored legacy state survives another reboot with no UU runtime.
+# ---------------------------------------------------------------------------
+spawn_guest $disk $efi $repo
+wait_for_console "xq-boot3"
+wait_for_network "xq-boot3" "LAB_XQ_BOOT3_NETWORK_SETTLED"
+
+send "test \"$(uci -q get xiaoqiang.common.NETMODE)\" = whc_cap && test \"$(uci -q get firewall.uuplugin.path)\" = /data/legacy-uu/auto.sh && grep -q '^legacy-plugin$' /userdisk/appdata/2882303761518031252/uuplugin && grep -q 'version = \"4.0.2\";' /userdisk/appdata/2882303761518031252/manifest && test -f /data/uu-v14/legacy.txt && test ! -f /data/uu-v14/install.meta && test -f /data/uu-wol-helper-state/last-rollback && ! pidof uuplugin >/dev/null 2>&1 && ! pidof xuplugin-guardian >/dev/null 2>&1 && echo LAB_XQ_BOOT3_CLEAN_\"OK\"\r"
+expect {
+    -re {LAB_XQ_BOOT3_CLEAN_OK} {}
+    timeout { puts stderr "xq-boot3: restored legacy state was not stable after reboot"; exit 50 }
+    eof { puts stderr "xq-boot3: QEMU exited during final shim validation"; exit 50 }
+}
+
+reboot_guest "xq-boot3" 51
+exit 0
