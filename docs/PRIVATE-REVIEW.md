@@ -53,6 +53,8 @@
 
 ## Public 前硬门禁
 
+**当前硬门禁已全部完成。仓库仍保持 Private，等待维护者明确确认是否切换为 Public。**
+
 以下项目未完成前，不把仓库切为 Public：
 
 ### 1. XiaoQiang / RB06 重写代码回归
@@ -90,7 +92,7 @@
 ### 5. 最终公开前安全审计
 
 - [x] 已在当前收口工作树重新运行全仓库 sensitive scan，并通过；
-- [x] 最新完整 Git 历史已用 `tests/scan-history-sensitive.sh` 扫描并通过，当前覆盖 74 个 commit；未发现规则命中的真实 IP/MAC/GitHub Token/网易临时 key；最终公开动作前若 HEAD 再变化仍需重跑；
+- [x] 最新完整 Git 历史已用 `tests/scan-history-sensitive.sh` 扫描并通过；未发现规则命中的真实 IP/MAC/GitHub Token/网易临时 key；最终公开动作前若 HEAD 再变化仍需重跑；
 - [x] 已检查 README、设备档案与 Lab 文档，没有把测试环境真实私网地址写成通用配置；
 - [x] 已检查 tracked 文件名、可疑二进制/归档类型和大文件列表；仓库当前不包含原始完整聊天、PDF、pcap、第三方闭源 UU 二进制或压缩包。
 

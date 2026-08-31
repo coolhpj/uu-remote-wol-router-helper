@@ -306,5 +306,5 @@ uu-remote-wol-router-helper/
 - [x] 第二环境第二阶段（功能终验）：UU主机加速绑定 OpenWrt、UU远程辅助设备检测、手机关闭 Wi‑Fi 后仅用移动数据远程开机均已成功
 - [x] 第二环境第三阶段（部署终验）：真实 iStoreOS 持久安装、reboot 后自动恢复、移动数据 Remote WOL、多辅助设备 A/B/C、正式 rollback，以及 rollback 后再次 reboot 的 OpenClash/默认路由/网易 API 恢复验收均已完成。
 - [ ] 第三设备候选：闲置 RS2，后续用于扩展真实硬件兼容验证
-- [ ] Private review（发布门禁与剩余硬阻塞见 [`docs/PRIVATE-REVIEW.md`](docs/PRIVATE-REVIEW.md)）
+- [x] Private review（Public 前硬门禁已全部完成；详见 [`docs/PRIVATE-REVIEW.md`](docs/PRIVATE-REVIEW.md)）
 - [ ] Public release
