@@ -58,15 +58,23 @@ if {!$prompt_ready} {
 }
 
 # The login console becomes available before OpenWrt has finished late network
-# initialization on armsr. Let that settle before taking control of the second
-# virtio NIC, otherwise netifd can race with the temporary DHCP route.
-send "sleep 40; ip link set eth1 up; udhcpc -i eth1 -q -n -t 5 >/tmp/udhcpc-wan.log 2>&1; ip -4 addr show dev eth1 | grep -q 'inet ' && echo LAB_DHCP_\"OK\"\r"
-set timeout 70
+# initialization on armsr. Wait for br-lan to become operational before taking
+# control of the second virtio NIC, otherwise netifd can race with the temporary
+# DHCP route. Use state instead of a fixed sleep so the lab remains portable
+# across slower and faster GitHub runners.
+send "until test -r /sys/class/net/br-lan/operstate && grep -q '^up$' /sys/class/net/br-lan/operstate; do sleep 1; done; echo LAB_NETWORK_SETTLED_\"OK\"\r"
+set timeout 75
 expect {
-    -re {LAB_DHCP_OK} {}
-    timeout { puts stderr "QEMU user-network DHCP did not configure eth1 after network settle"; exit 20 }
+    -re {LAB_NETWORK_SETTLED_OK} {}
+    timeout { puts stderr "OpenWrt late network initialization did not settle before staging"; exit 20 }
 }
 set timeout 300
+
+send "ip link set eth1 up; udhcpc -i eth1 -q -n -t 5 >/tmp/udhcpc-wan.log 2>&1; ip -4 addr show dev eth1 | grep -q 'inet ' && echo LAB_DHCP_\"OK\"\r"
+expect {
+    -re {LAB_DHCP_OK} {}
+    timeout { puts stderr "QEMU user-network DHCP did not configure eth1 after network settle"; exit 21 }
+}
 
 send "rm -f /tmp/pre-stage-api.json; wget -qO /tmp/pre-stage-api.json 'https://router.uu.163.com/api/plugin?type=openwrt-aarch64' && grep -q '\"status\":\"ok\"' /tmp/pre-stage-api.json && echo LAB_PRE_STAGE_API_\"OK\"\r"
 expect {
