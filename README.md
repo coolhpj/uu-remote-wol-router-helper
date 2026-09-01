@@ -9,8 +9,9 @@
 **第一件事不是敲命令，而是先查网易官方支持列表。**
 
 - **网易官方路由器 WOL 支持列表：** <https://www.uuremotepro.com/faq-article?id=wol-plugin>
+- **网易官方路由器远程开机说明：** <https://www.uuremotepro.com/faq-article?id=wol-router>
 - 如果上面的直达页发生跳转，可进入 **网易 UU远程帮助中心** <https://www.uuremotepro.com/faq>，搜索：`哪些路由器能当远程开机的辅助设备？`
-- 网易官方完整远程开机教程：<https://www.uuremotepro.com/faq-article?id=wol-setup>
+- **网易官方完整远程开机教程：** <https://www.uuremotepro.com/faq-article?id=wol-setup>
 
 ### 怎么选？
 
