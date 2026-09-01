@@ -6,10 +6,22 @@
 
 ## 先看这里：你的路由器可能根本不需要本项目
 
-**第一件事不是敲命令，而是先查网易官方支持列表。**
+**第一件事不是敲命令，而是先用网易 UU 主机加速器检查你的路由器能不能直接走官方方案。**
 
-- **网易官方路由器 WOL 支持列表：** <https://www.uuremotepro.com/faq-article?id=wol-plugin>
-- **网易官方路由器远程开机说明：** <https://www.uuremotepro.com/faq-article?id=wol-router>
+手机先连接到这台路由器的 Wi‑Fi，然后打开 **网易 UU 主机加速器**：
+
+1. 点 **“路由器加速”**；
+2. 点 **“合作款路由器”**；
+3. 扫描 / 添加当前路由器；
+4. 如果能识别到你的型号，就优先按 UU 的官方提示完成绑定或插件安装，**不要使用本项目**；
+5. 完成后再回到 **UU远程 → 远程开机配置**，重新扫描 / 刷新辅助设备。
+
+> 在 UU 主机加速器里这里找的是 **“合作款路由器”**，不要点成“UU加速盒 / Steam 硬件 / UU加速棒”。
+
+官方说明：
+
+- **网易官方：华硕、小米路由器怎么装 UU 插件来辅助开机？** <https://www.uuremotepro.com/faq-article?id=wol-plugin>
+- **网易官方：哪些路由器能当远程开机的辅助设备？** <https://www.uuremotepro.com/faq-article?id=wol-router>
 - 如果上面的直达页发生跳转，可进入 **网易 UU远程帮助中心** <https://www.uuremotepro.com/faq>，搜索：`哪些路由器能当远程开机的辅助设备？`
 - **网易官方完整远程开机教程：** <https://www.uuremotepro.com/faq-article?id=wol-setup>
 
