@@ -83,11 +83,11 @@ Generic OpenWrt **不强制 monitor 必须存在**，因为标准 OpenWrt 设备
 
 Generic OpenWrt 已经不再只是只读诊断：真实 iStoreOS x86_64 已完成 detect / preflight / stage / 临时 runtime / UU 云连接 / UU账号绑定 / 手机移动数据 Remote WOL 功能终验、真实 `/overlay` 持久安装、真实 reboot 后 procd 自动恢复、正式 rollback，以及 rollback 后再次 reboot 的恢复验收。因此**当前 iStoreOS x86_64 样本可标为 Verified**；但 Generic OpenWrt adapter 本身仍然是逐设备验证模型，不能把该结果外推到所有 OpenWrt。
 
-Private Draft 已加入 `platforms/openwrt/smoke-test.sh`，但**暂时没有接入 `uu-helper.sh`**。它默认禁用、只允许 `/tmp/uu-wol-helper-*` staging、要求 root + staging/MD5/channel 全部匹配；如果设备上已经存在任何 UU runtime，直接拒绝，不尝试停止或替换。只有真实临时 runtime 同时满足 `uuplugin + guardian + :16000 ESTABLISHED`，并在停止后确认没有 UU 进程或 `XU_*` firewall 残留，才允许写入与 staging MD5 绑定的 smoke-pass 证据。
+当前实现已加入 `platforms/openwrt/smoke-test.sh`，但**暂时没有接入 `uu-helper.sh`**。它默认禁用、只允许 `/tmp/uu-wol-helper-*` staging、要求 root + staging/MD5/channel 全部匹配；如果设备上已经存在任何 UU runtime，直接拒绝，不尝试停止或替换。只有真实临时 runtime 同时满足 `uuplugin + guardian + :16000 ESTABLISHED`，并在停止后确认没有 UU 进程或 `XU_*` firewall 残留，才允许写入与 staging MD5 绑定的 smoke-pass 证据。
 
 ### 持久化 adapter 草稿
 
-当前 Private Draft 已加入：
+当前实现已加入：
 
 - `platforms/openwrt/install.sh`
 - `platforms/openwrt/rollback.sh`

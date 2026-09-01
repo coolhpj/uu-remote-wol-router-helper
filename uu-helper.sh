@@ -6,7 +6,7 @@ ROOT_DIR=$(CDPATH= cd "$(dirname "$0")" 2>/dev/null && pwd) || exit 1
 
 print_usage() {
     cat <<'EOF'
-UU Remote WOL Router Helper (Private Draft)
+UU Remote WOL Router Helper
 
 Usage:
   sh uu-helper.sh diagnose
@@ -25,7 +25,7 @@ Commands:
   help          Show this help.
 
 The stage command writes temporary files under /tmp but does not stop/start UU or modify persistent paths.
-This draft does not expose an install command.
+The public helper does not expose a unified install command.
 EOF
 }
 

@@ -86,13 +86,13 @@ platforms/xiaoqiang/runtime/
 └── auto.sh
 ```
 
-这些文件本身是**已验证运行模板**，现在已经被 Private Draft 的 XiaoQiang legacy-migration installer 复用。`auto.sh` 保留了本次真实冷启动故障最终修复的核心：等默认路由与网易 API、检查 `:16000`、首次失败自动重启一次。
+这些文件本身是**已验证运行模板**，现在已经被当前 XiaoQiang legacy-migration installer 复用。`auto.sh` 保留了本次真实冷启动故障最终修复的核心：等默认路由与网易 API、检查 `:16000`、首次失败自动重启一次。
 
 仓库还提供离线回归测试，模拟“第一次云连接失败、第二次启动成功”，防止后续重构把这条关键恢复逻辑删掉。
 
 ## 临时 smoke-test（尚未实机复验）
 
-Private Draft 中已经加入 `platforms/xiaoqiang/smoke-test.sh` 保护壳，但它**暂时没有接入 `uu-helper.sh`**，因为还没有用 RB06 对这份重写后的脚本做第二次真实运行态复现。
+当前实现已经加入 `platforms/xiaoqiang/smoke-test.sh` 保护壳，但它**暂时没有接入 `uu-helper.sh`**，因为还没有用 RB06 对这份重写后的脚本做第二次真实运行态复现。
 
 保护条件包括：
 
@@ -109,7 +109,7 @@ Private Draft 中已经加入 `platforms/xiaoqiang/smoke-test.sh` 保护壳，�
 
 在 RB06 对重写脚本完成真实复验之前，本项目不会把它标记为可公开使用的 smoke-test 命令。
 
-## 持久化 migration adapter（Private Draft）
+## 持久化 migration adapter（受控迁移）
 
 当前已经加入：
 
@@ -138,13 +138,13 @@ firewall.uuplugin.enabled='1'
 
 fake-root 回归已经覆盖：默认拒绝、smoke-pass 闸门、fresh install fail-closed、官方四文件迁移、manifest/JSON 动态版本更新、firewall include 注册、完整 rollback 恢复。
 
-**尚未在朋友 RB06 上用这份重写后的 installer 做第二次实机迁移复现**，因此仍然只属于 Private Draft。
+**尚未在朋友 RB06 上用这份重写后的 installer 做第二次实机迁移复现**，因此不能把这条重写后的 installer 路径标记为 RB06 实机复验完成。
 
 ## 公开安装路径尚未开放的原因
 
-当前 Private Draft 阶段不会因为检测到 `aarch64 + XiaoQiang` 就直接覆盖插件。
+当前实现不会因为检测到 `aarch64 + XiaoQiang` 就直接覆盖插件。
 
-正式公开前至少还需要：
+要把这条重写 installer 路径升级为 RB06 实机复验完成，至少还需要：
 
 1. 识别具体设备/固件；
 2. 确认不是 AP 模式；
