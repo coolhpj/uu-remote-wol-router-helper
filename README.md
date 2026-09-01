@@ -4,6 +4,144 @@
 
 让具备常在线能力的路由器成为 **网易 UU远程（UU Remote）Wake-on-LAN 辅助设备**，并把不同品牌、不同固件的安装与诊断过程拆成可维护的“通用核心 + 平台适配器 + 设备兼容档案”。
 
+## 快速开始 / 使用步骤
+
+> 如果你的路由器已经在网易 UU 官方支持列表中，请优先使用厂商/网易提供的官方入口，不需要为了本项目额外开启 SSH。官方说明：<https://www.uuremotepro.com/faq-article?id=wol-plugin>
+
+下面的步骤用于**已经合法取得 SSH/root Shell**、并希望使用本项目诊断或适配的路由器。先查看 [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md)，不要把一个已验证型号的结果直接套到其它设备。
+
+### 1. 把项目放到路由器临时目录
+
+如果路由器有 Git：
+
+```sh
+git clone https://github.com/coolhpj/uu-remote-wol-router-helper.git /tmp/uu-remote-wol-router-helper
+cd /tmp/uu-remote-wol-router-helper
+```
+
+如果路由器没有 Git，可以在电脑上下载仓库源码后，用 SCP / WinSCP 上传整个目录到 `/tmp/uu-remote-wol-router-helper`，然后进入该目录：
+
+```sh
+cd /tmp/uu-remote-wol-router-helper
+```
+
+### 2. 先做只读诊断
+
+```sh
+sh uu-helper.sh diagnose
+```
+
+结果含义：
+
+- `0`：已识别平台，而且当前 UU runtime 健康；
+- `1`：平台已识别，但 UU runtime 未检测到或状态需要处理；
+- `2`：当前设备没有匹配 adapter，不要继续猜测安装；
+- `64`：命令参数错误。
+
+如果返回 `2`，只收集脱敏环境信息：
+
+```sh
+sh uu-helper.sh collect-info
+```
+
+然后提交 Issue / 报告，不要直接尝试其它型号的安装脚本。
+
+### 3. 平台预检
+
+```sh
+sh uu-helper.sh preflight
+```
+
+只有 `preflight: pass` 才继续。预检会检查平台、CPU 架构、官方通道、必需命令、临时空间等条件。
+
+### 4. 下载并校验网易官方包到 `/tmp`
+
+```sh
+sh uu-helper.sh stage auto
+```
+
+该步骤会按已确认的 OpenWrt 架构选择网易官方通道，下载官方包、校验 MD5 和 tar 结构，并解压到 `/tmp/uu-wol-helper-*`。**它不会启动 UU，也不会写入持久系统目录。**
+
+### 5. 先做临时 runtime smoke-test
+
+#### Generic OpenWrt / iStoreOS
+
+```sh
+UU_RUNTIME_TEST_CONFIRM=TEMPORARY_RUNTIME_CHANGE \
+sh platforms/openwrt/smoke-test.sh
+```
+
+此步骤会临时启动再停止 staged UU runtime；如果设备已经存在其它 UU runtime，脚本会拒绝继续。只有 `uuplugin + guardian + UU 云连接` 全部通过并完成清理，才会生成与当前官方包 MD5 绑定的 `smoke-pass`。
+
+#### XiaoQiang / Redmi AX6000 等已匹配环境
+
+```sh
+UU_RUNTIME_TEST_CONFIRM=TEMPORARY_RUNTIME_CHANGE \
+sh platforms/xiaoqiang/smoke-test.sh
+```
+
+如果脚本检测到设备上已有 UU runtime，它默认不会停止现有进程。只有你已经确认允许**临时停止并在测试后恢复**现有 UU runtime 时，才额外使用：
+
+```sh
+UU_RUNTIME_TEST_CONFIRM=TEMPORARY_RUNTIME_CHANGE \
+UU_ALLOW_STOP_EXISTING=YES \
+sh platforms/xiaoqiang/smoke-test.sh
+```
+
+### 6. smoke-test 通过后再做持久安装
+
+#### Generic OpenWrt / iStoreOS
+
+```sh
+UU_PERSIST_INSTALL_CONFIRM=PERSIST_OPENWRT_UU \
+sh platforms/openwrt/install.sh
+```
+
+安装器会再次检查 preflight、官方包 MD5/结构、架构/channel 和同一 staging 对应的 `smoke-pass`，然后才写入 `/usr/lib/uu-wol-helper` 与 `/etc/init.d/uu-wol-helper`。服务启用、启动或健康检查失败时会尝试自动 rollback。
+
+需要回滚：
+
+```sh
+sh platforms/openwrt/rollback.sh
+```
+
+#### XiaoQiang / Redmi AX6000
+
+当前只开放**已有 Xiaomi/UU legacy metadata 的迁移路径**，不支持把裸机 fresh install 冒充成已验证能力。满足条件并已取得 XiaoQiang `smoke-pass` 后：
+
+```sh
+UU_XQ_INSTALL_CONFIRM=MIGRATE_XIAOQIANG_UU \
+sh platforms/xiaoqiang/install.sh
+```
+
+需要回滚：
+
+```sh
+sh platforms/xiaoqiang/rollback.sh
+```
+
+如果脚本提示 legacy metadata 不完整，应停止，不要手工伪造 `manifest / start_script / installPlugin`。
+
+### 7. 重启路由器并检查健康状态
+
+完成持久安装后必须做一次**真实 reboot**，再重新登录 SSH：
+
+```sh
+sh uu-helper.sh diagnose
+```
+
+不要只看进程是否存在。成功至少应同时满足：平台识别正常、UU runtime 正常，并建立 UU 云控制连接。
+
+### 8. 在网易 UU 中完成辅助设备与电脑配置
+
+1. 打开 **UU主机加速 App**，确认路由器/OpenWrt 辅助设备能被识别；
+2. Windows 上的 **UU远程** 与 UU主机加速 App 使用正确的同一账号关系；
+3. 对每一台需要远程开机的 PC **分别配置一次远程开机/WOL**；
+4. 正常关闭目标 PC，确认网卡仍具备 S5 WOL 条件；
+5. 手机关闭 Wi‑Fi，只使用**移动数据**，在 UU远程中点击开机。
+
+只有最后一步真正把关机 PC 唤醒，才算 `Remote WOL Verified`。仅有 `uuplugin` 进程、路由器被 App 识别，或局域网 WOL 成功，都不能代替这一步。
+
 ## 已经真实验证的起点
 
 本项目来自一次真实的 Redmi AX6000 / RB06 排障与移植过程，最终完成了：
