@@ -24,6 +24,10 @@ Redmi AX6000 / RB06 上的 uuplugin
 
 Redmi AX6000 / RB06 已完成真实冷启动、UU 云连接以及手机移动数据远程开机终验。
 
+下图是实测环境中 UU主机加速识别路由器辅助设备的脱敏截图，保留了 ASUS RT-AX86U 与 OpenWrt 两类已验证入口，不包含账号、二维码、IP、MAC、SSID 或设备验证码。
+
+![UU主机加速识别 ASUS RT-AX86U 与 OpenWrt 辅助设备](docs/images/uu-openwrt-device.webp)
+
 同时，ASUS RT-AX86U（Merlin-KoolShare / ASUSWRT 系）已作为第二种平台样本完成网易 UU `static-asuswrt` 通道、自启动与代理共存边界研究。它与 XiaoQiang/OpenWrt 的安装机制不同，因此本项目不会采用“每个型号复制一套脚本”的方式维护。
 
 ## 项目目标
@@ -301,10 +305,9 @@ uu-remote-wol-router-helper/
 - [x] 第一轮敏感信息扫描（公开前需再次扫描）
 - [x] CI 测试入口已完成：shell 语法、单元/guard 测试与敏感信息扫描
 - [x] GitHub Actions CI 已启用并完成首次云端全绿；当前 checkout 为完整 Git 历史并运行本地回归 + 工作树/历史敏感扫描
-- [ ] README 证据图已完成方向筛选；当前只剩把已选图片安全导入仓库并做最终裁剪/脱敏
+- [ ] README 证据图：首张 OpenWrt 辅助设备识别图已完成导入、裁剪与脱敏；其余已选证据图仍待安全恢复并导入
 - [x] 第二环境第一阶段：NAS iStoreOS 24.10.7 / x86_64 已通过 detect/preflight + `stage auto` + 官方 `openwrt-x86_64 v14.6.22` 临时 runtime / `:16000` 云连接；未改 UCI/overlay，测试后规则恢复基线
 - [x] 第二环境第二阶段（功能终验）：UU主机加速绑定 OpenWrt、UU远程辅助设备检测、手机关闭 Wi‑Fi 后仅用移动数据远程开机均已成功
 - [x] 第二环境第三阶段（部署终验）：真实 iStoreOS 持久安装、reboot 后自动恢复、移动数据 Remote WOL、多辅助设备 A/B/C、正式 rollback，以及 rollback 后再次 reboot 的 OpenClash/默认路由/网易 API 恢复验收均已完成。
-- [ ] 第三设备候选：FriendlyELEC NanoPi R2S（RK3328 / AArch64，曾作为 OpenWrt 软路由使用），后续用于扩展真实 ARM64 OpenWrt 兼容验证
 - [x] Private review（Public 前硬门禁已全部完成；详见 [`docs/PRIVATE-REVIEW.md`](docs/PRIVATE-REVIEW.md)）
 - [ ] Public release

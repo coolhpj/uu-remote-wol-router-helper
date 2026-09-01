@@ -17,14 +17,6 @@
 | Redmi | AX6000 | RB06 | XiaoQiang / OpenWrt-derived | MT7986 / AArch64 | `openwrt-aarch64` | Required for manual adaptation | ✅ | ✅ | ✅ | ✅ | **Verified** |
 | ASUS | RT-AX86U | RT-AX86U | ASUSWRT / Merlin-KoolShare | AArch64 | `static-asuswrt` | Not required for official UI; required for advanced adaptation/diagnostics | ✅ | ✅ | ✅ | ✅ | **Verified** |
 | iStoreOS | x86_64 VM sample | generic-openwrt-x86_64 | OpenWrt / iStoreOS 24.10.7 | x86_64 / x86/64 | `openwrt-x86_64` | Available | ✅* | ✅* | ✅ | ✅* | **Verified (this sample)**: install + reboot + mobile-data WOL + rollback + post-rollback reboot verified |
-| FriendlyELEC | NanoPi R2S | nanopi-r2s | OpenWrt / FriendlyWrt | RK3328 / AArch64 | expected `openwrt-aarch64` after preflight confirmation | Previously used as OpenWrt soft router | ❓ | ❓ | ❓ | ❓ | Candidate: exact hardware family identified; UU not yet tested |
-
-## NanoPi R2S candidate
-
-当前候选样本已明确为 FriendlyELEC NanoPi R2S。官方资料显示其使用 Rockchip RK3328、四核 Cortex-A53、1GB DDR4、双千兆网口，并提供 OpenWrt/FriendlyWrt 支持，因此软件架构上属于当前 Generic OpenWrt AArch64 研究范围。
-
-这台设备过去曾作为 OpenWrt 软路由使用，但当前尚未重新上电采集固件/内核/持久层，也未执行网易 UU preflight、staging、runtime、reboot 或 Remote WOL，所以保持 Candidate，不提前标记 Experimental/Verified。
-
 ## Redmi AX6000 / RB06
 
 ### 已验证
