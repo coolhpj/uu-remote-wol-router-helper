@@ -1,8 +1,10 @@
-# UU Remote WOL Router Helper
+# UU Remote WOL Router Helper｜网易 UU远程开机路由器辅助设备
 
 > 非官方社区项目 / Unofficial community project. Not affiliated with NetEase.
 
-让**官方没有直接提供 UU远程 WOL 插件入口**、但具备 OpenWrt / XiaoQiang 环境和 SSH/root 权限的路由器，也有机会成为网易 UU远程的局域网辅助开机设备。
+这是一个面向 **网易 UU远程开机 / Wake-on-LAN（WOL）** 的路由器辅助设备项目。针对官方没有直接提供插件入口、但具备 **OpenWrt / iStoreOS / XiaoQiang（小米/Redmi 路由器）** 等环境和合法 SSH/root 权限的设备，提供平台诊断、网易官方包校验、受控安装与回滚；ASUSWRT 则优先识别并引导使用厂商/网易官方集成。
+
+当前真实验证样本包括 **Redmi AX6000 / RB06、ASUS RT-AX86U、iStoreOS x86_64**。其它 Generic OpenWrt 设备仍需逐台验证，不因架构相同自动继承兼容结论。
 
 ## 先看这里：你的路由器可能根本不需要本项目
 
