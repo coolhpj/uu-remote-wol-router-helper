@@ -2,117 +2,134 @@
 
 > 非官方社区项目 / Unofficial community project. Not affiliated with NetEase.
 
-让具备常在线能力的路由器成为 **网易 UU远程（UU Remote）Wake-on-LAN 辅助设备**，并把不同品牌、不同固件的安装与诊断过程拆成可维护的“通用核心 + 平台适配器 + 设备兼容档案”。
+让**官方没有直接提供 UU远程 WOL 插件入口**、但具备 OpenWrt / XiaoQiang 环境和 SSH/root 权限的路由器，也有机会成为网易 UU远程的局域网辅助开机设备。
 
-## 快速开始 / 使用步骤
+## 先看这里：你的路由器可能根本不需要本项目
 
-> 如果你的路由器已经在网易 UU 官方支持列表中，请优先使用厂商/网易提供的官方入口，不需要为了本项目额外开启 SSH。官方说明：<https://www.uuremotepro.com/faq-article?id=wol-plugin>
+**第一件事不是敲命令，而是先查网易官方支持列表。**
 
-下面的步骤用于**已经合法取得 SSH/root Shell**、并希望使用本项目诊断或适配的路由器。先查看 [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md)，不要把一个已验证型号的结果直接套到其它设备。
+- **网易官方路由器 WOL 支持列表：** <https://www.uuremotepro.com/faq-article?id=wol-plugin>
+- 如果上面的直达页发生跳转，可进入 **网易 UU远程帮助中心** <https://www.uuremotepro.com/faq>，搜索：`哪些路由器能当远程开机的辅助设备？`
+- 网易官方完整远程开机教程：<https://www.uuremotepro.com/faq-article?id=wol-setup>
 
-### 1. 把项目放到路由器临时目录
+### 怎么选？
 
-如果路由器有 Git：
+| 你的情况 | 最省事的做法 |
+|---|---|
+| 路由器在网易官方支持列表里 | **直接用官方方法，本项目不用装** |
+| 路由器不支持，但家里有常开 Android / Windows / macOS | **优先把它当 UU 辅助设备，本项目也可以不用装** |
+| 运营商光猫/封闭路由器，没有 SSH/root | **不要硬刷，改用 Android / 常开电脑辅助设备** |
+| OpenWrt / iStoreOS / XiaoQiang，已有合法 SSH/root | 可以继续看下面的本项目教程 |
+
+网易官方说明中，局域网辅助设备并不只有路由器，也可以是保持在线的 Windows/macOS、开启 WOL 辅助功能的 Android，或 UU 加速盒。因此**能用官方简单方案，就不要为了使用本项目去破解或刷路由器。**
+
+---
+
+# 小白教程：只看这 3 步
+
+## 第 1 步：先把电脑自己的 WOL 配好
+
+在需要远程开机的 Windows 电脑上：
+
+1. 打开 **UU远程**；
+2. 进入设置，开启 **“允许通过远程开机启动”**；
+3. 按 UU远程里的“开始配置 / 开始协助”向导，把网卡 WOL 和 BIOS WOL 配好；
+4. 电脑最好使用**有线网卡**连接路由器。
+
+这一步不会因为装了路由器插件而自动完成。电脑本身不能被 Magic Packet 唤醒，后面怎么折腾路由器都没用。
+
+官方图文教程：<https://www.uuremotepro.com/faq-article?id=wol-setup>
+
+## 第 2 步：准备一个一直在线的“辅助设备”
+
+### A. 官方支持的路由器
+
+如果你的型号在网易官方列表里：
+
+**按官方方法安装/开启 UU 插件即可，下面的命令全部跳过。**
+
+### B. 没有 SSH/root 的路由器或运营商光猫
+
+不要硬装本项目。
+
+最简单的是：找一台旧 Android 手机，长期插电并连接家里 Wi‑Fi，在 UU远程 App 的设置中开启 **“远程开机支持 Wake on LAN”**。也可以使用另一台常开的 Windows/macOS。
+
+### C. OpenWrt / iStoreOS / XiaoQiang，且你已经有 SSH/root
+
+先把本仓库放到路由器的 `/tmp`。
+
+最简单的方法：电脑端点击 GitHub 的 **Code → Download ZIP**，解压后用 WinSCP / SCP 上传整个目录到：
+
+```text
+/tmp/uu-remote-wol-router-helper
+```
+
+如果路由器本身有 Git，也可以：
 
 ```sh
 git clone https://github.com/coolhpj/uu-remote-wol-router-helper.git /tmp/uu-remote-wol-router-helper
-cd /tmp/uu-remote-wol-router-helper
 ```
 
-如果路由器没有 Git，可以在电脑上下载仓库源码后，用 SCP / WinSCP 上传整个目录到 `/tmp/uu-remote-wol-router-helper`，然后进入该目录：
+然后 SSH 进入路由器，执行：
 
 ```sh
 cd /tmp/uu-remote-wol-router-helper
-```
-
-### 2. 先做只读诊断
-
-```sh
 sh uu-helper.sh diagnose
 ```
 
-结果含义：
+只看输出里的这一行：
 
-- `0`：已识别平台，而且当前 UU runtime 健康；
-- `1`：平台已识别，但 UU runtime 未检测到或状态需要处理；
-- `2`：当前设备没有匹配 adapter，不要继续猜测安装；
-- `64`：命令参数错误。
+```text
+platform: ...
+```
 
-如果返回 `2`，只收集脱敏环境信息：
+### 如果显示 `platform: asuswrt`
+
+**停止。** ASUSWRT 优先走厂商/网易官方集成，本项目不会自动覆盖 `/jffs/uu`。
+
+### 如果显示 `platform: unknown`
+
+**停止，不要猜型号安装。** 只运行：
 
 ```sh
 sh uu-helper.sh collect-info
 ```
 
-然后提交 Issue / 报告，不要直接尝试其它型号的安装脚本。
+把脱敏后的输出提交 Issue，等待适配。
 
-### 3. 平台预检
+### 如果显示 `platform: openwrt`
 
-```sh
-sh uu-helper.sh preflight
-```
-
-只有 `preflight: pass` 才继续。预检会检查平台、CPU 架构、官方通道、必需命令、临时空间等条件。
-
-### 4. 下载并校验网易官方包到 `/tmp`
+把下面这一整块复制执行即可：
 
 ```sh
-sh uu-helper.sh stage auto
+sh uu-helper.sh preflight && \
+sh uu-helper.sh stage auto && \
+UU_RUNTIME_TEST_CONFIRM=TEMPORARY_RUNTIME_CHANGE sh platforms/openwrt/smoke-test.sh && \
+UU_PERSIST_INSTALL_CONFIRM=PERSIST_OPENWRT_UU sh platforms/openwrt/install.sh
 ```
 
-该步骤会按已确认的 OpenWrt 架构选择网易官方通道，下载官方包、校验 MD5 和 tar 结构，并解压到 `/tmp/uu-wol-helper-*`。**它不会启动 UU，也不会写入持久系统目录。**
+这组命令使用 `&&` 串联：**任何一步失败，后面的步骤都会停止。** 不要跳过失败步骤硬装。
 
-### 5. 先做临时 runtime smoke-test
-
-#### Generic OpenWrt / iStoreOS
-
-```sh
-UU_RUNTIME_TEST_CONFIRM=TEMPORARY_RUNTIME_CHANGE \
-sh platforms/openwrt/smoke-test.sh
-```
-
-此步骤会临时启动再停止 staged UU runtime；如果设备已经存在其它 UU runtime，脚本会拒绝继续。只有 `uuplugin + guardian + UU 云连接` 全部通过并完成清理，才会生成与当前官方包 MD5 绑定的 `smoke-pass`。
-
-#### XiaoQiang / Redmi AX6000 等已匹配环境
-
-```sh
-UU_RUNTIME_TEST_CONFIRM=TEMPORARY_RUNTIME_CHANGE \
-sh platforms/xiaoqiang/smoke-test.sh
-```
-
-如果脚本检测到设备上已有 UU runtime，它默认不会停止现有进程。只有你已经确认允许**临时停止并在测试后恢复**现有 UU runtime 时，才额外使用：
-
-```sh
-UU_RUNTIME_TEST_CONFIRM=TEMPORARY_RUNTIME_CHANGE \
-UU_ALLOW_STOP_EXISTING=YES \
-sh platforms/xiaoqiang/smoke-test.sh
-```
-
-### 6. smoke-test 通过后再做持久安装
-
-#### Generic OpenWrt / iStoreOS
-
-```sh
-UU_PERSIST_INSTALL_CONFIRM=PERSIST_OPENWRT_UU \
-sh platforms/openwrt/install.sh
-```
-
-安装器会再次检查 preflight、官方包 MD5/结构、架构/channel 和同一 staging 对应的 `smoke-pass`，然后才写入 `/usr/lib/uu-wol-helper` 与 `/etc/init.d/uu-wol-helper`。服务启用、启动或健康检查失败时会尝试自动 rollback。
-
-需要回滚：
+需要恢复安装前状态时：
 
 ```sh
 sh platforms/openwrt/rollback.sh
 ```
 
-#### XiaoQiang / Redmi AX6000
+### 如果显示 `platform: xiaoqiang`
 
-当前只开放**已有 Xiaomi/UU legacy metadata 的迁移路径**，不支持把裸机 fresh install 冒充成已验证能力。满足条件并已取得 XiaoQiang `smoke-pass` 后：
+当前只支持**已有 Xiaomi/UU legacy metadata 的受控迁移路径**，不是所有小米/Redmi 路由器都能直接安装。
+
+复制执行：
 
 ```sh
-UU_XQ_INSTALL_CONFIRM=MIGRATE_XIAOQIANG_UU \
-sh platforms/xiaoqiang/install.sh
+sh uu-helper.sh preflight && \
+sh uu-helper.sh stage auto && \
+UU_RUNTIME_TEST_CONFIRM=TEMPORARY_RUNTIME_CHANGE sh platforms/xiaoqiang/smoke-test.sh && \
+UU_XQ_INSTALL_CONFIRM=MIGRATE_XIAOQIANG_UU sh platforms/xiaoqiang/install.sh
 ```
+
+如果提示已有 UU runtime、legacy metadata 不完整或其它错误，**到这里停止，不要手工伪造文件或随便加确认参数。**
 
 需要回滚：
 
@@ -120,296 +137,125 @@ sh platforms/xiaoqiang/install.sh
 sh platforms/xiaoqiang/rollback.sh
 ```
 
-如果脚本提示 legacy metadata 不完整，应停止，不要手工伪造 `manifest / start_script / installPlugin`。
+## 第 3 步：真正测试一次“人在外面开机”
 
-### 7. 重启路由器并检查健康状态
+如果第 2 步使用本项目完成了持久安装，建议先**手工重启一次路由器**，确认持久安装真的能在冷启动后恢复。
 
-完成持久安装后必须做一次**真实 reboot**，再重新登录 SSH：
+> `/tmp` 通常会在 reboot 后被清空，所以**不要指望重启后仓库目录还在**。普通用户不需要为了验收再次上传仓库；如果后续需要 SSH 技术诊断，再重新把仓库上传到 `/tmp` 后运行 `sh uu-helper.sh diagnose`。
 
-```sh
-sh uu-helper.sh diagnose
-```
+路由器重新联网后：
 
-不要只看进程是否存在。成功至少应同时满足：平台识别正常、UU runtime 正常，并建立 UU 云控制连接。
+1. UU主机加速 / UU远程使用正确的同一账号关系；
+2. 在 UU远程里给**每一台 PC 分别配置一次远程开机**；
+3. 正常关闭目标 PC；
+4. 手机关闭 Wi‑Fi，只保留**移动数据**；
+5. 在 UU远程里点击目标 PC 的“远程开机”。
 
-### 8. 在网易 UU 中完成辅助设备与电脑配置
+**关机 PC 真正被移动数据远程唤醒，才算成功。**
 
-1. 打开 **UU主机加速 App**，确认路由器/OpenWrt 辅助设备能被识别；
-2. Windows 上的 **UU远程** 与 UU主机加速 App 使用正确的同一账号关系；
-3. 对每一台需要远程开机的 PC **分别配置一次远程开机/WOL**；
-4. 正常关闭目标 PC，确认网卡仍具备 S5 WOL 条件；
-5. 手机关闭 Wi‑Fi，只使用**移动数据**，在 UU远程中点击开机。
+---
 
-只有最后一步真正把关机 PC 唤醒，才算 `Remote WOL Verified`。仅有 `uuplugin` 进程、路由器被 App 识别，或局域网 WOL 成功，都不能代替这一步。
+## 你应该看到什么？
 
-## 已经真实验证的起点
-
-本项目来自一次真实的 Redmi AX6000 / RB06 排障与移植过程，最终完成了：
+完整链路应该是：
 
 ```text
 手机移动数据
     ↓
 网易 UU 云端
     ↓
-Redmi AX6000 / RB06 上的 uuplugin
+家里常在线的辅助设备
     ↓
 局域网 Magic Packet
     ↓
 关机 PC 开机
 ```
 
-Redmi AX6000 / RB06 已完成真实冷启动、UU 云连接以及手机移动数据远程开机终验。
+只满足下面这些情况都还不能算最终成功：
 
-下图是实测环境中 UU主机加速识别路由器辅助设备的脱敏截图，保留了 ASUS RT-AX86U 与 OpenWrt 两类已验证入口，不包含账号、二维码、IP、MAC、SSID 或设备验证码。
+- `uuplugin` 进程存在；
+- 路由器能联网；
+- UU主机加速能看到路由器；
+- 局域网里手工 WOL 能开机。
+
+最终验收必须是：**手机关闭 Wi‑Fi，仅使用移动数据，把真正关机的 PC 唤醒。**
+
+## 已验证设备 / 环境
+
+| Router / Environment | Platform | Remote WOL | 说明 |
+|---|---|---:|---|
+| Redmi AX6000 / RB06 | XiaoQiang / OpenWrt-derived | ✅ | 已完成真实冷启动、UU 云连接、移动数据 Remote WOL |
+| ASUS RT-AX86U | ASUSWRT / Merlin-KoolShare | ✅ | 官方/model-specific 路径；本项目默认不覆盖官方集成 |
+| iStoreOS x86_64 样本 | Generic OpenWrt | ✅ | 已完成持久安装、reboot、自启动、Remote WOL、rollback 与再次 reboot |
+| 其它 Generic OpenWrt | OpenWrt | 待逐台验证 | 架构相同不等于自动兼容 |
+
+> `✅` 只用于已经有真实移动数据远程开机证据的设备/样本，不因为插件能启动就标记兼容。
+
+完整兼容矩阵：[`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md)
+
+下图是实测环境中 UU主机加速识别 ASUS RT-AX86U 与 OpenWrt 辅助设备的脱敏截图：
 
 ![UU主机加速识别 ASUS RT-AX86U 与 OpenWrt 辅助设备](docs/images/uu-openwrt-device.webp)
 
-同时，ASUS RT-AX86U（Merlin-KoolShare / ASUSWRT 系）已作为第二种平台样本完成网易 UU `static-asuswrt` 通道、自启动与代理共存边界研究。它与 XiaoQiang/OpenWrt 的安装机制不同，因此本项目不会采用“每个型号复制一套脚本”的方式维护。
+## 最常见的几个问题
 
-## 项目目标
+### 路由器后台像运营商光猫，没有插件市场，也没有 SSH/root
 
-本项目希望解决的是：
+这类设备通常**不适合直接使用本项目**。不要为了 UU远程去动 TR069、VLAN、运营商 WAN 等配置。
 
-> 当某台路由器理论上具备运行网易 UU 路由插件的条件，但官方入口缺失、插件过旧、持久化机制不同，或者需要诊断 UU远程 WOL 辅助设备状态时，提供一个可验证、可回滚、可扩展的社区适配框架。
+优先使用 Android / 常开电脑作为 UU 辅助设备，或者在光猫后面增加一台真正支持 UU/OpenWrt 的路由器。
 
-不是：
+### 路由器已经被 UU主机加速识别，但 UU远程仍提示没有辅助设备
 
-- 破解路由器获取 root；
-- 绕过厂商安全机制开启 SSH；
-- 分发网易闭源二进制；
-- 保证所有路由器都能安装；
-- 把“进程启动”当成“UU远程可用”。
+先检查：
 
-## 当前安全入口
+- UU主机加速与 UU远程是否处于正确的同账号关系；
+- 当前 PC 是否单独完成过一次远程开机配置；
+- 路由器上的 UU 是否真正建立云连接，而不是只有进程存在。
 
-当前公共入口先提供诊断与临时 staging，不提供统一 `install` 命令：
+### 同一个账号下有多台 PC，为什么只有一台能开？
+
+每台 PC 都要分别完成自己的 WOL / 远程开机配置，不会因为同账号自动继承。
+
+### `diagnose` 显示 `platform: unknown`
+
+不要拿其它型号脚本硬套。运行：
 
 ```sh
-sh uu-helper.sh diagnose
 sh uu-helper.sh collect-info
-sh uu-helper.sh check-api openwrt-aarch64
-sh uu-helper.sh preflight
-sh uu-helper.sh stage auto
 ```
 
-`diagnose / collect-info / check-api / preflight` 都是只读操作。`preflight` 当前会按已识别平台分流：XiaoQiang 使用已验证的 AArch64/路由模式预检，Generic OpenWrt 则检查架构、官方通道映射、必需工具、`/tmp` 可写和空间阈值；ASUSWRT 不自动套用通用预检。`stage auto` 只对已确认映射的 OpenWrt 架构自动选择官方通道，并在 `/tmp/uu-wol-helper-*` 下下载、MD5 校验、检查 tar 路径并解压官方包；它不会停止/启动 UU 进程，也不会修改持久目录或注册自启动。
+提交脱敏报告后再适配。
 
-`diagnose` 会依次匹配已知平台 adapter。当前 **XiaoQiang**、**ASUSWRT / ASUSWRT-Merlin** 与 **Generic OpenWrt** 都已有只读检测/健康检查；未知平台只进入 `collect-info`，不会猜测型号或执行安装。
+## 安全边界
 
-当前诊断退出码：
+本项目：
 
-- `0`：已识别平台且当前 UU 健康检查通过；
-- `1`：已识别平台，但插件未检测到或健康状态需要处理；
-- `2`：尚无匹配 adapter，仅输出只读环境报告；
-- `64`：命令参数无效。
+- **不提供**破解、漏洞利用或绕过设备安全限制取得 SSH/root 的教程；
+- **不提交**网易 `uuplugin`、`xuplugin-guardian`、`xtables-nft-multi` 等闭源二进制；
+- 运行时只从网易官方通道获取插件，并进行完整性校验；
+- 未知设备默认只允许 `Detect → Collect → Redact → Report`，不会自动猜型号安装；
+- Generic OpenWrt 的一个样本通过，不代表所有 OpenWrt 自动兼容。
 
-当前版本**没有 `install` 命令**。
+安全说明：[`SECURITY.md`](SECURITY.md)
 
-## 使用前提：SSH / Shell 权限
+SSH/root 边界：[`docs/SSH-ACCESS.md`](docs/SSH-ACCESS.md)
 
-### 官方已经支持 UU WOL 的路由器
+## 想看技术细节？
 
-如果厂商固件已经通过官方入口支持网易 UU远程，请优先使用官方方法。通常**不需要为了使用 UU远程而额外开启 SSH**。
+README 只保留普通用户真正需要看的内容。实现、实验和平台差异放在下面：
 
-网易官方支持型号/路由器 WOL 插件说明：<https://www.uuremotepro.com/faq-article?id=wol-plugin>
+- 完整设备矩阵：[`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md)
+- Generic OpenWrt / iStoreOS：[`docs/OPENWRT.md`](docs/OPENWRT.md)
+- XiaoQiang / Redmi AX6000：[`docs/XIAOQIANG.md`](docs/XIAOQIANG.md)
+- ASUSWRT：[`docs/ASUSWRT.md`](docs/ASUSWRT.md)
+- 多辅助设备行为：[`docs/MULTI-AUX-DEVICE.md`](docs/MULTI-AUX-DEVICE.md)
+- 贡献新设备：[`CONTRIBUTING.md`](CONTRIBUTING.md)
 
-### 使用本项目手动适配时
+## 项目原则
 
-本项目的手动安装、平台检测、诊断和持久化功能通常需要：
-
-- SSH 或等效 Shell 管理权限；
-- 足够的系统权限（通常为 root）；
-- 可写的持久存储区域。
-
-本项目**不提供破解、漏洞利用或绕过设备安全限制来开启 SSH/root 的教程**。
-
-请优先查阅：
-
-1. 设备厂商官方文档；
-2. 所使用固件项目的官方文档；
-3. 本仓库 `docs/COMPATIBILITY.md` 中已验证设备的说明。
-
-## 为什么不是“一个万能 install.sh”
-
-不同路由器真正不同的是：
-
-- 固件家族；
-- CPU 架构；
-- 网易插件下载通道；
-- 持久存储位置；
-- 自启动机制；
-- UCI / NVRAM / procd / init / firewall 行为；
-- iptables / nftables 与现有透明代理的关系。
-
-因此项目采用：
-
-```text
-                Common Core
-                    │
-      ┌─────────────┼─────────────┐
-      │             │             │
-  XiaoQiang      ASUSWRT       OpenWrt
-  Adapter         Adapter       Adapter
-      │             │             │
-  Device Profile Device Profile Device Profile
-```
-
-型号只是设备档案；真正决定安装流程的是平台适配器。
-
-## 当前平台状态
-
-| Router | Platform | UU Channel | Install | Reboot | UU Cloud | Remote WOL | Status |
-|---|---|---|---:|---:|---:|---:|---|
-| Redmi AX6000 / RB06 | XiaoQiang / OpenWrt-derived | `openwrt-aarch64` | ✅ | ✅ | ✅ | ✅ | **Verified** |
-| ASUS RT-AX86U | ASUSWRT / Merlin-KoolShare | `static-asuswrt` | ✅ | ✅ | ✅ | ✅ | **Verified** |
-| Generic OpenWrt / iStoreOS | OpenWrt | `openwrt-aarch64` / `openwrt-x86_64` 等按架构选择 | ✅* | ✅* | ✅* | ✅* | **Verified (iStoreOS x86_64 sample)**; Generic OpenWrt 仍需逐台验证 |
-| Other vendors | Vendor firmware | Unknown | ❓ | ❓ | ❓ | ❓ | Community research |
-
-> `Remote WOL = ✅` 只用于已经有真实远程开机证据的设备。不会因为插件能启动就标记兼容。RT-AX86U 已补齐手机移动数据 Remote WOL 与 LAN Magic Packet 抓包证据；iStoreOS 行的 `✅*` 只表示这些能力由当前 iStoreOS x86_64 样本实机完成：真实持久安装、真实 reboot 后自动恢复、UU云连接、移动数据 Remote WOL、正式 rollback，以及 rollback 后再次 reboot 的恢复验收均已通过。该结论不外推到所有 Generic OpenWrt。
-
-完整矩阵见 [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md)。SSH/root 使用边界见 [`docs/SSH-ACCESS.md`](docs/SSH-ACCESS.md)。XiaoQiang 适配说明见 [`docs/XIAOQIANG.md`](docs/XIAOQIANG.md)，ASUSWRT 参考适配见 [`docs/ASUSWRT.md`](docs/ASUSWRT.md)，Generic OpenWrt 诊断层见 [`docs/OPENWRT.md`](docs/OPENWRT.md)。同账号存在多个辅助路由器时的已知事实与 A/B/C 验证方法见 [`docs/MULTI-AUX-DEVICE.md`](docs/MULTI-AUX-DEVICE.md)。
-
-## 成功标准
-
-本项目把“成功”拆成多个层级：
-
-1. 平台识别成功；
-2. 官方插件下载与校验成功；
-3. 插件可以启动；
-4. 真实重启后可以自动恢复；
-5. UU 云控制连接健康；
-6. UU主机加速 App 能正确识别路由器；
-7. UU主机加速 App 与 Windows UU远程处于正确的同账号关系；
-8. 每台 PC 单独完成远程开机配置；
-9. 手机关闭 Wi‑Fi、仅使用移动数据完成真实远程开机。
-
-只有最后一层完成后，设备档案中的 `Remote WOL` 才会标记为 `Verified`。
-
-## 本项目已经踩过的三个关键坑
-
-### 1. 进程存在 ≠ UU 云在线
-
-曾出现 UU 进程全部存在，但 `:16000` 没有建立控制连接。最终自启动必须验证真实云连接，而不是只看 PID。
-
-### 2. 云在线 ≠ UU远程已经绑定辅助设备
-
-路由器插件在线以后，UU远程仍可能提示没有辅助设备。
-
-本次真实案例最终确认：**UU主机加速 App 与 Windows UU远程需要处于正确的同账号关系。**
-
-### 3. 同一个 UU账号 ≠ 所有 PC 自动继承 WOL 配置
-
-每台 PC 都必须分别完成一次自己的远程开机配置与网卡/WOL绑定。
-
-## Redmi AX6000 / RB06 已验证实现
-
-当前历史终验版本使用网易官方：
-
-```text
-openwrt-aarch64 v14.6.24
-```
-
-正式插件目录：
-
-```text
-/userdisk/appdata/2882303761518031252
-```
-
-持久辅助脚本：
-
-```text
-/data/uu-v14/auto.sh
-```
-
-最终使用 XiaoQiang 可持久的 UCI firewall include，而不是 `/etc/rc.local`。
-
-> 版本号仅用于说明历史验证环境。正式安装器不应写死版本，而应运行时查询网易官方当前版本并进行官方校验。
->
-> 当前网易 API 返回 `status / md5 / url / url_bak` 等字段，并不保证提供独立的 `version` 字段；项目从官方 URL 路径中提取展示版本，但下载与校验逻辑以 API 返回的 URL 与 MD5 为准。
-
-## ASUS RT-AX86U 平台样本
-
-RT-AX86U 样本来自 Merlin-KoolShare / ASUSWRT 系环境。
-
-已研究：
-
-- ASUS 固件中的网易 UU 官方入口；
-- `static-asuswrt` 当前插件通道；
-- `/jffs` 持久化环境；
-- UU 后台/WOL 待机与 MC2 透明代理可以并存；
-- 一旦对特定 PC 真正开启 UU 游戏加速，策略路由可能影响该 PC 原本依赖 MC2 的代理连接。
-
-因此：
-
-> **WOL-only 与 UU 游戏加速是两个不同使用场景。**
-
-本项目 v1.0 目标优先保证 WOL 辅助设备能力，不承诺 UU 游戏加速与所有透明代理方案同时工作。
-
-## 仓库不会包含网易闭源二进制
-
-计划中的正式安装器只保存我们的：
-
-- 平台检测；
-- 官方下载逻辑；
-- 完整性校验；
-- 持久启动；
-- 状态检查；
-- 诊断；
-- 卸载/回滚；
-- 设备适配数据。
-
-不会把网易 `uuplugin`、`xuplugin-guardian`、`xtables-nft-multi` 等闭源文件直接提交到仓库。
-
-## 未知路由器如何加入支持
-
-仓库已经提供第一版只读 [`scripts/collect-info.sh`](scripts/collect-info.sh)。
-
-在已经合法取得 SSH/root Shell 的路由器上，可以先执行：
-
-```sh
-sh collect-info.sh
-```
-
-也可以先把脚本内容复制到路由器后运行。脚本只输出平台识别所需信息，不修改路由器配置，并刻意避免采集公网地址、网卡地址、设备序列信息、拨号凭据、账号与 Token 等字段。提交报告前仍建议人工复核一次。
-
-未知设备默认只允许：
-
-```text
-Detect → Collect → Redact → Report
-```
-
-而不是：
-
-```text
-Unknown → Guess → Install
-```
-
-收集报告必须默认隐藏 WAN IP、MAC、SN、PPPoE、账号、Token、设备验证码等敏感数据。
-
-## 计划目录
-
-```text
-uu-remote-wol-router-helper/
-├── README.md
-├── SECURITY.md
-├── CONTRIBUTING.md
-├── devices/
-├── lib/
-├── platforms/
-├── scripts/
-├── tests/
-├── docs/
-└── .github/
-```
-
-项目结构、验证标准和多平台 adapter 已经成形；会修改路由器的安装/回滚路径只在具备明确平台/设备验证与回滚证据时提供，不把实验结果外推为通用支持。
-
-## 项目背景与 AI 使用说明
-
-本项目始于一次真实设备问题排查，并大量借助 AI 辅助分析、代码生成、证据整理和文档编写。
-
-项目维护者并非专业软件开发人员。因此我们采用一个很简单的原则：
+本项目来自真实设备排障，并大量使用 AI 辅助分析和代码生成。因此维护规则很简单：
 
 > **Verified（已验证）必须来自真实硬件证据，不能来自 AI 推测。**
 
-任何 AI 生成代码在进入公开安装路径前，都应经过人工审阅、静态检查、可回滚设计和真实设备测试。
+任何 AI 生成代码进入可写入路由器的路径前，都必须有明确安全门、回滚设计、自动测试和真实设备证据。
