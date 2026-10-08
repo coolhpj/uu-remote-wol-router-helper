@@ -296,3 +296,18 @@ README 只保留普通用户真正需要看的内容。实现、实验和平台�
 > **Verified（已验证）必须来自真实硬件证据，不能来自 AI 推测。**
 
 任何 AI 生成代码进入可写入路由器的路径前，都必须有明确安全门、回滚设计、自动测试和真实设备证据。
+
+## License / 许可证与署名
+
+本项目使用 [MIT License](LICENSE)。
+
+Copyright (c) 2026 **coolhpj and contributors**.
+
+MIT 许可证允许使用、复制、修改、合并、发布、分发、再许可和商业使用；但在重新发布本项目代码或其 substantial portions（主要部分）时，**必须保留原版权声明和 MIT 许可文本**。
+
+如果你基于本项目制作衍生版本，欢迎同时注明原始项目来源，方便用户找到上游更新与兼容性说明：
+
+<https://github.com/coolhpj/uu-remote-wol-router-helper>
+
+> 注：回链到原仓库是推荐做法；MIT 许可证的强制要求是保留版权声明和许可文本，不额外增加限制。
+
