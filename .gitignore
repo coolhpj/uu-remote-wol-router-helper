@@ -27,5 +27,6 @@ private-reports/
 # OS/editor
 .DS_Store
 Thumbs.db
+.@__thumb/
 .vscode/
 .idea/
