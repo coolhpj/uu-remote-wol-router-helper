@@ -42,6 +42,9 @@ Generic OpenWrt 当前只对已经真实确认过网易官方 API 的架构做�
 
 - `aarch64` / `arm64` → `openwrt-aarch64`
 - `x86_64` / `amd64` → `openwrt-x86_64`
+- `mipsel_24kc`（需 `uname -m` 为 `mips/mipsel`、OpenWrt `DISTRIB_ARCH` 与 `opkg print-architecture` 一致）→ `openwrt-mipsel`，**仅实验性支持，不代表真机验证通过**
+
+MIPS 当前不接受泛化的 `mips` / `mipseb` 自动推断；真实设备持久安装仍被拦截，待 [Issue #1](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/1) 的 Lenovo Y1 / MT7620A 先完成只读预检、再逐级提交实验结果。
 
 其它架构 fail closed，不猜测通道名。ASUSWRT 也不会被通用 `stage auto` 接管，因为它属于官方/model-specific 集成路径。
 

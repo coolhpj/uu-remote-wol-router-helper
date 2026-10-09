@@ -101,7 +101,7 @@ helper_output=$(env $common_env sh "$ROOT_DIR/uu-helper.sh" diagnose) || {
 assert_contains "$helper_output" "platform: openwrt" "helper selects generic OpenWrt adapter"
 assert_contains "$helper_output" "health_summary: healthy" "helper reports healthy OpenWrt runtime"
 
-preflight_output=$(env $common_env UU_ARCH_OVERRIDE=x86_64 sh "$ROOT_DIR/uu-helper.sh" preflight) || {
+preflight_output=$(env $common_env UU_TEST_MODE=1 UU_ARCH_OVERRIDE=x86_64 sh "$ROOT_DIR/uu-helper.sh" preflight) || {
     echo "not ok - helper preflight should select generic OpenWrt preflight" >&2
     exit 1
 }

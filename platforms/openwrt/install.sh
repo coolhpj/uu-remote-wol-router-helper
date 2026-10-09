@@ -51,7 +51,7 @@ for cmd in cp mv rm mkdir chmod date grep sed md5sum tar; do
 done
 
 if ! UU_OPENWRT_RELEASE_FILE="${UU_OPENWRT_RELEASE_FILE:-/etc/openwrt_release}" \
-     UU_ARCH_OVERRIDE="${UU_ARCH_OVERRIDE:-$(uname -m 2>/dev/null || printf unknown)}" \
+     UU_ARCH_OVERRIDE="${UU_ARCH_OVERRIDE:-}" \
      sh "$ROOT_DIR/platforms/openwrt/preflight.sh" >/dev/null; then
     echo "Generic OpenWrt preflight failed; persistent install aborted." >&2
     exit 3
@@ -65,7 +65,7 @@ package="$STAGE_DIR/uu.tar.gz"
 stage_channel=$(sed -n 's/^channel=//p' "$metadata" | head -n 1)
 stage_version=$(sed -n 's/^version=//p' "$metadata" | head -n 1)
 stage_md5=$(sed -n 's/^md5=//p' "$metadata" | head -n 1 | tr 'A-F' 'a-f')
-arch="${UU_ARCH_OVERRIDE:-$(uname -m 2>/dev/null || printf unknown)}"
+arch=$(uu_openwrt_detect_arch 2>/dev/null || printf 'unknown')
 expected_channel=$(uu_openwrt_channel_for_arch "$arch" 2>/dev/null || true)
 
 [ -n "$expected_channel" ] || { echo "No confirmed official OpenWrt channel for this architecture." >&2; exit 4; }
@@ -73,6 +73,14 @@ expected_channel=$(uu_openwrt_channel_for_arch "$arch" 2>/dev/null || true)
     printf 'Staged channel mismatch: expected=%s actual=%s\n' "$expected_channel" "$stage_channel" >&2
     exit 4
 }
+
+# The first external MIPS device has not passed a temporary real-device
+# runtime test yet. For now permit staging / guarded smoke tests, but never
+# automatically turn that into a persistent router installation.
+if [ "$expected_channel" = "openwrt-mipsel" ] && [ "$TARGET_ROOT" = "/" ]; then
+    echo "MIPS persistent install is not enabled; real-device smoke and rollback review are still required." >&2
+    exit 66
+fi
 
 uu_verify_md5 "$package" "$stage_md5" || {
     echo "Staged package no longer matches the verified MD5." >&2

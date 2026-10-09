@@ -170,8 +170,10 @@ case "$command_name" in
             exit 2
         fi
 
-        arch=$(uname -m 2>/dev/null || printf 'unknown')
-        if ! channel=$(uu_resolve_channel "$platform" "$arch"); then
+        arch=$(uu_openwrt_detect_arch 2>/dev/null || printf 'unknown')
+        if channel=$(uu_resolve_channel "$platform" "$arch"); then
+            :
+        else
             rc=$?
             if [ "$rc" -eq 2 ]; then
                 echo "ASUSWRT auto staging is intentionally disabled; use the official/model-specific integration path." >&2

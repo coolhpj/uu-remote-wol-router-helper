@@ -47,7 +47,7 @@ package="$STAGE_DIR/uu.tar.gz"
 
 stage_channel=$(sed -n 's/^channel=//p' "$metadata" | head -n 1)
 stage_md5=$(sed -n 's/^md5=//p' "$metadata" | head -n 1)
-arch=$(uname -m 2>/dev/null || printf 'unknown')
+arch=$(uu_openwrt_detect_arch 2>/dev/null || printf 'unknown')
 expected_channel=$(uu_openwrt_channel_for_arch "$arch" 2>/dev/null || true)
 
 [ -n "$expected_channel" ] || {

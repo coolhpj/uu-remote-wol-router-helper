@@ -5,7 +5,7 @@ ROOT_DIR=$(CDPATH= cd "$(dirname "$0")/../.." 2>/dev/null && pwd) || exit 1
 . "$ROOT_DIR/lib/channel.sh"
 
 RELEASE_FILE="${UU_OPENWRT_RELEASE_FILE:-/etc/openwrt_release}"
-ARCH="${UU_ARCH_OVERRIDE:-$(uname -m 2>/dev/null || printf 'unknown')}"
+ARCH=$(uu_openwrt_detect_arch 2>/dev/null || printf 'unknown')
 
 printf '%s\n' "Generic OpenWrt UU preflight"
 printf '%s\n' "============================"
