@@ -116,7 +116,7 @@ sh uu-helper.sh collect-info
 
 ### 如果显示 `platform: openwrt`
 
-> **MIPS 路由器暂时不要执行下面的完整安装命令。** 目前 `mipsel_24kc` / `openwrt-mipsel` 只进入实验性兼容检查，尚未完成实际设备的运行、重启和手机移动数据开机验证；持久安装被程序主动拦截。Lenovo Y1 / MT7620A 的适配进度请查看 [Issue #1](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/1)。第一阶段只按照该问题单中的指引运行**只读预检查**，不要自行尝试临时启动或安装。
+> **MIPS 路由器暂时不要执行下面的完整安装命令。** 目前 `mipsel_24kc` / `openwrt-mipsel` 只进入实验性兼容检查，尚未完成实际设备的运行、重启和手机移动数据开机验证；持久安装被程序主动拦截。Lenovo Y1 / MT7620A 的适配进度请查看 [Issue #1](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/1)。该设备已完成只读预检查，现阶段仅按照问题单中的最新指引进行**官方包下载、文件完整性与架构校验**。不要自行启动、安装或设置开机自启；下一阶段仍须等待维护者根据实机证据逐步放行。
 
 对于其它已经确认适配路径且具备真实设备验证条件的 OpenWrt 环境，可以按下述受控步骤执行：
 

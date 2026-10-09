@@ -5,6 +5,7 @@ ROOT_DIR=$(CDPATH= cd "$(dirname "$0")/../.." 2>/dev/null && pwd) || exit 1
 . "$ROOT_DIR/lib/archive.sh"
 . "$ROOT_DIR/lib/evidence.sh"
 . "$ROOT_DIR/lib/channel.sh"
+. "$ROOT_DIR/lib/elf.sh"
 
 STAGE_DIR="${UU_STAGE_DIR:-/tmp/uu-wol-helper-stage}"
 TIMEOUT="${UU_SMOKE_TIMEOUT:-45}"
@@ -74,6 +75,13 @@ for required in uuplugin xuplugin-guardian uu.conf xtables-nft-multi; do
         exit 4
     }
 done
+
+if [ "$expected_channel" = "openwrt-mipsel" ]; then
+    uu_check_stage_mipsel_elf "$STAGE_DIR" || {
+        echo "MIPS staged files failed ELF format/ISA verification." >&2
+        exit 4
+    }
+fi
 
 have_cmd() {
     name="$1"

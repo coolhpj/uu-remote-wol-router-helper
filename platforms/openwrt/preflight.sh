@@ -36,6 +36,14 @@ if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
     missing="$missing curl-or-wget"
 fi
 
+if [ "$channel" = "openwrt-mipsel" ]; then
+    for cmd in od tr; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            missing="$missing $cmd"
+        fi
+    done
+fi
+
 if [ -n "$missing" ]; then
     echo "preflight: fail"
     printf 'architecture: %s\n' "$arch"

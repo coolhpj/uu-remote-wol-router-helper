@@ -5,6 +5,7 @@ ROOT_DIR=$(CDPATH= cd "$(dirname "$0")/.." 2>/dev/null && pwd) || exit 1
 . "$ROOT_DIR/lib/checksum.sh"
 . "$ROOT_DIR/lib/download.sh"
 . "$ROOT_DIR/lib/archive.sh"
+. "$ROOT_DIR/lib/elf.sh"
 
 channel="${1:-openwrt-aarch64}"
 stage_dir="${UU_STAGE_DIR:-/tmp/uu-wol-helper-stage}"
@@ -61,6 +62,14 @@ if ! uu_extract_uu_package "$package" "$stage_dir/files"; then
     exit 1
 fi
 printf '%s\n' "extract_check: pass"
+
+if [ "$channel" = "openwrt-mipsel" ]; then
+    if ! uu_check_stage_mipsel_elf "$stage_dir"; then
+        echo "MIPS package ELF architecture/ISA check failed; staging refused." >&2
+        exit 1
+    fi
+    printf '%s\n' "mips_elf_check: pass"
+fi
 
 printf '%s\n' "staged_files:"
 for file in uuplugin xuplugin-guardian uu.conf xtables-nft-multi; do

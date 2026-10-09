@@ -44,7 +44,9 @@ Generic OpenWrt 当前只对已经真实确认过网易官方 API 的架构做�
 - `x86_64` / `amd64` → `openwrt-x86_64`
 - `mipsel_24kc`（需 `uname -m` 为 `mips/mipsel`、OpenWrt `DISTRIB_ARCH` 与 `opkg print-architecture` 一致）→ `openwrt-mipsel`，**仅实验性支持，不代表真机验证通过**
 
-MIPS 当前不接受泛化的 `mips` / `mipseb` 自动推断；真实设备持久安装仍被拦截，待 [Issue #1](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/1) 的 Lenovo Y1 / MT7620A 先完成只读预检、再逐级提交实验结果。
+MIPS 当前不接受泛化的 `mips` / `mipseb` 自动推断；真实设备持久安装仍被拦截。[Issue #1](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/1) 的 Lenovo Y1 / MT7620A 已报告只读预检通过，临时空间约 59 MiB，官方 API 返回 v14.9.4。下一步仅允许下载并检查包，不启用插件或持久安装。
+
+2026-10-09：NAS 侧官方 `openwrt-mipsel v14.9.4` 归档已通过 API MD5、tar 解压；三个可执行文件均为 ELF32（32 位）/ little-endian（小端）/ MIPS32r2，无动态加载器或外部共享库依赖。新增 `lib/elf.sh`：在下载解压后的 MIPS staging 与临时运行前再次验证 3 个 ELF 文件格式，防止误执行其它架构或 ISA 的包。**上述仅证明格式/依赖可接受，不代表真机启动、内核/防火墙兼容、云连接或 Remote WOL 验证通过。**
 
 其它架构 fail closed，不猜测通道名。ASUSWRT 也不会被通用 `stage auto` 接管，因为它属于官方/model-specific 集成路径。
 
