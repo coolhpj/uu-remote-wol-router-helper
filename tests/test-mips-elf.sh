@@ -55,4 +55,28 @@ if uu_check_stage_mipsel_elf "$TMP/stage" >/dev/null 2>&1; then
 fi
 ok "reject stage with mismatched guardian"
 
+# Simulate minimal OpenWrt: od command exists but is not functional, while
+# BusyBox-compatible hexdump is present. The ELF check must use the fallback.
+(
+    od() { return 127; }
+    hexdump() {
+        /usr/bin/od -An -tx1 -j "$3" -N "$5" "$8" | /usr/bin/tr -d '[:space:]'
+    }
+    uu_check_mipsel_24kc_elf "$TMP/good" || exit 1
+) || fail "fallback to hexdump failed when od is unavailable"
+ok "hexdump fallback works without functional od"
+
+# Missing both readers must fail before staging downloads anything.
+mkdir -p "$TMP/minimal-bin"
+ln -s "$(command -v dirname)" "$TMP/minimal-bin/dirname"
+out=$(PATH="$TMP/minimal-bin" UU_STAGE_DIR="/tmp/uu-wol-helper-elf-noreader-$$" /bin/sh "$ROOT_DIR/scripts/stage-package.sh" openwrt-mipsel 2>&1)
+rc=$?
+if [ "$rc" -ne 4 ] || ! printf '%s\n' "$out" | grep -F "MIPS stage requires od or hexdump" >/dev/null 2>&1; then
+    fail "missing reader must produce actionable pre-download error"
+fi
+if [ -e "/tmp/uu-wol-helper-elf-noreader-$$" ]; then
+    fail "missing reader must not write stage files"
+fi
+ok "no reader: refuse MIPS stage before download"
+
 printf 'all MIPS ELF guard tests passed\n'

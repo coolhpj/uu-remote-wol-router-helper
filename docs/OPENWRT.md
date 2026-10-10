@@ -48,6 +48,8 @@ MIPS 当前不接受泛化的 `mips` / `mipseb` 自动推断；真实设备持�
 
 2026-10-09：NAS 侧官方 `openwrt-mipsel v14.9.4` 归档已通过 API MD5、tar 解压；三个可执行文件均为 ELF32（32 位）/ little-endian（小端）/ MIPS32r2，无动态加载器或外部共享库依赖。新增 `lib/elf.sh`：在下载解压后的 MIPS staging 与临时运行前再次验证 3 个 ELF 文件格式，防止误执行其它架构或 ISA 的包。**上述仅证明格式/依赖可接受，不代表真机启动、内核/防火墙兼容、云连接或 Remote WOL 验证通过。**
 
+2026-10-10：Lenovo Y1 用户首次在设备上尝试 staging，网易 API、MD5、归档与解压均通过，但预检显示 `missing_tools: od`，旧版 ELF 检查将“读取工具缺失”误报为 `MIPS ELF format/ISA mismatch`。现已修改为支持 `od`、`hexdump` 或 BusyBox 的 `hexdump` applet；均不可用时，在 staging 下载前清楚拒绝而不是误报二进制不兼容。需先确认该固件具备至少一个读取工具，才能继续核验；绝不因此直接运行或安装插件。
+
 其它架构 fail closed，不猜测通道名。ASUSWRT 也不会被通用 `stage auto` 接管，因为它属于官方/model-specific 集成路径。
 
 2026-08-30 已在真实 iStoreOS 24.10.7 / x86_64 上运行预检，自动解析为 `openwrt-x86_64` 并通过工具、root、`/tmp` 空间检查，全程无持久修改。

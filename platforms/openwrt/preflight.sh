@@ -3,6 +3,7 @@
 ROOT_DIR=$(CDPATH= cd "$(dirname "$0")/../.." 2>/dev/null && pwd) || exit 1
 # shellcheck source=../../lib/channel.sh
 . "$ROOT_DIR/lib/channel.sh"
+. "$ROOT_DIR/lib/elf.sh"
 
 RELEASE_FILE="${UU_OPENWRT_RELEASE_FILE:-/etc/openwrt_release}"
 ARCH=$(uu_openwrt_detect_arch 2>/dev/null || printf 'unknown')
@@ -37,11 +38,8 @@ if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
 fi
 
 if [ "$channel" = "openwrt-mipsel" ]; then
-    for cmd in od tr; do
-        if ! command -v "$cmd" >/dev/null 2>&1; then
-            missing="$missing $cmd"
-        fi
-    done
+    command -v tr >/dev/null 2>&1 || missing="$missing tr"
+    uu_elf_have_hex_reader || missing="$missing od-or-hexdump"
 fi
 
 if [ -n "$missing" ]; then

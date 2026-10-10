@@ -18,6 +18,11 @@ case "$stage_dir" in
         ;;
 esac
 
+if [ "$channel" = "openwrt-mipsel" ] && ! uu_elf_have_hex_reader; then
+    echo "MIPS stage requires od or hexdump. No package downloaded or files changed." >&2
+    exit 4
+fi
+
 printf '%s\n' "UU official package staging"
 printf '%s\n' "==========================="
 printf 'channel: %s\n' "$channel"
