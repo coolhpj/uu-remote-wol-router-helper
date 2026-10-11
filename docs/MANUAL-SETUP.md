@@ -8,7 +8,7 @@
 对于非 Windows 用户，或 Windows 无法运行快速启动器的情况：
 
 1. 下载本项目 GitHub ZIP 并解压；确保文件夹内能看到 `uu-helper.sh`、`lib`、`scripts`、`platforms`。
-2. 通过现有合法 SSH 账号，使用 WinSCP、SCP 等工具将文件传至路由器的 `/tmp/uu-remote-wol-router-helper`。**不要上传电脑里的密码、密钥或其他私密配置。**
+2. 使用路由器的 SSH 账号，通过 WinSCP、SCP 等工具将文件传至路由器的 `/tmp/uu-remote-wol-router-helper`。**不要上传电脑里的密码、密钥或其他私密配置。**
 3. SSH 登录路由器，在项目目录执行：
 
 ```sh

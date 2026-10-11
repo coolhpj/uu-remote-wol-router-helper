@@ -68,8 +68,8 @@ if (-not $ssh -or -not $scp) {
 }
 Write-Host ''
 Write-Host '  说明：上传和登录使用独立 SSH 连接，可能需要多次输入路由器密码。'
-Write-Host '  路由器 SSH 必须事先合法开启；本程序不会尝试绕过访问限制。'
-$choice = Read-Host '确认拥有 SSH 管理权限，输入 1 开始（回车取消）'
+Write-Host '  请先开启路由器 SSH，并准备好管理员登录信息。'
+$choice = Read-Host '已准备好路由器管理员账号？输入 1 开始（回车取消）'
 if ($choice -ne '1') {
     Write-Host '已取消，没有连接或修改路由器。'
     return

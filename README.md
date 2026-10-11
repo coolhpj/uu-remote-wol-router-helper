@@ -10,48 +10,48 @@
 
 ## 新手快速开始（3 步）
 
-**第 1 步｜先让电脑支持唤醒。** Windows 上打开 **UU远程 → 远程开机配置**，按官方向导启用 BIOS（主板固件）与网卡 WOL（局域网唤醒）。电脑优先连接有线网络；可先用局域网设备验证电脑能被唤醒。
+**第 1 步｜设置电脑唤醒。** 打开 Windows **UU远程 → 远程开机配置**，按提示开启主板和网卡的 WOL（网络唤醒）。建议电脑使用网线，并先确认局域网内能唤醒。
 
-**第 2 步｜在 Windows 上打开助手。** 路由器须已通过合法方式启用 SSH（远程管理终端），并且你拥有管理员权限。点击 GitHub 的 **Code → Download ZIP**，解压后双击根目录的 **`start-windows.cmd`（Windows 快速启动）**。输入路由器 IP 地址；工具会自动上传运行所需代码，并进入路由器的数字菜单。首次连接请核对路由器 SSH 指纹，上传和登录可能需要多次输入路由器密码；本项目不会保存密码。
+**第 2 步｜启动路由器助手。** 路由器需要已开启 SSH（远程登录），并能用管理员账号登录。点击 GitHub 的 **Code → Download ZIP**，解压后双击 **`start-windows.cmd`**，输入路由器地址。助手会自动上传文件，打开数字菜单。
 
-程序只把助手文件放入路由器的 `/tmp` 临时目录，**不会因为启动 Windows 工具就安装 UU 插件或修改系统启动项**。安装等操作仍要在菜单里明确确认。
+首次连接请核对 SSH 指纹；可能需要输入几次路由器密码。**这一步只启动助手，不会自动安装插件。**
 
 <details>
-<summary>查看图文操作示意：下载项目和 Windows 启动</summary>
+<summary>看图操作：下载与 Windows 启动</summary>
 
-![步骤示意：GitHub Code → Download ZIP（不是网页截图）](docs/images/uu-doc-01-download.png)
+![GitHub 下载步骤示意图（非真实网页截图）](docs/images/uu-doc-01-download.png)
 
-![步骤示意：Windows 助手连接路由器（根据脚本提示绘制，不是真实连接截图）](docs/images/uu-doc-02-windows.png)
+![Windows 连接助手示意图（非真实设备截图）](docs/images/uu-doc-02-windows.png)
 
-**图片说明：** 图 1 为下载操作示意，不是 GitHub 页面截图；图 2 根据本项目 Windows 脚本提示排版，`router.example.invalid` 为测试地址，图中没有连接真实设备。
+*两张均为操作示意图；图中的 `router.example.invalid` 是测试地址。*
 
 </details>
 
-不使用 Windows，或者电脑缺少 OpenSSH（安全远程终端工具）？可按 [手动上传教程](docs/MANUAL-SETUP.md) 将项目目录上传到路由器，再执行：
+**第 3 步｜绑定设备，测试远程开机。** 手机连家中 Wi-Fi，打开 **网易 UU 主机加速器 → 路由器加速 → 合作款路由器**，添加路由器；在电脑 **UU远程** 中刷新并配置辅助设备，确认账号对应。最后关闭手机 Wi-Fi，使用**移动数据**尝试唤醒电脑。
+
+**只有电脑真正被远程唤醒才算成功**，插件在线不代表远程开机成功。
+
+### 其他使用方式与注意事项
+
+非 Windows 用户或快速启动失败，可按 [手动上传教程](docs/MANUAL-SETUP.md) 上传文件后运行：
 
 ```sh
 cd /tmp/uu-remote-wol-router-helper
 sh uu-helper.sh start
 ```
 
-程序自动识别系统、处理器和适配状态，显示可用数字选项；你不必自己挑 `asuswrt`、`openwrt` 或 `xiaoqiang` 的脚本。**未验证的机型不会自动获得安装许可。**
+助手自动识别设备并显示可用菜单；是否能安装仍取决于设备及固件。**网易 UU 已直接支持的路由器优先使用官方方案；Lenovo Y1 等 MIPS（处理器架构）设备仍处于测试阶段，禁止正式安装。**
 
 <details>
-<summary>查看 OpenWrt 操作菜单示例（来自真实 QEMU 虚拟机日志）</summary>
+<summary>查看路由器菜单示例</summary>
 
-![OpenWrt ARM64 菜单：根据 QEMU 实际终端日志排版，并非直接截屏](docs/images/uu-doc-03-openwrt-qemu.png)
+![OpenWrt ARM64 菜单：根据真实 QEMU 日志排版，不是直接截图](docs/images/uu-doc-03-openwrt-qemu.png)
 
-这张图使用 [QEMU ARM64 Lab 虚拟机测试](https://github.com/coolhpj/uu-remote-wol-router-helper/actions/runs/38160517622) 的真实串口输出文字排版，**不是直接截屏**。虚拟设备 `linux,dummy-virt`、系统 `openwrt / aarch64` 及菜单文字都来自当次日志；其他路由器的菜单可能不同，也不代表 Lenovo Y1 / MIPS 已通过远程唤醒。
+*根据 [QEMU ARM64 虚拟机测试日志](https://github.com/coolhpj/uu-remote-wol-router-helper/actions/runs/38160517622) 排版，并非真实屏幕截图；其他设备菜单可能不同。*
 
 </details>
 
-> 已在网易 UU「合作款路由器」中直接支持的设备，优先走官方方案，不必用本工具。MIPS（处理器架构）机型如 Lenovo Y1 目前仍是实验性支持，菜单禁止持久安装。任何临时运行或持久安装均需要确认，绝不会因进入菜单就自动修改路由器。
-
-**第 3 步｜绑定网易账号，验证真正远程开机。** 手机先连接家中 Wi-Fi，打开 **网易 UU 主机加速器 → 路由器加速 → 合作款路由器**，按提示添加路由器；确保与 Windows **UU远程** 使用正确的账号关系。在 Windows UU远程里刷新辅助设备、逐台配置电脑。最后关闭手机 Wi-Fi，**仅用移动数据**尝试唤醒关机的电脑。
-
-**真正唤醒成功才算通过**，插件启动或连上云端不代表成功。
-
-需要特殊机型说明、传统手动命令或故障排查？查看 [高级操作教程](docs/MANUAL-SETUP.md) 和 [设备兼容矩阵](docs/COMPATIBILITY.md)。
+更多信息：[高级操作教程](docs/MANUAL-SETUP.md) · [设备兼容矩阵](docs/COMPATIBILITY.md)。
 
 ---
 
