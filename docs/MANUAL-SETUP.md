@@ -3,6 +3,20 @@
 > 这份内容从旧版 README 移入。普通用户请返回 [三步入门](../README.md#小白教程只看这-3-步)，直接使用数字菜单。
 > 不要绕过底层安装脚本的安全检查。未验证机型不能因为系统架构相同就当作支持。
 
+## 手动上传与进入数字菜单
+
+对于非 Windows 用户，或 Windows 无法运行快速启动器的情况：
+
+1. 下载本项目 GitHub ZIP 并解压；确保文件夹内能看到 `uu-helper.sh`、`lib`、`scripts`、`platforms`。
+2. 通过现有合法 SSH 账号，使用 WinSCP、SCP 等工具将文件传至路由器的 `/tmp/uu-remote-wol-router-helper`。**不要上传电脑里的密码、密钥或其他私密配置。**
+3. SSH 登录路由器，在项目目录执行：
+
+```sh
+cd /tmp/uu-remote-wol-router-helper
+sh uu-helper.sh start
+```
+
+后续使用数字菜单即可；下面的传统命令仅供高级排障。Windows 用户优先双击仓库根目录的 `start-windows.cmd`：它会提示路由器地址、上传必要文件并打开菜单，**不会自动安装网易插件或绕过 SSH 授权**。如果固件不支持所需 SCP 协议，就使用手动上传方式。
 
 ## 第 1 步：先把电脑自己的 WOL 配好
 
