@@ -117,10 +117,17 @@ expect {
 
 # Guarded menu: execute read-only preview on actual BusyBox/OpenWrt ARM64.
 # Repository is mounted read-only; this must never trigger install or runtime.
-send "sh /mnt/repo/uu-helper.sh start --preview >/tmp/uu-wizard-preview.txt && grep -q 'openwrt' /tmp/uu-wizard-preview.txt && grep -q '分步测试与安装' /tmp/uu-wizard-preview.txt && echo LAB_WIZARD_PREVIEW_\"OK\"\r"
+send "sh /mnt/repo/uu-helper.sh start --preview >/tmp/uu-wizard-preview.txt && grep -q 'openwrt' /tmp/uu-wizard-preview.txt && grep -q '测试并安装（需确认）' /tmp/uu-wizard-preview.txt && echo LAB_WIZARD_PREVIEW_\"OK\"\r"
 expect {
     -re {LAB_WIZARD_PREVIEW_OK} {}
     timeout { puts stderr "OpenWrt ARM64 wizard did not render guarded candidate menu"; exit 23 }
+}
+# Save a literal textual capture of the genuine guest menu to workflow logs.
+# No credentials or IPs are present: only synthetic QEMU model/platform.
+send "echo __UU_WIZARD_CAPTURE_BEGIN__; cat /tmp/uu-wizard-preview.txt; echo __UU_WIZARD_CAPTURE_END__\r"
+expect {
+    -re {[\r\n]__UU_WIZARD_CAPTURE_END__[\r\n]} {}
+    timeout { puts stderr "OpenWrt ARM64 menu capture failed"; exit 23 }
 }
 send "sh /mnt/repo/uu-helper.sh start </dev/null >/tmp/uu-wizard-nontty.txt 2>&1; result=\$?; test \$result -eq 64 && grep -q '交互终端' /tmp/uu-wizard-nontty.txt && echo LAB_WIZARD_NONTTY_\"OK\"\r"
 expect {

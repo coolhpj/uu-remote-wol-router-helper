@@ -55,11 +55,11 @@ confirm_word() {
 }
 status_text() {
     case "$1" in
-        official) printf '%s使用网易官方方案%s' "$c_green" "$c_reset" ;;
-        experimental) printf '%s实验适配 / 禁止正式安装%s' "$c_yellow" "$c_reset" ;;
-        migration) printf '%s仅限已有官方插件的受控迁移%s' "$c_yellow" "$c_reset" ;;
-        candidate) printf '%s可进行受控适配 / 未保证机型兼容%s' "$c_yellow" "$c_reset" ;;
-        *) printf '%s暂不支持自动安装%s' "$c_yellow" "$c_reset" ;;
+        official) printf '%s优先使用网易官方方案%s' "$c_green" "$c_reset" ;;
+        experimental) printf '%s测试中 · 暂不支持正式安装%s' "$c_yellow" "$c_reset" ;;
+        migration) printf '%s仅限已有官方插件的设备%s' "$c_yellow" "$c_reset" ;;
+        candidate) printf '%s可尝试测试 · 尚未保证型号兼容%s' "$c_yellow" "$c_reset" ;;
+        *) printf '%s尚不支持安装 · 可查看诊断信息%s' "$c_yellow" "$c_reset" ;;
     esac
 }
 detect_device() {
@@ -119,24 +119,24 @@ show_header() {
 show_menu() {
     show_header
     divider
-    printf '  %s1%s  检查设备与运行状态\n' "$c_accent" "$c_reset"
+    printf '  %s1%s  查看设备状态\n' "$c_accent" "$c_reset"
     if uu_wizard_can_stage "$wizard_mode"; then
-        printf '  %s2%s  自动准备官方插件（仅临时下载）\n' "$c_accent" "$c_reset"
+        printf '  %s2%s  下载并检查插件\n' "$c_accent" "$c_reset"
     fi
     if uu_wizard_can_setup "$wizard_mode"; then
-        printf '  %s3%s  分步测试与安装（需人工确认）\n' "$c_accent" "$c_reset"
+        printf '  %s3%s  测试并安装（需确认）\n' "$c_accent" "$c_reset"
     fi
-    printf '  %s4%s  查看手机绑定和远程唤醒步骤\n' "$c_accent" "$c_reset"
-    printf '  %s5%s  生成脱敏设备诊断信息\n' "$c_accent" "$c_reset"
+    printf '  %s4%s  手机绑定与远程开机说明\n' "$c_accent" "$c_reset"
+    printf '  %s5%s  生成问题报告（自动隐去敏感信息）\n' "$c_accent" "$c_reset"
     if uu_wizard_can_rollback "$wizard_mode"; then
-        printf '  %s6%s  恢复到安装前状态（有备份时）\n' "$c_accent" "$c_reset"
+        printf '  %s6%s  恢复之前的配置（需要备份）\n' "$c_accent" "$c_reset"
     fi
     divider
-    printf '  %s0%s  安全退出\n\n' "$c_dim" "$c_reset"
+    printf '  %s0%s  退出\n\n' "$c_dim" "$c_reset"
     case "$wizard_mode" in
-        experimental) printf '  %s本机型远程唤醒尚未验证，菜单不会开放安装。%s\n' "$c_yellow" "$c_reset" ;;
+        experimental) printf '  %s该型号远程唤醒尚未通过测试，不能正式安装。%s\n' "$c_yellow" "$c_reset" ;;
         official) printf '  %s请优先使用路由器厂商和网易官方的集成入口。%s\n' "$c_green" "$c_reset" ;;
-        collect) printf '  %s未识别为受控适配环境，只开放只读检测。%s\n' "$c_yellow" "$c_reset" ;;
+        collect) printf '  %s尚未识别为支持的设备，不能下载或安装插件。%s\n' "$c_yellow" "$c_reset" ;;
     esac
 }
 
@@ -155,8 +155,8 @@ prepare_stage() {
         printf '此设备不开放官方下载准备。\n'
         return 2
     fi
-    heading '自动准备 · 官方插件'
-    printf '%s\n' '  将执行环境检查、自动匹配官方架构、下载并核验插件。'
+    heading '下载并检查网易官方插件'
+    printf '%s\n' '  将自动检查设备、选择适用版本并校验下载文件。'
     printf '%s\n' '  只写入 /tmp 临时目录，不会启动插件或安装开机自启。'
     confirm_word DOWNLOAD || { printf '  已取消。\n'; return 0; }
     if ! sh "$ROOT_DIR/uu-helper.sh" preflight; then
@@ -167,19 +167,19 @@ prepare_stage() {
         printf '\n  %s官方下载或校验失败，已停止。%s\n' "$c_yellow" "$c_reset"
         return 1
     fi
-    printf '\n  %s已完成官方插件暂存和校验；尚未启动或安装。%s\n' "$c_green" "$c_reset"
+    printf '\n  %s下载和检查已完成，插件尚未运行或安装。%s\n' "$c_green" "$c_reset"
     return 0
 }
 guided_setup() {
     if ! uu_wizard_can_setup "$wizard_mode"; then
-        printf '%s\n' '  此设备没有受控安装路径，操作已阻止。'
+        printf '%s\n' '  此设备还不能使用安装功能，操作已停止。'
         return 2
     fi
-    heading '分步测试与安装 · 高级操作'
-    printf '%s\n' '  这是会实际改变路由器运行状态的操作，不是无风险一键安装。'
+    heading '测试并安装 · 请先了解风险'
+    printf '%s\n' '  本操作可能改变路由器运行状态，不是无风险的一键安装。'
     printf '%s\n' '  临时测试可能修改防火墙或短暂影响网络。'
     printf '%s\n' '  只在已备份配置、能本地恢复路由器网络时执行。'
-    printf '%s\n' '  架构符合不等于此型号已通过兼容验证。'
+    printf '%s\n' '  检测到适用处理器，也不代表当前路由器型号已通过测试。'
     confirm_word TEST || { printf '  已取消。\n'; return 0; }
 
     if ! sh "$ROOT_DIR/uu-helper.sh" preflight ||
@@ -221,9 +221,9 @@ restore_previous() {
         printf '%s\n' '  本设备不可使用该回滚路径。'
         return 2
     fi
-    heading '恢复安装前状态'
-    printf '%s\n' '  仅恢复本项目记录的最后一次安装前状态。'
-    printf '%s\n' '  如没有有效备份，底层脚本会拒绝执行。'
+    heading '恢复之前的配置'
+    printf '%s\n' '  尝试恢复本工具保存的上一次安装前配置。'
+    printf '%s\n' '  没有有效备份时将停止，不会猜测或覆盖配置。'
     confirm_word ROLLBACK || { printf '%s\n' '  已取消。'; return 0; }
     case "$wizard_mode" in
         candidate) UU_ROLLBACK_CONFIRM=ROLLBACK_OPENWRT_UU sh "$ROOT_DIR/platforms/openwrt/rollback.sh" ;;
@@ -246,9 +246,9 @@ run_menu() {
             2) if uu_wizard_can_stage "$wizard_mode"; then prepare_stage; else printf '  无此选项。\n'; fi ;;
             3) if uu_wizard_can_setup "$wizard_mode"; then guided_setup; else printf '  此设备不允许安装。\n'; fi ;;
             4) show_bind_help ;;
-            5) heading '脱敏环境报告'; sh "$ROOT_DIR/uu-helper.sh" collect-info ;;
+            5) heading '问题报告（自动隐去敏感信息）'; sh "$ROOT_DIR/uu-helper.sh" collect-info ;;
             6) if uu_wizard_can_rollback "$wizard_mode"; then restore_previous; else printf '  此设备不能使用本项目回滚。\n'; fi ;;
-            *) printf '%s\n' '  请输入菜单显示的序号。' ;;
+            *) printf '%s\n' '  请输入菜单中的数字，或输入 0 退出。' ;;
         esac
         pause_menu || return 0
     done

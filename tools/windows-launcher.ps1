@@ -43,10 +43,10 @@ Assert-HostName $RouterHost
 Assert-UserName $RouterUser
 $target = "${RouterUser}@${RouterHost}"
 Write-Host ''
-Write-Host '  UU REMOTE  |  Windows 快速启动' -ForegroundColor Cyan
-Write-Host '  上传助手 → 安全连接 → 显示路由器数字菜单'
+Write-Host '  UU REMOTE  |  Windows 路由器连接助手' -ForegroundColor Cyan
+Write-Host '  连接路由器 → 上传助手 → 打开操作菜单'
 Write-Host ("  路由器：{0}  端口：{1}" -f $target, $Port)
-Write-Host '  本工具不会刷机、安装网易插件、修改开机自启或保存 SSH 密码。'
+Write-Host '  这里只上传助手并打开菜单，不会安装网易插件、刷机或保存密码。'
 Write-Host '  首次连接须自行核实 SSH 服务器指纹。'
 if ($Preview) {
     Write-Host ''
@@ -81,15 +81,15 @@ try {
     foreach ($part in @('uu-helper.sh','lib','scripts','platforms')) {
         Copy-Item -LiteralPath (Join-Path $repoRoot $part) -Destination $bundle -Recurse -Force
     }
-    Show-Stage '[1/3] 检查路由器 SSH 与临时目录'
+    Show-Stage '[1/3] 检查路由器连接'
     $prepare = "if [ -e /tmp/uu-wol-helper-stage/mips-smoke.lock ]; then echo '有未完成的 MIPS 测试清理，停止上传'; exit 65; fi; mkdir -p $remoteDir"
     Invoke-Checked $ssh.Source @('-p', "$Port", $target, $prepare) '路由器连接或临时目录准备失败'
-    Show-Stage '[2/3] 上传助手代码（不含 Git 历史和测试文件）'
+    Show-Stage '[2/3] 上传必要文件'
     # Legacy SCP (-O) supports Dropbear/OpenWrt without SFTP.
     $localContents = Join-Path $bundle '.'
     Invoke-Checked $scp.Source @('-O','-r','-P',"$Port",$localContents,"${target}:${remoteDir}/") '上传失败。精简 OpenWrt 通常需要支持 -O 的 OpenSSH；也可用 WinSCP 手动上传'
-    Show-Stage '[3/3] 打开路由器交互菜单'
-    Write-Host '  请在路由器菜单中选择数字；不会自动启动或安装网易插件。'
+    Show-Stage '[3/3] 打开路由器操作菜单'
+    Write-Host '  已准备打开菜单。后续按数字选择操作，未经确认不会安装插件。'
     Invoke-Checked $ssh.Source @('-t','-p',"$Port",$target,"cd $remoteDir && test -f uu-helper.sh && sh uu-helper.sh start") 'SSH 会话或菜单退出时出现错误'
 }
 finally {
