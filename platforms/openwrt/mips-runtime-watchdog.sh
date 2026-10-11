@@ -1,6 +1,7 @@
 #!/bin/sh
 # Independent finite-lived safety guard for MIPS runtime evaluation.
-# Survives an interrupted SSH parent when launched with nohup.
+# POSIX shell ignores SIGHUP before exec and detaches standard streams.
+# Cannot survive reboot, kernel failure, SIGKILL or broader process-group kill.
 stage="${1:-}"
 run="${2:-}"
 limit="${3:-}"
@@ -10,6 +11,8 @@ case "$limit" in ''|*[!0-9]*) exit 2 ;; esac
 [ -r "$run/owner" ] || exit 2
 owner=$(cat "$run/owner")
 case "$owner" in ''|*[!0-9]*) exit 2 ;; esac
+# Parent must observe a live watcher after validation and before starting UU.
+: > "$run/watchdog.ready" || exit 2
 elapsed=0
 while [ "$elapsed" -lt "$limit" ]; do
     [ -f "$run/done" ] && exit 0

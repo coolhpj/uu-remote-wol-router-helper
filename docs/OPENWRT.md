@@ -64,7 +64,7 @@ MIPS 当前不接受泛化的 `mips` / `mipseb` 自动推断；真实设备持�
 UU_MIPS_RUNTIME_CONFIRM=ONE_TIME_MIPS_TEST_WITH_LOCAL_RECOVERY UU_MIPS_RUNTIME_SECONDS=300 sh platforms/openwrt/mips-runtime-smoke.sh
 ```
 
-进程和网易云连接同时就绪后，使用手机移动网络尝试唤醒待机电脑。测试窗口到时自动停止；独立 `nohup`（断线后继续工作的看守进程）负责异常中断时尝试清理。清理仅按本次临时目录下的具体可执行文件识别进程，不使用 `killall`（按进程名批量结束）。若仍有其他 UU 进程或防火墙无法确认恢复，明确打印 `CLEANUP_INCOMPLETE`，保留锁和快照以便本地恢复。
+进程和网易云连接同时就绪后，使用手机移动网络尝试唤醒待机电脑。测试窗口到时自动停止。Lenovo Y1 首次运行前遇到 `Runtime safety prerequisite missing: nohup`，说明此 OpenWrt 固件没有独立 `nohup`（终端断开后继续运行命令的工具）；脚本已改用 POSIX `sh`（标准命令解释器）自带的忽略挂断信号机制，关闭标准输入并将输出写到独立日志，**无需安装任何额外软件**。启动前会确认看守程序已运行，才允许启动官方插件；新增模拟 SSH 挂断后看守继续执行清理的回归测试。清理仅按本次临时目录下的具体可执行文件识别进程，不使用 `killall`（按进程名批量结束）。若仍有其他 UU 进程或防火墙无法确认恢复，明确打印 `CLEANUP_INCOMPLETE`，保留锁和快照以便本地恢复。断电、内核异常、强制结束整个进程组等仍不能保证自动恢复。
 
 **退出码或云连接成功不等于实际远程唤醒通过。** 回传可公开的标准输出、手机移动数据是否唤醒成功即可；禁止公开贴出 `firewall.before` / `firewall.after`（含隐私的完整防火墙配置）。清理失败不得删除 `mips-smoke.lock`、不得重新执行 stage、不得持久安装。真实设备风险（断电、内核异常、网络中断）不能由脚本完全消除。
 

@@ -75,6 +75,44 @@ sh "$WATCHDOG" "$BASE" "$run" 60
 [ -f "$run/done" ] || fail "watchdog must perform recovery when owner vanished"
 ok "orphaned owner triggers watchdog cleanup"
 
+# Simulate an SSH hangup with a real detached /bin/sh child, not nohup.
+# The child must live long enough to clean up after its parent gets SIGHUP.
+cat > "$BASE/hup-launcher.sh" <<'EOF'
+#!/bin/sh
+stage="$1"; run="$2"; watchdog="$3"
+printf '%s\n' "$$" > "$run/owner"
+(
+    trap '' HUP
+    exec sh "$watchdog" "$stage" "$run" 60
+) </dev/null >>"$run/watchdog.log" 2>&1 &
+echo "$!" > "$run/watchdog.pid"
+while :; do sleep 1; done
+EOF
+create_run 7
+sh "$BASE/hup-launcher.sh" "$BASE" "$run" "$WATCHDOG" &
+launcher_pid=$!
+retries=0
+while [ ! -f "$run/watchdog.ready" ] && [ "$retries" -lt 10 ]; do
+    sleep 1
+    retries=$((retries + 1))
+done
+if [ ! -f "$run/watchdog.ready" ]; then
+    kill "$launcher_pid" 2>/dev/null || true
+    fail "detached watchdog never signalled ready"
+fi
+watchdog_pid=$(cat "$run/watchdog.pid")
+kill -0 "$watchdog_pid" 2>/dev/null || fail "watchdog not alive before hangup"
+kill -HUP "$launcher_pid" 2>/dev/null || fail "failed to deliver hangup"
+wait "$launcher_pid" 2>/dev/null || true
+retries=0
+while [ ! -f "$run/done" ] && [ "$retries" -lt 10 ]; do
+    sleep 1
+    retries=$((retries + 1))
+done
+[ -f "$run/done" ] || fail "watchdog did not survive HUP and recover"
+printf '%s\n' "$(cat "$run/watchdog.log")" | grep -F 'owner_exited: auto_cleanup' >/dev/null || fail "watchdog must observe owner disconnect"
+ok "POSIX shell watcher survives SSH-style SIGHUP without nohup"
+
 # Confirm exact /proc executable ownership: a staged binary is stopped,
 # unrelated process survives. This uses a host sleep COPY, never UU binaries.
 cp "$(command -v sleep)" "$BASE/files/uuplugin" || fail "copy host sleep fixture"

@@ -31,7 +31,7 @@ fi
 arch=$(uu_openwrt_detect_arch 2>/dev/null || printf unknown)
 [ "$arch" = "mipsel_24kc" ] || { echo "MIPS architecture metadata not independently confirmed" >&2; exit 3; }
 sh "$ROOT_DIR/platforms/openwrt/preflight.sh" >/dev/null 2>&1 || { echo "OpenWrt preflight failed" >&2; exit 3; }
-for tool in nft fw4 readlink cmp nohup ps netstat awk grep sed sleep kill; do
+for tool in nft fw4 readlink cmp ps netstat awk grep sed sleep kill; do
     command -v "$tool" >/dev/null 2>&1 || { printf 'Runtime safety prerequisite missing: %s\n' "$tool" >&2; exit 5; }
 done
 [ -d /proc ] && [ -r "/proc/$$/exe" ] || { echo "Readable /proc required" >&2; exit 5; }
@@ -130,14 +130,26 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' HUP INT TERM
 
-# Start watchdog BEFORE the plugin so interruption has a second recovery path.
-# The watcher lives at most DURATION+30 seconds and stops exact staged PIDs.
+# Start watchdog BEFORE the plugin. BusyBox builds may not ship 'nohup'.
+# POSIX sh supports ignoring SIGHUP as a shell builtin. The detached child
+# inherits SIG_IGN across exec and has no SSH terminal stdin/stdout/stderr.
+# Neither this nor nohup can survive reboot, SIGKILL, or network reconfiguration.
 active=yes
-nohup sh "$ROOT_DIR/platforms/openwrt/mips-runtime-watchdog.sh" "$STAGE_DIR" "$run" "$((DURATION + 30))" >/dev/null 2>&1 &
+(
+    trap '' HUP
+    exec sh "$ROOT_DIR/platforms/openwrt/mips-runtime-watchdog.sh" "$STAGE_DIR" "$run" "$((DURATION + 30))"
+) </dev/null >>"$run/watchdog.log" 2>&1 &
 watchdog_pid=$!
-sleep 1
-if ! kill -0 "$watchdog_pid" 2>/dev/null; then
-    echo "Independent watchdog failed to start; no plugin started" >&2
+watchdog_ready=no
+for attempt in 1 2 3 4 5; do
+    if [ -f "$run/watchdog.ready" ] && kill -0 "$watchdog_pid" 2>/dev/null; then
+        watchdog_ready=yes
+        break
+    fi
+    sleep 1
+done
+if [ "$watchdog_ready" != yes ]; then
+    echo "Independent watchdog failed its readiness handshake; no plugin started" >&2
     exit 5
 fi
 
