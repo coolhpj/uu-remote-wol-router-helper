@@ -44,13 +44,29 @@ Generic OpenWrt 当前只对已经真实确认过网易官方 API 的架构做�
 - `x86_64` / `amd64` → `openwrt-x86_64`
 - `mipsel_24kc`（需 `uname -m` 为 `mips/mipsel`、OpenWrt `DISTRIB_ARCH` 与 `opkg print-architecture` 一致）→ `openwrt-mipsel`，**仅实验性支持，不代表真机验证通过**
 
-MIPS 当前不接受泛化的 `mips` / `mipseb` 自动推断；真实设备持久安装仍被拦截。[Issue #1](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/1) 的 Lenovo Y1 / MT7620A 已报告只读预检通过，临时空间约 59 MiB，官方 API 返回 v14.9.4。下一步仅允许下载并检查包，不启用插件或持久安装。
+MIPS 当前不接受泛化的 `mips` / `mipseb` 自动推断；真实设备持久安装仍被拦截。[Issue #1](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/1) 的 Lenovo Y1 / MT7620A 已在真机通过预检、官方包校验和只读运行环境核查。下一阶段只在能本地恢复网络且已备份配置时，使用下方专用脚本进行限时临时启动与手机远程唤醒测试；尚未确认插件真实运行成功。
 
 2026-10-09：NAS 侧官方 `openwrt-mipsel v14.9.4` 归档已通过 API MD5、tar 解压；三个可执行文件均为 ELF32（32 位）/ little-endian（小端）/ MIPS32r2，无动态加载器或外部共享库依赖。新增 `lib/elf.sh`：在下载解压后的 MIPS staging 与临时运行前再次验证 3 个 ELF 文件格式，防止误执行其它架构或 ISA 的包。**上述仅证明格式/依赖可接受，不代表真机启动、内核/防火墙兼容、云连接或 Remote WOL 验证通过。**
 
 2026-10-10：Lenovo Y1 用户首次在设备上尝试 staging，网易 API、MD5、归档与解压均通过，但预检显示 `missing_tools: od`，旧版 ELF 检查将“读取工具缺失”误报为 `MIPS ELF format/ISA mismatch`。现已修改为支持 `od`、`hexdump` 或 BusyBox 的 `hexdump` applet；均不可用时，在 staging 下载前清楚拒绝而不是误报二进制不兼容。需先确认该固件具备至少一个读取工具，才能继续核验；绝不因此直接运行或安装插件。
 
 2026-10-11：Lenovo Y1 已在真机通过 `preflight` 与 `stage auto`，包括 `md5_check`、`archive_check`、`extract_check`、`mips_elf_check` 和 `STAGE_READY`。下一门为**只读运行环境审查**，不是已经可执行 UU 插件。通用 `smoke-test.sh` 对 `mipsel_24kc` 明确拒绝启动（退出码 67），因为旧清理代码按进程名结束，且不能完整保存/恢复防火墙状态；设备继续执行 `sh platforms/openwrt/mips-runtime-readiness.sh` 仅获取防火墙/进程/网络工具和 staged 文件验证摘要，无插件启动及持久修改。
+
+### Lenovo Y1 / MIPS：单轮临时运行测试（实验阶段）
+
+2026-10-11 真机只读反馈：使用 `fw4` + `nft`，`netstat` 可用，未发现已有 UU 进程或 XU_ 防火墙表。设备每天自动重启会清空 `/tmp` 临时包，这是正常现象。
+
+本次新增专用 `platforms/openwrt/mips-runtime-smoke.sh`。原通用 `smoke-test.sh` 仍对 MIPS 强制禁止，真实 MIPS 的 `install.sh` 也仍然禁止持久安装。新脚本不是无风险的：会真实运行网易官方闭源二进制；如果检测到防火墙规则变化，退出时可能执行 `fw4 reload`（重新加载防火墙），造成短暂断网或影响动态规则。**仅限能够直接接触路由器、已备份配置且能本地恢复网络的自愿测试者。**
+
+在最新仓库根目录先执行 `sh uu-helper.sh preflight && sh uu-helper.sh stage auto`，必须出现 `STAGE_READY`。之后仅在具备上述恢复条件时执行：
+
+```sh
+UU_MIPS_RUNTIME_CONFIRM=ONE_TIME_MIPS_TEST_WITH_LOCAL_RECOVERY UU_MIPS_RUNTIME_SECONDS=300 sh platforms/openwrt/mips-runtime-smoke.sh
+```
+
+进程和网易云连接同时就绪后，使用手机移动网络尝试唤醒待机电脑。测试窗口到时自动停止；独立 `nohup`（断线后继续工作的看守进程）负责异常中断时尝试清理。清理仅按本次临时目录下的具体可执行文件识别进程，不使用 `killall`（按进程名批量结束）。若仍有其他 UU 进程或防火墙无法确认恢复，明确打印 `CLEANUP_INCOMPLETE`，保留锁和快照以便本地恢复。
+
+**退出码或云连接成功不等于实际远程唤醒通过。** 回传可公开的标准输出、手机移动数据是否唤醒成功即可；禁止公开贴出 `firewall.before` / `firewall.after`（含隐私的完整防火墙配置）。清理失败不得删除 `mips-smoke.lock`、不得重新执行 stage、不得持久安装。真实设备风险（断电、内核异常、网络中断）不能由脚本完全消除。
 
 其它架构 fail closed，不猜测通道名。ASUSWRT 也不会被通用 `stage auto` 接管，因为它属于官方/model-specific 集成路径。
 

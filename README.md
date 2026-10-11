@@ -116,7 +116,7 @@ sh uu-helper.sh collect-info
 
 ### 如果显示 `platform: openwrt`
 
-> **MIPS 路由器暂时不要执行下面的完整安装命令。** 目前 `mipsel_24kc` / `openwrt-mipsel` 仍是实验性兼容；Lenovo Y1 / MT7620A 已在真实路由器完成官方包下载、文件完整性与架构校验，但**尚未运行 UU 插件、验证云连接或测试手机移动网络远程唤醒**。下一步只进行运行环境的只读安全诊断，命令以 [Issue #1](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/1) 的最新说明为准。通用 `smoke-test.sh` 对该 MIPS 架构明确禁止启动；真实设备持久安装也被程序主动拦截。**不要自行启动、安装或设置开机自启。**
+> **MIPS 路由器暂时不要执行下面的完整安装命令。** 目前 `mipsel_24kc` / `openwrt-mipsel` 仍是实验性兼容；Lenovo Y1 / MT7620A 已在真实路由器完成官方包下载、完整性、ELF 架构及 `fw4` 防火墙环境核查，但**尚未验证 UU 实际运行、云连接与手机移动数据远程唤醒**。仅在 [Issue #1](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/1) 最新指引及路由器可本地恢复条件下，使用独立的 `platforms/openwrt/mips-runtime-smoke.sh` 临时测试；它可能触发 `fw4 reload` 并短暂中断网络，清理失败必须人工检查。通用 `smoke-test.sh` 对该 MIPS 架构继续禁止启动；真实 MIPS 持久安装也继续被程序主动拦截。**不要直接执行通用安装或设置开机自启。**
 
 对于其它已经确认适配路径且具备真实设备验证条件的 OpenWrt 环境，可以按下述受控步骤执行：
 

@@ -11,12 +11,21 @@ channel="${1:-openwrt-aarch64}"
 stage_dir="${UU_STAGE_DIR:-/tmp/uu-wol-helper-stage}"
 
 case "$stage_dir" in
+    /tmp/uu-wol-helper-*/*)
+        echo "Unsafe nested stage directory." >&2
+        exit 2
+        ;;
     /tmp/uu-wol-helper-*) ;;
     *)
         echo "Unsafe stage directory. UU_STAGE_DIR must match /tmp/uu-wol-helper-*" >&2
         exit 2
         ;;
 esac
+
+if [ -e "$stage_dir/mips-smoke.lock" ]; then
+    echo "MIPS runtime cleanup lock exists; refuse to re-stage or erase recovery evidence." >&2
+    exit 65
+fi
 
 if [ "$channel" = "openwrt-mipsel" ] && ! uu_elf_have_hex_reader; then
     echo "MIPS stage requires od or hexdump. No package downloaded or files changed." >&2
@@ -39,6 +48,21 @@ printf 'api_status: %s\n' "$UU_API_STATUS"
 printf 'version: %s\n' "$UU_API_VERSION"
 printf 'md5: %s\n' "$UU_API_MD5"
 
+# Never erase a live MIPS test's temporary executable, watchdog state,
+# baseline firewall snapshot or recovery evidence during re-staging.
+if [ -e "$stage_dir/mips-smoke.lock" ]; then
+    echo "An active/incomplete MIPS runtime lock exists; staging refused until cleanup is verified." >&2
+    exit 65
+fi
+if [ "$channel" = "openwrt-mipsel" ]; then
+    for proc in /proc/[0-9]*/exe; do
+        case "$(readlink "$proc" 2>/dev/null || true)" in
+            "$stage_dir/files/uuplugin"|"$stage_dir/files/xuplugin-guardian")
+                echo "Staged UU process is active; staging refused." >&2
+                exit 65 ;;
+        esac
+    done
+fi
 rm -rf "$stage_dir"
 mkdir -p "$stage_dir/files" || exit 1
 package="$stage_dir/uu.tar.gz"
