@@ -17,6 +17,8 @@
 | Redmi | AX6000 | RB06 | XiaoQiang / OpenWrt-derived | MT7986 / AArch64 | `openwrt-aarch64` | Required for manual adaptation | ✅ | ✅ | ✅ | ✅ | **Verified** |
 | ASUS | RT-AX86U | RT-AX86U | ASUSWRT / Merlin-KoolShare | AArch64 | `static-asuswrt` | Not required for official UI; required for advanced adaptation/diagnostics | ✅ | ✅ | ✅ | ✅ | **Verified** |
 | iStoreOS | x86_64 VM sample | generic-openwrt-x86_64 | OpenWrt / iStoreOS 24.10.7 | x86_64 / x86/64 | `openwrt-x86_64` | Available | ✅* | ✅* | ✅ | ✅* | **Verified (this sample)**: install + reboot + mobile-data WOL + rollback + post-rollback reboot verified |
+| Lenovo | Y1 / Newifi mini R6830 | lenovo-y1-mipsel-24kc | OpenWrt 22.03-SNAPSHOT / ramips/mt7620 | MT7620A / mipsel_24kc | `openwrt-mipsel` | Available | ⛔ 未授权持久安装 | — | 曾建立 `:16000` 连接 | ❌ 两次实测失败 | **Experimental**: 仅临时运行及云连接观察成功；第 264 秒有一次提前退出，辅助设备绑定与网络拓扑待核实 |
+
 ## Redmi AX6000 / RB06
 
 ### 已验证

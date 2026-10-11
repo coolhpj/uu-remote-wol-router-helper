@@ -44,7 +44,7 @@ Generic OpenWrt 当前只对已经真实确认过网易官方 API 的架构做�
 - `x86_64` / `amd64` → `openwrt-x86_64`
 - `mipsel_24kc`（需 `uname -m` 为 `mips/mipsel`、OpenWrt `DISTRIB_ARCH` 与 `opkg print-architecture` 一致）→ `openwrt-mipsel`，**仅实验性支持，不代表真机验证通过**
 
-MIPS 当前不接受泛化的 `mips` / `mipseb` 自动推断；真实设备持久安装仍被拦截。[Issue #1](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/1) 的 Lenovo Y1 / MT7620A 已在真机通过预检、官方包校验和只读运行环境核查。下一阶段只在能本地恢复网络且已备份配置时，使用下方专用脚本进行限时临时启动与手机远程唤醒测试；尚未确认插件真实运行成功。
+MIPS 当前不接受泛化的 `mips` / `mipseb` 自动推断；真实设备持久安装仍被拦截。[Issue #1](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/1) 的 Lenovo Y1 / MT7620A 已通过预检、官方包校验和只读环境核查；新版临时实机运行时两次出现 `cloud_and_guardian_ready: yes`（曾经连接），但手机移动数据无法唤醒电脑。第一次启动进程在第 264 秒提前退出。当前优先核实网易 UU 客户端辅助设备绑定与 PC/路由器默认网关、是否有多个辅助设备；尚不能标为完整支持。
 
 2026-10-09：NAS 侧官方 `openwrt-mipsel v14.9.4` 归档已通过 API MD5、tar 解压；三个可执行文件均为 ELF32（32 位）/ little-endian（小端）/ MIPS32r2，无动态加载器或外部共享库依赖。新增 `lib/elf.sh`：在下载解压后的 MIPS staging 与临时运行前再次验证 3 个 ELF 文件格式，防止误执行其它架构或 ISA 的包。**上述仅证明格式/依赖可接受，不代表真机启动、内核/防火墙兼容、云连接或 Remote WOL 验证通过。**
 

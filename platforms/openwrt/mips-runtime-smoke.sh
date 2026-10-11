@@ -9,6 +9,7 @@ ROOT_DIR=$(CDPATH= cd "$(dirname "$0")/../.." 2>/dev/null && pwd) || exit 1
 . "$ROOT_DIR/lib/checksum.sh"
 . "$ROOT_DIR/lib/archive.sh"
 . "$ROOT_DIR/lib/elf.sh"
+. "$ROOT_DIR/lib/mips-runtime-health.sh"
 
 STAGE_DIR="${UU_STAGE_DIR:-/tmp/uu-wol-helper-stage}"
 CONFIRM="${UU_MIPS_RUNTIME_CONFIRM:-}"
@@ -173,18 +174,30 @@ printf '%s\n' "$plugin_pid" > "$run/started_pid"
 elapsed=0
 cloud_online=no
 guardian_online=no
+cloud_seen=no
+guardian_seen=no
 announced=no
+plugin_exited_early=no
 while [ "$elapsed" -lt "$DURATION" ]; do
     if ! kill -0 "$plugin_pid" 2>/dev/null; then
-        echo "Plugin process ended before test window completed" >&2
+        echo "Plugin launch process ended before test window completed" >&2
+        plugin_exited_early=yes
+        cloud_online=no
+        guardian_online=no
         break
     fi
+    # These are CURRENT observations, not sticky "ever online" flags.
+    # A momentary successful handshake cannot prove continued runtime health.
+    cloud_online=no
+    guardian_online=no
     if netstat -anp 2>/dev/null | grep ':16000' | grep ESTABLISHED | grep uuplugin >/dev/null 2>&1; then
         cloud_online=yes
+        cloud_seen=yes
     fi
     for proc in /proc/[0-9]*/exe; do
         if [ "$(readlink "$proc" 2>/dev/null || true)" = "$STAGE_DIR/files/xuplugin-guardian" ]; then
             guardian_online=yes
+            guardian_seen=yes
             break
         fi
     done
@@ -196,11 +209,19 @@ while [ "$elapsed" -lt "$DURATION" ]; do
     sleep 2
     elapsed=$((elapsed + 2))
 done
-printf 'guardian: %s\n' "$guardian_online"
-printf 'cloud_16000: %s\n' "$cloud_online"
+printf 'guardian_ever_online: %s\n' "$guardian_seen"
+printf 'cloud_16000_ever_online: %s\n' "$cloud_seen"
+printf 'guardian_at_end: %s\n' "$guardian_online"
+printf 'cloud_16000_at_end: %s\n' "$cloud_online"
+printf 'plugin_exited_early: %s\n' "$plugin_exited_early"
 printf 'elapsed_seconds: %s\n' "$elapsed"
 echo "mobile_wol: requires user's real phone/PC observation"
-if [ "$guardian_online" = yes ] && [ "$cloud_online" = yes ]; then
+plugin_still_running=no
+if kill -0 "$plugin_pid" 2>/dev/null; then
+    plugin_still_running=yes
+fi
+if uu_mips_runtime_window_pass "$elapsed" "$DURATION" "$plugin_exited_early" "$guardian_online" "$cloud_online" "$plugin_still_running"; then
+    echo "MIPS_RUNTIME_HEALTH_PASS"
     exit 0
 fi
 echo "MIPS_RUNTIME_HEALTH_INCOMPLETE" >&2
