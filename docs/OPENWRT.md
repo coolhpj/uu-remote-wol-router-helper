@@ -50,6 +50,8 @@ MIPS 当前不接受泛化的 `mips` / `mipseb` 自动推断；真实设备持�
 
 2026-10-10：Lenovo Y1 用户首次在设备上尝试 staging，网易 API、MD5、归档与解压均通过，但预检显示 `missing_tools: od`，旧版 ELF 检查将“读取工具缺失”误报为 `MIPS ELF format/ISA mismatch`。现已修改为支持 `od`、`hexdump` 或 BusyBox 的 `hexdump` applet；均不可用时，在 staging 下载前清楚拒绝而不是误报二进制不兼容。需先确认该固件具备至少一个读取工具，才能继续核验；绝不因此直接运行或安装插件。
 
+2026-10-11：Lenovo Y1 已在真机通过 `preflight` 与 `stage auto`，包括 `md5_check`、`archive_check`、`extract_check`、`mips_elf_check` 和 `STAGE_READY`。下一门为**只读运行环境审查**，不是已经可执行 UU 插件。通用 `smoke-test.sh` 对 `mipsel_24kc` 明确拒绝启动（退出码 67），因为旧清理代码按进程名结束，且不能完整保存/恢复防火墙状态；设备继续执行 `sh platforms/openwrt/mips-runtime-readiness.sh` 仅获取防火墙/进程/网络工具和 staged 文件验证摘要，无插件启动及持久修改。
+
 其它架构 fail closed，不猜测通道名。ASUSWRT 也不会被通用 `stage auto` 接管，因为它属于官方/model-specific 集成路径。
 
 2026-08-30 已在真实 iStoreOS 24.10.7 / x86_64 上运行预检，自动解析为 `openwrt-x86_64` 并通过工具、root、`/tmp` 空间检查，全程无持久修改。

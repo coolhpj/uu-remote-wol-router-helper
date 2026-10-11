@@ -27,8 +27,20 @@ It temporarily starts/stops the staged UU runtime but does not install it.
 To run after reviewing the script, set:
   UU_RUNTIME_TEST_CONFIRM=TEMPORARY_RUNTIME_CHANGE
 If any existing UU runtime is detected, this draft refuses to continue.
+Experimental MIPS routers are explicitly blocked from this generic runner.
 EOF
     exit 64
+fi
+
+# The generic temporary runner does not snapshot/restore all firewall state
+# and its killall-based cleanup is not safe enough for an unverified MIPS router.
+# A generic acknowledgement must never authorize a Lenovo Y1 runtime start.
+smoke_arch=$(uu_openwrt_detect_arch 2>/dev/null || printf 'unknown')
+if [ "$smoke_arch" = "mipsel_24kc" ]; then
+    echo "MIPS_RUNTIME_NOT_AUTHORIZED: staged ELF verification is not a runtime safety approval." >&2
+    echo "Use sh platforms/openwrt/mips-runtime-readiness.sh for read-only environment review." >&2
+    echo "Do not launch smoke-test or install on the real MIPS router." >&2
+    exit 67
 fi
 
 if ! sh "$ROOT_DIR/platforms/openwrt/preflight.sh"; then
