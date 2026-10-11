@@ -1,5 +1,9 @@
 # 网易 UU 远程开机 · 路由器助手
 
+![网易 UU 远程开机路由器助手：设计概览图](docs/images/uu-doc-00-overview.png)
+
+*项目功能概览（设计示意图，不代表任何型号已经通过实际远程唤醒验收）。*
+
 让具备 OpenWrt 等环境的路由器，有机会成为网易 UU 远程开机的辅助设备。**自动识别环境、获取并校验官方插件、引导测试与安装**，不用自己挑选一堆命令。
 
 > 非网易官方项目。**不是所有路由器都能安装**；设备型号和固件须满足条件，手机移动网络实际唤醒成功才算验证通过。
@@ -12,6 +16,17 @@
 
 程序只把助手文件放入路由器的 `/tmp` 临时目录，**不会因为启动 Windows 工具就安装 UU 插件或修改系统启动项**。安装等操作仍要在菜单里明确确认。
 
+<details>
+<summary>查看图文操作示意：下载项目和 Windows 启动</summary>
+
+![步骤示意：GitHub Code → Download ZIP（不是网页截图）](docs/images/uu-doc-01-download.png)
+
+![步骤示意：Windows 助手连接路由器（根据脚本提示绘制，不是真实连接截图）](docs/images/uu-doc-02-windows.png)
+
+**图片说明：** 图 1 为下载操作示意，不是 GitHub 页面截图；图 2 根据本项目 Windows 脚本提示排版，`router.example.invalid` 为测试地址，图中没有连接真实设备。
+
+</details>
+
 不使用 Windows，或者电脑缺少 OpenSSH（安全远程终端工具）？可按 [手动上传教程](docs/MANUAL-SETUP.md) 将项目目录上传到路由器，再执行：
 
 ```sh
@@ -20,6 +35,15 @@ sh uu-helper.sh start
 ```
 
 程序自动识别系统、处理器和适配状态，显示可用数字选项；你不必自己挑 `asuswrt`、`openwrt` 或 `xiaoqiang` 的脚本。**未验证的机型不会自动获得安装许可。**
+
+<details>
+<summary>查看 OpenWrt 操作菜单示例（来自真实 QEMU 虚拟机日志）</summary>
+
+![OpenWrt ARM64 菜单：根据 QEMU 实际终端日志排版，并非直接截屏](docs/images/uu-doc-03-openwrt-qemu.png)
+
+这张图使用 [QEMU ARM64 Lab 虚拟机测试](https://github.com/coolhpj/uu-remote-wol-router-helper/actions/runs/38160517622) 的真实串口输出文字排版，**不是直接截屏**。虚拟设备 `linux,dummy-virt`、系统 `openwrt / aarch64` 及菜单文字都来自当次日志；其他路由器的菜单可能不同，也不代表 Lenovo Y1 / MIPS 已通过远程唤醒。
+
+</details>
 
 > 已在网易 UU「合作款路由器」中直接支持的设备，优先走官方方案，不必用本工具。MIPS（处理器架构）机型如 Lenovo Y1 目前仍是实验性支持，菜单禁止持久安装。任何临时运行或持久安装均需要确认，绝不会因进入菜单就自动修改路由器。
 
