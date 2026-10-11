@@ -14,16 +14,16 @@ function Call-Launcher([string[]]$Arguments) {
         return @{ Result=$output; Exit=$LASTEXITCODE }
     } finally { $ErrorActionPreference = $old }
 }
-$valid = Call-Launcher @('-Preview','-RouterHost','192.168.1.1')
+$valid = Call-Launcher @('-Preview','-RouterHost','router.example.invalid')
 Assert ($valid.Exit -eq 0 -and $valid.Result.Contains('预览：检查、上传和连接操作均未执行')) 'valid preview without network activity'
 Assert ($valid.Result.Contains('lib、scripts、platforms')) 'preview describes minimal upload'
-$invalid = Call-Launcher @('-Preview','-RouterHost','192.168.1.1;echo PWNED')
+$invalid = Call-Launcher @('-Preview','-RouterHost','router.example.invalid;echo PWNED')
 Assert ($invalid.Exit -ne 0 -and $invalid.Result.Contains('路由器地址无效')) 'router host injection refused'
-$badUser = Call-Launcher @('-Preview','-RouterHost','192.168.1.1','-RouterUser','root;reboot')
+$badUser = Call-Launcher @('-Preview','-RouterHost','router.example.invalid','-RouterUser','root;reboot')
 Assert ($badUser.Exit -ne 0 -and $badUser.Result.Contains('用户名格式无效')) 'SSH user injection refused'
 $missing = Call-Launcher @('-Preview')
 Assert ($missing.Exit -ne 0) 'unattended preview without host refused'
-$badPort = Call-Launcher @('-Preview','-RouterHost','192.168.1.1','-Port','65536')
+$badPort = Call-Launcher @('-Preview','-RouterHost','router.example.invalid','-Port','65536')
 Assert ($badPort.Exit -ne 0) 'invalid port refused'
 
 # Full mocked flow: local dummy ssh.exe and scp.exe do not use any network.
@@ -71,3 +71,6 @@ public class FakeSshScp {
     Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue
 }
 Write-Host 'all Windows launcher tests passed'
+# PowerShell 5.1 keeps LASTEXITCODE from intentional negative child tests.
+# Explicit success status prevents GitHub's runner wrapper from inheriting it.
+exit 0

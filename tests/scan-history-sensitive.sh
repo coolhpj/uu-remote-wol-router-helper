@@ -30,6 +30,22 @@ filter_known_history_fixture() {
         return 0
     fi
 
+    # Six exact lines in the immutable aa24517 prototype used the generic
+    # RFC1918 LAN address example. Newer source uses a .invalid hostname.
+    # Exception is limited to one commit and explicit file/line coordinates;
+    # all other source and history secret checks remain unchanged.
+    if [ "$commit" = "aa24517fa130220a58588a01c220fbb1befd2a3b" ]; then
+        printf '%s\n' "$input" \
+            | grep -v "^${commit}:tools/windows-launcher.ps1:20:" \
+            | grep -v "^${commit}:tools/windows-launcher.ps1:39:" \
+            | grep -v "^${commit}:tests/test-windows-launcher.ps1:17:" \
+            | grep -v "^${commit}:tests/test-windows-launcher.ps1:20:" \
+            | grep -v "^${commit}:tests/test-windows-launcher.ps1:22:" \
+            | grep -v "^${commit}:tests/test-windows-launcher.ps1:26:" \
+            || true
+        return 0
+    fi
+
     printf '%s\n' "$input"
 }
 

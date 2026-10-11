@@ -17,7 +17,7 @@ function Assert-HostName([string]$Value) {
     if ([string]::IsNullOrWhiteSpace($Value) -or $Value.Length -gt 253 -or
         $Value -notmatch '^[A-Za-z0-9][A-Za-z0-9.-]*$' -or
         $Value -match '\.\.' -or $Value -match '\.$') {
-        Fail '路由器地址无效。请输入 IPv4 地址或普通主机名（例如 192.168.1.1）。'
+        Fail '路由器地址无效。请输入 IPv4 地址或普通主机名（例如 router.example.invalid）。'
     }
 }
 function Assert-UserName([string]$Value) {
@@ -36,7 +36,7 @@ function Invoke-Checked([string]$Program, [string[]]$Arguments, [string]$Friendl
     }
 }
 if ([string]::IsNullOrWhiteSpace($RouterHost)) {
-    if ($Preview) { Fail '预览模式需要提供 -RouterHost，例如 -RouterHost 192.168.1.1。' }
+    if ($Preview) { Fail '预览模式需要提供 -RouterHost，例如 -RouterHost router.example.invalid。' }
     $RouterHost = Read-Host '请输入路由器 IP 或主机名'
 }
 Assert-HostName $RouterHost
