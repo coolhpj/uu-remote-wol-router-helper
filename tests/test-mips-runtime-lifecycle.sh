@@ -126,7 +126,15 @@ cat > "$BASE/bin/netstat" <<'EOF'
 #!/bin/sh
 exit 0
 EOF
-chmod +x "$BASE/bin/uname" "$BASE/bin/opkg" "$BASE/bin/netstat"
+cat > "$BASE/bin/id" <<'EOF'
+#!/bin/sh
+if [ "${1:-}" = "-u" ]; then
+    echo 0
+else
+    /usr/bin/id "$@"
+fi
+EOF
+chmod +x "$BASE/bin/uname" "$BASE/bin/opkg" "$BASE/bin/netstat" "$BASE/bin/id"
 cat > "$BASE/release" <<'EOF'
 DISTRIB_ID='OpenWrt'
 DISTRIB_ARCH='mipsel_24kc'
