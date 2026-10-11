@@ -115,6 +115,19 @@ expect {
     timeout { puts stderr "staged ARM64 package files are incomplete"; exit 24 }
 }
 
+# Guarded menu: execute read-only preview on actual BusyBox/OpenWrt ARM64.
+# Repository is mounted read-only; this must never trigger install or runtime.
+send "sh /mnt/repo/uu-helper.sh start --preview >/tmp/uu-wizard-preview.txt && grep -q 'openwrt' /tmp/uu-wizard-preview.txt && grep -q '分步测试与安装' /tmp/uu-wizard-preview.txt && echo LAB_WIZARD_PREVIEW_\"OK\"\r"
+expect {
+    -re {LAB_WIZARD_PREVIEW_OK} {}
+    timeout { puts stderr "OpenWrt ARM64 wizard did not render guarded candidate menu"; exit 23 }
+}
+send "sh /mnt/repo/uu-helper.sh start </dev/null >/tmp/uu-wizard-nontty.txt 2>&1; result=\$?; test \$result -eq 64 && grep -q '交互终端' /tmp/uu-wizard-nontty.txt && echo LAB_WIZARD_NONTTY_\"OK\"\r"
+expect {
+    -re {LAB_WIZARD_NONTTY_OK} {}
+    timeout { puts stderr "wizard did not refuse unattended execution"; exit 23 }
+}
+
 # The official closed binary exposes protobuf message names for the cloud WOL
 # command/reply pair. This is a capability probe only; it does not claim that CI
 # has a bound UU account/PC or can synthesize an official cloud WOL request.

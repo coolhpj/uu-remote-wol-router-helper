@@ -9,6 +9,7 @@ print_usage() {
 UU Remote WOL Router Helper
 
 Usage:
+  sh uu-helper.sh start
   sh uu-helper.sh diagnose
   sh uu-helper.sh collect-info
   sh uu-helper.sh check-api [channel]
@@ -17,6 +18,7 @@ Usage:
   sh uu-helper.sh help
 
 Commands:
+  start         Interactive guided menu with automatic platform routing.
   diagnose      Read-only platform detection and UU health summary.
   collect-info  Read-only environment report for unsupported routers.
   check-api     Read-only NetEase UU plugin API check.
@@ -25,7 +27,8 @@ Commands:
   help          Show this help.
 
 The stage command writes temporary files under /tmp but does not stop/start UU or modify persistent paths.
-The public helper does not expose a unified install command.
+The interactive menu reuses existing guarded test/install/rollback scripts.
+Never use an unattended pipe to bypass confirmation or install safeguards.
 EOF
 }
 
@@ -124,9 +127,16 @@ run_diagnose() {
     return 2
 }
 
+if [ "$#" -eq 0 ] && [ -t 0 ]; then
+    exec sh "$ROOT_DIR/scripts/wizard.sh"
+fi
 command_name="${1:-help}"
 
 case "$command_name" in
+    start|wizard)
+        shift
+        exec sh "$ROOT_DIR/scripts/wizard.sh" "$@"
+        ;;
     diagnose)
         run_diagnose
         ;;

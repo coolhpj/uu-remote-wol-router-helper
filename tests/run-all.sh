@@ -17,6 +17,7 @@ for test_file in \
     tests/test-mips-runtime-lifecycle.sh \
     tests/test-evidence-marker.sh \
     tests/test-helper-cli.sh \
+    tests/test-wizard.sh \
     tests/test-stage-core.sh \
     tests/test-smoke-guard.sh \
     tests/test-asuswrt-adapter.sh \
