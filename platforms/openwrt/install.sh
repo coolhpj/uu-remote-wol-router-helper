@@ -74,11 +74,12 @@ expected_channel=$(uu_openwrt_channel_for_arch "$arch" 2>/dev/null || true)
     exit 4
 }
 
-# The first external MIPS device has not passed a temporary real-device
-# runtime test yet. For now permit staging / guarded smoke tests, but never
-# automatically turn that into a persistent router installation.
+# Lenovo Y1 has user-reported mobile-data WOL success in a temporary MIPS
+# runtime (2026-10-12), but a safe persistent service lifecycle, real reboot,
+# firewall recovery and rollback are NOT verified on this device/architecture.
+# Keep real MIPS persistent installs blocked independently of WOL success.
 if [ "$expected_channel" = "openwrt-mipsel" ] && [ "$TARGET_ROOT" = "/" ]; then
-    echo "MIPS persistent install is not enabled; real-device smoke and rollback review are still required." >&2
+    echo "MIPS persistent install is disabled; mobile-data WOL success does not validate persistent startup, reboot, firewall recovery or rollback." >&2
     exit 66
 fi
 

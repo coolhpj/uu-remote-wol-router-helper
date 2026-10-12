@@ -134,7 +134,7 @@ show_menu() {
     divider
     printf '  %s0%s  退出\n\n' "$c_dim" "$c_reset"
     case "$wizard_mode" in
-        experimental) printf '  %s该型号远程唤醒尚未通过测试，不能正式安装。%s\n' "$c_yellow" "$c_reset" ;;
+        experimental) printf '  %s该架构暂未通过持久安装及重启回滚验收，不能正式安装。%s\n' "$c_yellow" "$c_reset" ;;
         official) printf '  %s请优先使用路由器厂商和网易官方的集成入口。%s\n' "$c_green" "$c_reset" ;;
         collect) printf '  %s尚未识别为支持的设备，不能下载或安装插件。%s\n' "$c_yellow" "$c_reset" ;;
     esac

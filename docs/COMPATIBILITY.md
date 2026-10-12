@@ -17,7 +17,13 @@
 | Redmi | AX6000 | RB06 | XiaoQiang / OpenWrt-derived | MT7986 / AArch64 | `openwrt-aarch64` | Required for manual adaptation | ✅ | ✅ | ✅ | ✅ | **Verified** |
 | ASUS | RT-AX86U | RT-AX86U | ASUSWRT / Merlin-KoolShare | AArch64 | `static-asuswrt` | Not required for official UI; required for advanced adaptation/diagnostics | ✅ | ✅ | ✅ | ✅ | **Verified** |
 | iStoreOS | x86_64 VM sample | generic-openwrt-x86_64 | OpenWrt / iStoreOS 24.10.7 | x86_64 / x86/64 | `openwrt-x86_64` | Available | ✅* | ✅* | ✅ | ✅* | **Verified (this sample)**: install + reboot + mobile-data WOL + rollback + post-rollback reboot verified |
-| Lenovo | Y1 / Newifi mini R6830 | lenovo-y1-mipsel-24kc | OpenWrt 22.03-SNAPSHOT / ramips/mt7620 | MT7620A / mipsel_24kc | `openwrt-mipsel` | Available | ⛔ 未授权持久安装 | — | 曾建立 `:16000` 连接 | ❌ 两次实测失败 | **Experimental**: 仅临时运行及云连接观察成功；第 264 秒有一次提前退出，辅助设备绑定与网络拓扑待核实 |
+| Lenovo | Y1 / Newifi mini R6830 | lenovo-y1-mipsel-24kc | OpenWrt 22.03-SNAPSHOT / ramips/mt7620 | MT7620A / mipsel_24kc | `openwrt-mipsel` | Available | ⛔ 持久安装禁用 | 未验证 | ✅ 临时连接 | ✅ 临时运行实机成功 | **Experimental（WOL 功能通过）**：2026-10-12 志愿者完成合作款路由器绑定、移动数据远程唤醒；持久运行、重启自启与回滚未验收 |
+
+### Lenovo Y1 实机反馈与限制（2026-10-12）
+
+[Issue #1 实机反馈](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/1#issuecomment-6122614795)：Enderlessss 反映在实验性限时脚本运行期间，手机通过 **网易 UU 主机加速器 → 路由器加速 → 合作款路由器** 找到并添加了 Lenovo Y1；随后在移动数据条件下通过「开始协助」流程和首页分别成功远程唤醒电脑。这是**移动数据远程唤醒功能的成功报告**，应覆盖此前测试失败的历史结论。
+
+用户同时表示本次控制台输出与以前相似，尚未提供新版双时钟脚本的完整运行终态、独立清理证据、重启后自启动或安装/回滚证据。因此该设备**不满足本表完整 Verified 的持久安装与重启条件**；`platforms/openwrt/install.sh` 的 MIPS 持久安装禁令、数字菜单限制、通用临时启动禁令仍保留。暂不将成功外推到所有 MIPS/OpenWrt 设备。
 
 ## Redmi AX6000 / RB06
 

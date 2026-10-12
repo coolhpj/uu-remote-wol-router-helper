@@ -42,9 +42,9 @@ Generic OpenWrt 当前只对已经真实确认过网易官方 API 的架构做�
 
 - `aarch64` / `arm64` → `openwrt-aarch64`
 - `x86_64` / `amd64` → `openwrt-x86_64`
-- `mipsel_24kc`（需 `uname -m` 为 `mips/mipsel`、OpenWrt `DISTRIB_ARCH` 与 `opkg print-architecture` 一致）→ `openwrt-mipsel`，**仅实验性支持，不代表真机验证通过**
+- `mipsel_24kc`（需 `uname -m` 为 `mips/mipsel`、OpenWrt `DISTRIB_ARCH` 与 `opkg print-architecture` 一致）→ `openwrt-mipsel`，**仅实验性支持；Lenovo Y1 已有临时远程唤醒成功证据，不代表所有同架构设备可永久安装**
 
-MIPS 当前不接受泛化的 `mips` / `mipseb` 自动推断；真实设备持久安装仍被拦截。[Issue #1](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/1) 的 Lenovo Y1 / MT7620A 已通过预检、官方包校验和只读环境核查；新版临时实机运行时两次出现 `cloud_and_guardian_ready: yes`（曾经连接），但手机移动数据无法唤醒电脑。第一次启动进程在第 264 秒提前退出。当前优先核实网易 UU 客户端辅助设备绑定与 PC/路由器默认网关、是否有多个辅助设备；尚不能标为完整支持。
+MIPS 当前不接受泛化的 `mips` / `mipseb` 自动推断；真实设备持久安装仍被拦截。[Issue #1](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/1) 的 Lenovo Y1 / MT7620A 已通过预检、官方包校验与临时启动。2026-10-12 测试者在手机网易 UU 主机加速器中找到并绑定「合作款路由器」后，已报告手机移动数据远程唤醒电脑成功；之前未绑定时的失败不再代表当前功能状态。**持久安装、重启自启动和回滚仍未验证，不标记完整 Verified。**
 
 2026-10-09：NAS 侧官方 `openwrt-mipsel v14.9.4` 归档已通过 API MD5、tar 解压；三个可执行文件均为 ELF32（32 位）/ little-endian（小端）/ MIPS32r2，无动态加载器或外部共享库依赖。新增 `lib/elf.sh`：在下载解压后的 MIPS staging 与临时运行前再次验证 3 个 ELF 文件格式，防止误执行其它架构或 ISA 的包。**上述仅证明格式/依赖可接受，不代表真机启动、内核/防火墙兼容、云连接或 Remote WOL 验证通过。**
 
@@ -68,7 +68,9 @@ UU_MIPS_RUNTIME_CONFIRM=ONE_TIME_MIPS_TEST_WITH_LOCAL_RECOVERY UU_MIPS_RUNTIME_S
 
 **退出码或云连接成功不等于实际远程唤醒通过。** 回传可公开的标准输出、手机移动数据是否唤醒成功即可；禁止公开贴出 `firewall.before` / `firewall.after`（含隐私的完整防火墙配置）。清理失败不得删除 `mips-smoke.lock`、不得重新执行 stage、不得持久安装。真实设备风险（断电、内核异常、网络中断）不能由脚本完全消除。
 
-2026-10-12 Lenovo Y1 第三轮反馈：主脚本累计 268/290/280 秒时分别提示启动进程退出，且手机端尚未确认出现 Y1 路由器辅助设备。这不能证明闭源插件崩溃；审计发现主循环仅累计 `sleep 2`，漏掉每次扫描 `netstat` 和 `/proc` 的真实耗时，看守也独立计时，因此可能是看守先到期清理。新版主测试和看守统一按 `/proc/uptime` 的同一起点计算经过时间，主测试结束重新探测云端和守护进程；单测模拟扫描耗时、时钟异常以及看守到期即时清理。该项是**测试工具可靠性修复**，不是 Lenovo Y1 设备注册/远程唤醒已解决的证据。暂不要求志愿者重复五分钟测试；优先核对手机连接的是 Y1 还是宿舍 AP，以及网易 UU 主机加速器「路由器加速 → 合作款路由器」能否发现 Y1。无需优先恢复 IPv6/DNS 或改校园网设置。
+2026-10-12 Lenovo Y1 此前第三轮反馈（历史排障）：主脚本累计 268/290/280 秒时分别提示启动进程退出，且手机端尚未确认出现 Y1 路由器辅助设备。这不能证明闭源插件崩溃；审计发现主循环仅累计 `sleep 2`，漏掉每次扫描 `netstat` 和 `/proc` 的真实耗时，看守也独立计时，因此可能是看守先到期清理。新版主测试和看守统一按 `/proc/uptime` 的同一起点计算经过时间，主测试结束重新探测云端和守护进程；单测模拟扫描耗时、时钟异常以及看守到期即时清理。该项是**测试工具可靠性修复**，不是 Lenovo Y1 设备注册/远程唤醒已解决的证据。当时尚未确认手机路由器绑定；无需优先恢复 IPv6/DNS 或改校园网设置。该诊断仅是历史阶段，不能覆盖后续成功报告。
+
+2026-10-12 新反馈：测试者在限时脚本运行时，通过连接 Y1 Wi-Fi 的手机进入 **网易 UU 主机加速器 → 路由器加速 → 合作款路由器**，成功发现并添加 Y1；随后在手机移动网络下，经「开始协助」和首页两条入口成功远程开机（[原始评论](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/1#issuecomment-6122614795)）。测试者表示运行日志与先前相似，**不能据此判定新版脚本完整运行窗口和安全清理验收已通过**。不得以远程唤醒成功为由绕过 MIPS 持久安装安全门；下一阶段需要独立验证安装、重启自启、异常回滚和不影响原防火墙配置。
 
 其它架构 fail closed，不猜测通道名。ASUSWRT 也不会被通用 `stage auto` 接管，因为它属于官方/model-specific 集成路径。
 
