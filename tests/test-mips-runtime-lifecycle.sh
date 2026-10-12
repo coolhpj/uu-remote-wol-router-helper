@@ -80,9 +80,23 @@ ok "orphaned owner triggers watchdog cleanup"
 # even when an owner process is still alive, without waiting for 60 sleeps.
 create_run 8
 echo "$$" > "$run/owner"
-uptime_now=$(awk '{print int($1)}' /proc/uptime)
-printf '%s\n' "$((uptime_now - 61))" > "$run/clock_start"
-sh "$WATCHDOG" "$BASE" "$run" 60
+# Use a test-only synthetic uptime to make deadline expiry deterministic even
+# on a newly booted CI runner. Production watchdog never accepts a clock override.
+printf '%s\n' 1 > "$run/clock_start"
+mkdir -p "$BASE/clock-bin"
+export REAL_AWK="$(command -v awk)"
+cat > "$BASE/clock-bin/awk" <<'EOF'
+#!/bin/sh
+last=''
+for arg in "$@"; do last="$arg"; done
+if [ "$last" = /proc/uptime ]; then
+    printf '%s\n' 65
+else
+    exec "$REAL_AWK" "$@"
+fi
+EOF
+chmod +x "$BASE/clock-bin/awk"
+PATH="$BASE/clock-bin:$PATH" sh "$WATCHDOG" "$BASE" "$run" 60
 [ -f "$run/done" ] || fail "expired monotonic deadline must trigger immediate cleanup"
 grep -F 'watchdog_cleanup_at_seconds:' "$run/watchdog.log" >/dev/null || fail "watchdog expiration must be observable"
 ok "shared monotonic deadline triggers watchdog cleanup without sleep-counter drift"
