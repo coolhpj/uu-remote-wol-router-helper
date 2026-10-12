@@ -8,9 +8,9 @@
 
 > 非网易官方项目。**不是所有路由器都能安装**；设备型号和固件须满足条件，手机移动网络实际唤醒成功才算验证通过。
 
-## 按平台下载（测试打包，尚非正式发行版）
+## 按平台下载（预览测试版，尚非稳定版）
 
-项目提供自动构建的分平台 ZIP（压缩包），测试通过后可在 [GitHub Actions：Platform ZIP packages](https://github.com/coolhpj/uu-remote-wol-router-helper/actions/workflows/platform-packages.yml) 对应成功任务的测试附件中下载（需要 GitHub 登录）。**目前未创建正式 Releases 发布版，不要把测试 ZIP 当成所有同架构设备均已验证。**
+**[点击这里下载 v0.1.0-beta.1 五平台测试版（GitHub Releases 版本发布页）](https://github.com/coolhpj/uu-remote-wol-router-helper/releases/tag/v0.1.0-beta.1)**。已提供五个独立的 ZIP（压缩包），无需进入自动构建记录中寻找附件。**当前为预览测试版，不要把同架构所有型号当成已验证兼容。**
 
 | 包名 | 适用环境 | 安装验证范围 |
 | --- | --- | --- |
@@ -22,13 +22,13 @@
 
 解压后 Windows 用户可使用 `start-windows.cmd` 上传助手，其他用户可按手动教程上传并运行 `sh uu-helper.sh start`。压缩包带有设备平台与处理器限制，选错包会拒绝安装相关操作；全部只包含项目开源脚本，**不附带网易闭源插件**，使用时才通过官方接口下载并校验。
 
-开发者可运行 `python3 scripts/build-platform-packages.py --output dist` 在本地生成五个确定性 ZIP 和 `SHA256SUMS.txt`（校验清单）；正式对外稳定版仍须等待对应设备完成实机验收。
+开发者可运行 `python3 scripts/build-platform-packages.py --output dist` 在本地生成五个确定性 ZIP 和 `SHA256SUMS.txt`（校验清单）；[自动打包记录](https://github.com/coolhpj/uu-remote-wol-router-helper/actions/workflows/platform-packages.yml) 仅供排障和开发者核对。**正式稳定版**仍须等待对应设备完成实机验收。
 
 ## 新手快速开始（3 步）
 
 **第 1 步｜设置电脑唤醒。** 打开 Windows **UU远程 → 远程开机配置**，按提示开启主板和网卡的 WOL（网络唤醒）。建议电脑使用网线，并先确认局域网内能唤醒。
 
-**第 2 步｜启动路由器助手。** 路由器需要已开启 SSH（远程登录），并能用管理员账号登录。点击 GitHub 的 **Code → Download ZIP**，解压后双击 **`start-windows.cmd`**，输入路由器地址。助手会自动上传文件，打开数字菜单。
+**第 2 步｜启动路由器助手。** 路由器需要已开启 SSH（远程登录），并能用管理员账号登录。优先从上面的 **Releases（版本发布页）** 下载与你的路由器系统、架构匹配的 ZIP（压缩包），解压后双击 **`start-windows.cmd`**，输入路由器地址。助手会自动上传文件，打开数字菜单。开发者仍可用 GitHub 的 **Code → Download ZIP（下载完整源码）** 获取全部源文件。
 
 首次连接请核对 SSH 指纹；可能需要输入几次路由器密码。**这一步只启动助手，不会自动安装插件。**
 
