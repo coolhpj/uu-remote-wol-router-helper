@@ -4,6 +4,7 @@ archive/
 evidence-private/
 *.pdf
 *.zip
+dist/
 *.pcap
 *.pcapng
 

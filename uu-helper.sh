@@ -3,6 +3,7 @@
 ROOT_DIR=$(CDPATH= cd "$(dirname "$0")" 2>/dev/null && pwd) || exit 1
 # shellcheck source=lib/channel.sh
 . "$ROOT_DIR/lib/channel.sh"
+. "$ROOT_DIR/lib/package-guard.sh"
 
 print_usage() {
     cat <<'EOF'
@@ -128,9 +129,13 @@ run_diagnose() {
 }
 
 if [ "$#" -eq 0 ] && [ -t 0 ]; then
+    uu_package_check "$ROOT_DIR" || exit 67
     exec sh "$ROOT_DIR/scripts/wizard.sh"
 fi
 command_name="${1:-help}"
+case "$command_name" in
+    start|wizard|preflight|stage) uu_package_check "$ROOT_DIR" || exit 67 ;;
+esac
 
 case "$command_name" in
     start|wizard)

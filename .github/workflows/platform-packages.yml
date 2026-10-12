@@ -1,0 +1,48 @@
+name: Platform ZIP packages (test artifacts)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'uu-helper.sh'
+      - 'lib/**'
+      - 'scripts/**'
+      - 'platforms/**'
+      - 'tools/windows-launcher.ps1'
+      - 'start-windows.cmd'
+      - 'docs/**'
+      - 'LICENSE'
+      - 'SECURITY.md'
+      - 'tests/test-platform-packages.py'
+      - '.github/workflows/platform-packages.yml'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  packages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Run source safety tests
+        run: sh tests/run-all.sh
+      - name: Verify platform boundary and deterministic archives
+        run: python3 tests/test-platform-packages.py
+      - name: Build five platform source ZIPs
+        run: python3 scripts/build-platform-packages.py --output dist
+      - name: Verify release checksums
+        working-directory: dist
+        run: sha256sum -c SHA256SUMS.txt
+      - name: Upload test archives (not a public release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: uu-helper-platform-test-zips
+          path: |
+            dist/*.zip
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
