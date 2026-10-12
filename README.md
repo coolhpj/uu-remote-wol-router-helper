@@ -8,6 +8,22 @@
 
 > 非网易官方项目。**不是所有路由器都能安装**；设备型号和固件须满足条件，手机移动网络实际唤醒成功才算验证通过。
 
+## 按平台下载（测试打包，尚非正式发行版）
+
+项目提供自动构建的分平台 ZIP（压缩包），测试通过后可在 [GitHub Actions：Platform ZIP packages](https://github.com/coolhpj/uu-remote-wol-router-helper/actions/workflows/platform-packages.yml) 对应成功任务的测试附件中下载（需要 GitHub 登录）。**目前未创建正式 Releases 发布版，不要把测试 ZIP 当成所有同架构设备均已验证。**
+
+| 包名 | 适用环境 | 安装验证范围 |
+| --- | --- | --- |
+| `uu-helper-openwrt-x86_64.zip` | OpenWrt / iStoreOS x86_64 | 已验证的仅为当前 iStoreOS x86_64 实机样本 |
+| `uu-helper-openwrt-aarch64.zip` | OpenWrt ARM64 | 候选测试包，不保证任意型号可安装 |
+| `uu-helper-openwrt-mipsel-y1-beta.zip` | Lenovo Y1 / Newifi mini R6830 | **实验版**，重启自启与长期稳定性尚待志愿者验收 |
+| `uu-helper-xiaoqiang-aarch64.zip` | 小米 / 红米 XiaoQiang ARM64 固件 | 已验证参考型号为 Redmi AX6000；其他型号仍需验证 |
+| `uu-helper-asuswrt.zip` | 华硕 ASUSWRT / 梅林 | **官方集成优先，只提供检测辅助，不覆盖原厂 UU** |
+
+解压后 Windows 用户可使用 `start-windows.cmd` 上传助手，其他用户可按手动教程上传并运行 `sh uu-helper.sh start`。压缩包带有设备平台与处理器限制，选错包会拒绝安装相关操作；全部只包含项目开源脚本，**不附带网易闭源插件**，使用时才通过官方接口下载并校验。
+
+开发者可运行 `python3 scripts/build-platform-packages.py --output dist` 在本地生成五个确定性 ZIP 和 `SHA256SUMS.txt`（校验清单）；正式对外稳定版仍须等待对应设备完成实机验收。
+
 ## 新手快速开始（3 步）
 
 **第 1 步｜设置电脑唤醒。** 打开 Windows **UU远程 → 远程开机配置**，按提示开启主板和网卡的 WOL（网络唤醒）。建议电脑使用网线，并先确认局域网内能唤醒。

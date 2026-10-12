@@ -4,6 +4,8 @@
 ROOT_DIR=$(CDPATH= cd "$(dirname "$0")/.." 2>/dev/null && pwd) || exit 1
 . "$ROOT_DIR/lib/channel.sh"
 . "$ROOT_DIR/lib/wizard-policy.sh"
+. "$ROOT_DIR/lib/package-guard.sh"
+uu_package_check "$ROOT_DIR" || exit 67
 
 WIZARD_PREVIEW=no
 [ "${1:-}" = "--preview" ] && WIZARD_PREVIEW=yes
