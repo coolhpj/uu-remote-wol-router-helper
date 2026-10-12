@@ -23,4 +23,22 @@ ok "plugin no longer alive at end fails"
 if uu_mips_runtime_window_pass 180 300 no yes yes yes; then fail "incomplete duration must fail"; fi
 ok "interrupted or shortened test cannot pass"
 
+# The Y1 report showed 268-290 counted sleep seconds despite ~330 seconds
+# of wall clock. Simulate scan overhead without waiting for five minutes.
+[ "$(uu_mips_elapsed_between 1000 1331)" = 331 ] || fail "elapsed must include polling overhead"
+[ 331 -ge 330 ] || fail "independent watchdog deadline"
+[ 280 -lt 300 ] || fail "synthetic naive sleep counter reproduces false early exit"
+if uu_mips_elapsed_between 1331 1000 >/dev/null 2>&1; then fail "clock reset must fail"; fi
+if uu_mips_elapsed_between not-a-time 1331 >/dev/null 2>&1; then fail "invalid clock must fail"; fi
+ok "real elapsed time includes simulated heavy polling, unlike sleep counter"
+
+# Kernel clock reader must work with the small BusyBox awk /proc/uptime format.
+fixture="/tmp/uu-mips-uptime-fixture-$$"
+printf '1234.67 987.65\n' > "$fixture"
+[ "$(uu_mips_uptime_seconds "$fixture")" = 1234 ] || fail "parse procfs uptime"
+printf 'invalid 987.65\n' > "$fixture"
+if uu_mips_uptime_seconds "$fixture" >/dev/null 2>&1; then fail "invalid uptime must fail"; fi
+rm -f "$fixture"
+ok "monotonic clock parser accepts procfs and rejects invalid input"
+
 echo "all MIPS runtime health classification tests passed"

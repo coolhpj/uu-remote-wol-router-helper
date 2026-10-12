@@ -105,6 +105,17 @@ if ! uu_clear_smoke_pass "$STAGE_DIR"; then
     exit 5
 fi
 
+# Both processes use one kernel-uptime anchor, recorded BEFORE watchdog start.
+# The old loop counted only sleep(2), ignoring the variable scan overhead.
+if [ ! -r /proc/uptime ] ||
+   ! clock_start=$(uu_mips_uptime_seconds) ||
+   ! printf '%s\n' "$clock_start" > "$run/clock_start"; then
+    echo "Kernel uptime clock unavailable; no plugin started" >&2
+    rm -f "$lock/run"
+    rmdir "$lock" 2>/dev/null || true
+    exit 5
+fi
+
 active=no
 cleanup() {
     saved=$?
@@ -178,16 +189,9 @@ cloud_seen=no
 guardian_seen=no
 announced=no
 plugin_exited_early=no
-while [ "$elapsed" -lt "$DURATION" ]; do
-    if ! kill -0 "$plugin_pid" 2>/dev/null; then
-        echo "Plugin launch process ended before test window completed" >&2
-        plugin_exited_early=yes
-        cloud_online=no
-        guardian_online=no
-        break
-    fi
-    # These are CURRENT observations, not sticky "ever online" flags.
-    # A momentary successful handshake cannot prove continued runtime health.
+
+probe_runtime() {
+    # Current observation must not be carried forward from an earlier poll.
     cloud_online=no
     guardian_online=no
     if netstat -anp 2>/dev/null | grep ':16000' | grep ESTABLISHED | grep uuplugin >/dev/null 2>&1; then
@@ -201,14 +205,37 @@ while [ "$elapsed" -lt "$DURATION" ]; do
             break
         fi
     done
+}
+while :; do
+    elapsed=$(uu_mips_elapsed_since "$clock_start") || {
+        echo "Cannot read monotonic elapsed time; stopping test safely" >&2
+        exit 5
+    }
+    [ "$elapsed" -lt "$DURATION" ] || break
+    if ! kill -0 "$plugin_pid" 2>/dev/null; then
+        echo "Plugin launch process ended before test window completed" >&2
+        plugin_exited_early=yes
+        cloud_online=no
+        guardian_online=no
+        break
+    fi
+    probe_runtime
     if [ "$cloud_online" = yes ] && [ "$guardian_online" = yes ] && [ "$announced" = no ]; then
         echo "cloud_and_guardian_ready: yes"
         echo "You may test remote WOL from mobile data during the remaining window."
         announced=yes
     fi
     sleep 2
-    elapsed=$((elapsed + 2))
 done
+# The final health result must use a fresh observation, not the last loop
+# sample (which can predate the actual duration boundary).
+elapsed=$(uu_mips_elapsed_since "$clock_start") || {
+    echo "Cannot read end-of-window uptime; stopping test safely" >&2
+    exit 5
+}
+if [ "$plugin_exited_early" = no ]; then
+    probe_runtime
+fi
 printf 'guardian_ever_online: %s\n' "$guardian_seen"
 printf 'cloud_16000_ever_online: %s\n' "$cloud_seen"
 printf 'guardian_at_end: %s\n' "$guardian_online"

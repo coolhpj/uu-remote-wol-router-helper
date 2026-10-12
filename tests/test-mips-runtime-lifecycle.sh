@@ -40,6 +40,7 @@ create_run() {
     run="$BASE/mips-smoke-run-$1"
     mkdir -p "$run"
     echo 99999999 > "$run/owner"
+    awk '{print int($1)}' /proc/uptime > "$run/clock_start"
     cp "$UU_TEST_NFT_BASE" "$run/firewall.before"
 }
 create_run 1
@@ -74,6 +75,17 @@ create_run 4
 sh "$WATCHDOG" "$BASE" "$run" 60
 [ -f "$run/done" ] || fail "watchdog must perform recovery when owner vanished"
 ok "orphaned owner triggers watchdog cleanup"
+
+# If the kernel uptime has passed the deadline, the watchdog must clean up
+# even when an owner process is still alive, without waiting for 60 sleeps.
+create_run 8
+echo "$$" > "$run/owner"
+uptime_now=$(awk '{print int($1)}' /proc/uptime)
+printf '%s\n' "$((uptime_now - 61))" > "$run/clock_start"
+sh "$WATCHDOG" "$BASE" "$run" 60
+[ -f "$run/done" ] || fail "expired monotonic deadline must trigger immediate cleanup"
+grep -F 'watchdog_cleanup_at_seconds:' "$run/watchdog.log" >/dev/null || fail "watchdog expiration must be observable"
+ok "shared monotonic deadline triggers watchdog cleanup without sleep-counter drift"
 
 # Simulate an SSH hangup with a real detached /bin/sh child, not nohup.
 # The child must live long enough to clean up after its parent gets SIGHUP.
