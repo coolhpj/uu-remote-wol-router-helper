@@ -52,6 +52,18 @@ MIPS 当前不接受泛化的 `mips` / `mipseb` 自动推断；真实设备持�
 
 2026-10-11：Lenovo Y1 已在真机通过 `preflight` 与 `stage auto`，包括 `md5_check`、`archive_check`、`extract_check`、`mips_elf_check` 和 `STAGE_READY`。下一门为**只读运行环境审查**，不是已经可执行 UU 插件。通用 `smoke-test.sh` 对 `mipsel_24kc` 明确拒绝启动（退出码 67），因为旧清理代码按进程名结束，且不能完整保存/恢复防火墙状态；设备继续执行 `sh platforms/openwrt/mips-runtime-readiness.sh` 仅获取防火墙/进程/网络工具和 staged 文件验证摘要，无插件启动及持久修改。
 
+### Lenovo Y1：永久安装前的只读容量检查
+
+Lenovo Y1 真实临时远程唤醒已成功，但**当前尚不提供 MIPS 永久安装**。该机的板载闪存很小，`/tmp` 中能够解压运行不代表 `/overlay` 的可写空间足以存放插件，也不代表可以安全地备份和回滚。在现有 `/tmp` 官方暂存包仍在的情况下，可运行只读检查：
+
+```sh
+sh platforms/openwrt/mips-persist-capacity.sh
+```
+
+脚本仅查询 `/overlay` 剩余空间和暂存文件大小，输出 `direct_install_budget: capacity_only_enough / insufficient / unknown`，并**始终输出 `decision: do_not_install`**；数字只作容量初筛，不授权安装。如 `/tmp` 暂存已因路由器每日重启清空，无需专门重新下载插件，现阶段仅执行 `df -k /overlay` 查看空闲空间即可。不得公开粘贴完整防火墙、账号或设备标识。
+
+持久运行的开机自启动、服务停止进程归属、重启恢复与备份回滚尚未完成 MIPS 实机验收，因此不能用容量检查通过来绕过 `install.sh` 安全门。下一步须根据实机可用存储容量选定直接持久保存或其它方案，并在隔离环境和 Y1 真机分别验证。
+
 ### Lenovo Y1 / MIPS：单轮临时运行测试（实验阶段）
 
 2026-10-11 真机只读反馈：使用 `fw4` + `nft`，`netstat` 可用，未发现已有 UU 进程或 XU_ 防火墙表。设备每天自动重启会清空 `/tmp` 临时包，这是正常现象。
