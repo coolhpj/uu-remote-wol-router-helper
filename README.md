@@ -40,7 +40,7 @@ cd /tmp/uu-remote-wol-router-helper
 sh uu-helper.sh start
 ```
 
-助手自动识别设备并显示可用菜单；是否能安装仍取决于设备及固件。**网易 UU 已直接支持的路由器优先使用官方方案；Lenovo Y1 的移动数据远程开机已在临时运行中获得实机成功反馈，但 MIPS（处理器架构）持久安装、自启动和重启回滚仍未验证，程序继续禁止正式安装。** Lenovo Y1 的受控临时测试只面向具备本地恢复条件的测试者，详见 [Issue #1](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/1)。
+助手自动识别设备并显示可用菜单；是否能安装仍取决于设备及固件。**网易 UU 已直接支持的路由器优先使用官方方案；Lenovo Y1 的移动数据远程开机已在临时运行中获得实机成功反馈。正式通用 MIPS（处理器架构）安装仍然禁用，但现已提供**仅限 Lenovo Y1、需主动确认的实验性持久安装方案**，将官方插件在开机后下载校验并运行于内存中；实机重启和卸载尚待志愿者验证。** 具备本地恢复条件的测试者可查看 [Lenovo Y1 专用试用说明](docs/OPENWRT.md#lenovo-y1自愿试用的持久启动方案尚待真机验收) 与 [Issue #1](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/1)。
 
 <details>
 <summary>查看路由器菜单示例</summary>

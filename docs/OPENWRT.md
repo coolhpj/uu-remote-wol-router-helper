@@ -52,6 +52,34 @@ MIPS 当前不接受泛化的 `mips` / `mipseb` 自动推断；真实设备持�
 
 2026-10-11：Lenovo Y1 已在真机通过 `preflight` 与 `stage auto`，包括 `md5_check`、`archive_check`、`extract_check`、`mips_elf_check` 和 `STAGE_READY`。下一门为**只读运行环境审查**，不是已经可执行 UU 插件。通用 `smoke-test.sh` 对 `mipsel_24kc` 明确拒绝启动（退出码 67），因为旧清理代码按进程名结束，且不能完整保存/恢复防火墙状态；设备继续执行 `sh platforms/openwrt/mips-runtime-readiness.sh` 仅获取防火墙/进程/网络工具和 staged 文件验证摘要，无插件启动及持久修改。
 
+### Lenovo Y1：自愿试用的持久启动方案（尚待真机验收）
+
+2026-10-12 测试者反馈 `/overlay` 剩余 **7900 KB**，已不足以稳妥保存解压后约 7.8 MB 的全部官方插件。新版实验性方案只在闪存中保存少量开源启动/校验脚本及 `procd`（服务管理器）入口；每次开机联网后重新从网易官方获取并校验插件，解压到 `/tmp` 内存运行。联网失败或官方包校验不通过时不会启动插件，路由器基本联网功能不依赖它。
+
+**这是 Lenovo Y1 / ramips/mt7620 限定的自愿试用，不等于已完成实机重启及稳定性验收。** 通用 MIPS 安装禁令不变。执行前必须有本地恢复能力、已备份设置、确认临时测试清理完毕；本方案可能在终止时调用 `fw4 reload` 重新加载防火墙，短暂中断网络。不要在有其他网易 UU 插件进程的路由器上直接接管。
+
+先在最新代码已传至路由器且临时实验已结束时验证官方暂存文件：
+
+```sh
+sh uu-helper.sh preflight && sh uu-helper.sh stage auto
+```
+
+出现 `STAGE_READY` 后，**只有明确接受实验风险的 Lenovo Y1 测试者**可执行以下独立安装命令：
+
+```sh
+UU_MIPS_BETA_INSTALL_CONFIRM=I_ACCEPT_LENOVO_Y1_EXPERIMENTAL_PERSISTENCE sh platforms/openwrt/mips-experimental-install.sh
+```
+
+脚本核对准确路由器型号、MIPS 架构、官方包完整性及至少 2048 KB 闪存空闲空间；拒绝覆盖已有同名服务，闪存内不保存官方闭源插件可执行文件。安装只表示启用了实验服务，**必须真实重启并通过手机移动数据再次唤醒电脑**才算实际验证成功。若官方 API/下载源不可用，重启后可能无法远程唤醒。
+
+明确的卸载命令（仅删除本项目专用文件；进程及防火墙清理不成功时拒绝卸载）：
+
+```sh
+UU_MIPS_BETA_UNINSTALL_CONFIRM=REMOVE_LENOVO_Y1_BETA_SERVICE sh platforms/openwrt/mips-experimental-uninstall.sh
+```
+
+此试用服务只支持自愿参与测试，不向其他 MIPS 机型自动开放；不要公开原始插件日志、完整防火墙规则、账号或设备标识。
+
 ### Lenovo Y1：永久安装前的只读容量检查
 
 Lenovo Y1 真实临时远程唤醒已成功，但**当前尚不提供 MIPS 永久安装**。该机的板载闪存很小，`/tmp` 中能够解压运行不代表 `/overlay` 的可写空间足以存放插件，也不代表可以安全地备份和回滚。在现有 `/tmp` 官方暂存包仍在的情况下，可运行只读检查：

@@ -16,6 +16,9 @@ for test_file in \
     tests/test-mips-runtime-health.sh \
     tests/test-mips-runtime-lifecycle.sh \
     tests/test-mips-persist-capacity.sh \
+    tests/test-mips-experimental-persist.sh \
+    tests/test-mips-experimental-boot.sh \
+    tests/test-mips-experimental-stop.sh \
     tests/test-evidence-marker.sh \
     tests/test-helper-cli.sh \
     tests/test-wizard.sh \
