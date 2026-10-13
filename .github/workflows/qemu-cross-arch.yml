@@ -1,0 +1,34 @@
+name: QEMU x86 and MIPS Boot Lab
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/qemu-cross-arch.yml'
+      - 'labs/qemu/cross-arch/**'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/qemu-cross-arch.yml'
+      - 'labs/qemu/cross-arch/**'
+
+permissions:
+  contents: read
+
+jobs:
+  guest-boot:
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, mipsel]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Install QEMU and serial-console driver
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86 qemu-system-mips expect
+      - name: Verify pinned OpenWrt guest boot
+        run: sh labs/qemu/cross-arch/boot-smoke.sh "${{ matrix.arch }}"

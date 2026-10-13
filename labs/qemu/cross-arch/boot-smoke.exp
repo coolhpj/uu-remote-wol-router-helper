@@ -1,0 +1,46 @@
+#!/usr/bin/expect -f
+# OpenWrt guest serial-only boot. This is NOT evidence of real-device UU WOL.
+set timeout 180
+if {$argc != 2} {
+    puts stderr "usage: boot-smoke.exp x86_64|mipsel image"
+    exit 2
+}
+set arch [lindex $argv 0]
+set image [lindex $argv 1]
+if {$arch eq "x86_64"} {
+    set cmd [list qemu-system-x86_64 -m 256 -smp 1 -drive "file=$image,format=raw,if=ide" -netdev user,id=n0 -device e1000,netdev=n0 -display none -serial stdio -monitor none -no-reboot]
+    set expected "x86_64"
+} elseif {$arch eq "mipsel"} {
+    set cmd [list qemu-system-mipsel -M malta -m 256 -kernel $image -append "console=ttyS0" -netdev user,id=n0 -device pcnet,netdev=n0 -display none -serial stdio -monitor none -no-reboot]
+    set expected "mips"
+} else {
+    puts stderr "unsupported arch"
+    exit 2
+}
+spawn {*}$cmd
+expect {
+    -re {root@[^\r\n]*#} {}
+    -re {Please press Enter to activate this console} {send -- "\r"; exp_continue}
+    timeout {puts stderr "QEMU_BOOT_TIMEOUT $arch"; exit 21}
+    eof {puts stderr "QEMU_BOOT_EOF $arch"; exit 22}
+}
+send -- "uname -m\r"
+expect {
+    -re $expected {}
+    timeout {puts stderr "QEMU_WRONG_GUEST_ARCH $arch"; exit 23}
+    eof {puts stderr "QEMU_GUEST_EXITED $arch"; exit 24}
+}
+send -- "cat /etc/openwrt_release\r"
+expect {
+    -re {DISTRIB_ID=['"]?OpenWrt} {}
+    timeout {puts stderr "QEMU_NOT_OPENWRT $arch"; exit 25}
+    eof {puts stderr "QEMU_RELEASE_NOT_FOUND $arch"; exit 26}
+}
+# Concatenated output sentinel cannot occur in the command echo itself.
+send -- "printf '%s%s\\n' 'UU_VIRTUAL_' 'BOOT_PASS'\r"
+expect {
+    -re {UU_VIRTUAL_BOOT_PASS} {puts "QEMU_GUEST_VERIFIED $arch"}
+    timeout {puts stderr "QEMU_GUEST_SENTINEL_MISSING $arch"; exit 27}
+    eof {puts stderr "QEMU_GUEST_EOF $arch"; exit 28}
+}
+send -- "poweroff\r"
