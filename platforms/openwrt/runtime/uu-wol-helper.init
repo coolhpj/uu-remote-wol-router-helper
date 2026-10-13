@@ -17,5 +17,7 @@ start_service() {
 }
 
 stop_service() {
-    killall xuplugin-guardian 2>/dev/null || true
+    # Never terminate other UU installations by a shared process name.
+    # procd handles the managed main process; this checks the exact guardian exe.
+    /usr/lib/uu-wol-helper/stop-owned-guardian.sh
 }

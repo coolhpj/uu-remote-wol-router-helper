@@ -70,6 +70,7 @@ fi
 
 if [ -x "$root1/usr/lib/uu-wol-helper/uuplugin" ] && \
    [ -x "$root1/usr/lib/uu-wol-helper/run.sh" ] && \
+   [ -x "$root1/usr/lib/uu-wol-helper/stop-owned-guardian.sh" ] && \
    [ -f "$root1/usr/lib/uu-wol-helper/install.meta" ] && \
    [ -x "$root1/etc/init.d/uu-wol-helper" ]; then
     ok "persistent install creates runtime and procd files"
