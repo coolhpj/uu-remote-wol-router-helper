@@ -2,33 +2,43 @@
 # Validate host-verified official bytes AGAIN in disposable x86/MIPS OpenWrt.
 # Local host relay avoids flaky QEMU external sockets. No UU process launched.
 set timeout 180
-if {$argc != 3 && $argc != 4} {
-    puts stderr "usage: official-stage.exp x86_64|mipsel image local-port ?stage|runtime?"
+if {$argc != 3 && $argc != 4 && $argc != 5} {
+    puts stderr "usage: official-stage.exp x86_64|mipsel image local-port ?stage|runtime|resource? ?ram_mb?"
     exit 2
 }
 set arch [lindex $argv 0]
 set image [lindex $argv 1]
 set port [lindex $argv 2]
 set mode stage
-if {$argc == 4} {set mode [lindex $argv 3]}
-if {$mode ne "stage" && $mode ne "runtime"} {exit 2}
+if {$argc >= 4} {set mode [lindex $argv 3]}
+set ram_mb 256
+if {$argc == 5} {set ram_mb [lindex $argv 4]}
+if {$mode ni {stage runtime resource}} {exit 2}
+if {$ram_mb ni {64 96 128 256}} {exit 2}
+if {$mode ne "resource" && $ram_mb != 256} {exit 2}
 if {![string is integer -strict $port] || $port < 1024 || $port > 65535} {exit 2}
 if {$arch eq "x86_64"} {
-    set cmd [list qemu-system-x86_64 -m 256 -smp 1 -drive "file=$image,format=raw,if=ide" -netdev user,id=lan0,restrict=on -device e1000,netdev=lan0 -netdev user,id=wan0 -device e1000,netdev=wan0 -display none -serial stdio -monitor none -no-reboot]
+    set cmd [list qemu-system-x86_64 -m $ram_mb -smp 1 -drive "file=$image,format=raw,if=ide" -netdev user,id=lan0,restrict=on -device e1000,netdev=lan0 -netdev user,id=wan0 -device e1000,netdev=wan0 -display none -serial stdio -monitor none -no-reboot]
     set guest_arch x86_64
 } elseif {$arch eq "mipsel"} {
-    set cmd [list qemu-system-mipsel -M malta -m 256 -kernel $image -append "console=ttyS0" -netdev user,id=lan0,restrict=on -device pcnet,netdev=lan0 -netdev user,id=wan0 -device pcnet,netdev=wan0 -display none -serial stdio -monitor none -no-reboot]
+    set cmd [list qemu-system-mipsel -M malta -m $ram_mb -kernel $image -append "console=ttyS0" -netdev user,id=lan0,restrict=on -device pcnet,netdev=lan0 -netdev user,id=wan0 -device pcnet,netdev=wan0 -display none -serial stdio -monitor none -no-reboot]
     set guest_arch mips
 } else {
     puts stderr "Unsupported arch"
     exit 2
 }
 # No guest persistent changes in runtime mode, even when testing x86 ext4.
-if {$mode eq "runtime" && $arch eq "x86_64"} {lappend cmd -snapshot}
+if {$mode in {runtime resource} && $arch eq "x86_64"} {lappend cmd -snapshot}
 proc run_step {command marker reason} {
-    send -- "( $command ) || echo UU_LAB_STEP_\"FAILED\"\r"
+    # Require both a real emitted phase marker and exit status success.
+    # The serial TTY is put into no-echo mode before any assertion.
+    set saw_phase 0
+    send -- "( $command ) && printf '%s%s\\n' 'UU_LAB_STEP_' 'DONE' || printf '%s%s\\n' 'UU_LAB_STEP_' 'FAILED'\r"
     expect {
-        -re $marker {}
+        -re $marker {set saw_phase 1; exp_continue}
+        -re {UU_LAB_STEP_DONE} {
+            if {!$saw_phase} {puts stderr "QEMU_RELAY_MISSING_MARKER: $reason"; exit 24}
+        }
         -re {UU_LAB_STEP_FAILED} {puts stderr "QEMU_RELAY_STAGE_FAIL: $reason"; exit 20}
         timeout {puts stderr "QEMU_RELAY_STAGE_TIMEOUT: $reason"; exit 22}
         eof {puts stderr "QEMU_RELAY_STAGE_EOF: $reason"; exit 21}
@@ -41,6 +51,14 @@ expect {
     timeout {puts stderr "QEMU_RELAY_BOOT_TIMEOUT $arch"; exit 11}
     eof {puts stderr "QEMU_RELAY_BOOT_EOF $arch"; exit 12}
 }
+# OpenWrt serial console echoes entire commands, including marker literals.
+# Verify tty echo is disabled before checking any subsequent phase markers.
+send -- "stty -echo && printf '%s%s\\n' 'UU_LAB_CONSOLE_' 'NOECHO'\r"
+expect {
+    -re {UU_LAB_CONSOLE_NOECHO} {}
+    timeout {puts stderr "QEMU_CONSOLE_ECHO_GUARD_FAILED $arch"; exit 13}
+    eof {puts stderr "QEMU_CONSOLE_ECHO_GUARD_EOF $arch"; exit 14}
+}
 set timeout 100
 run_step "n=0; while test \"\$n\" -lt 75; do if test -r /sys/class/net/br-lan/operstate && grep -q '^up$' /sys/class/net/br-lan/operstate; then break; fi; n=\$((n+1)); sleep 1; done; test \"\$n\" -lt 75 && echo UU_LAB_LAN_\"READY\"" {UU_LAB_LAN_READY} "late OpenWrt initialization"
 set timeout 120
@@ -52,7 +70,10 @@ run_step "gw=\$(ip -4 route show default | awk '/dev eth1/ {print \$3; exit}'); 
 run_step "gw=\$(ip -4 route show default | awk '/dev eth1/ {print \$3; exit}'); test -n \"\$gw\" && wget -qO /tmp/uu.tar.gz \"http://\$gw:$port/uu.tar.gz\" && test -s /tmp/uu.tar.gz && echo UU_LAB_LOCAL_DOWNLOAD_\"PASS\"" {UU_LAB_LOCAL_DOWNLOAD_PASS} "host official archive relay"
 run_step "cd /tmp && md5sum -c expected-md5.txt >/dev/null 2>&1 && echo UU_LAB_GUEST_MD5_\"PASS\"" {UU_LAB_GUEST_MD5_PASS} "independent official checksum inside guest"
 run_step "mkdir -p /tmp/uu-lab-extracted && tar -xzf /tmp/uu.tar.gz -C /tmp/uu-lab-extracted && test -s /tmp/uu-lab-extracted/uuplugin && test -s /tmp/uu-lab-extracted/xuplugin-guardian && test -s /tmp/uu-lab-extracted/xtables-nft-multi && test -s /tmp/uu-lab-extracted/uu.conf && echo UU_LAB_GUEST_EXTRACT_\"PASS\"" {UU_LAB_GUEST_EXTRACT_PASS} "guest tar extraction"
-if {$mode eq "runtime"} {
+if {$mode in {runtime resource}} {
+    # Ensure the guest actually reports the selected RAM profile rather than
+    # silently reusing a default-sized QEMU instance.
+    run_step "total=\$(awk '/^MemTotal:/ {print \$2}' /proc/meminfo); test -n \"\$total\" && test \"\$total\" -ge [expr {$ram_mb * 768}] && test \"\$total\" -le [expr {$ram_mb * 1152}] && echo UU_LAB_RAM_PROFILE_\"VERIFIED\"" {UU_LAB_RAM_PROFILE_VERIFIED} "guest RAM allocation mismatch"
     # Fetch the repository-owned watchdog/test script only via local host relay.
     run_step "gw=\$(ip -4 route show default | awk '/dev eth1/ {print \$3; exit}'); wget -qO /tmp/uu-lab-runtime-probe.sh \"http://\$gw:$port/guest-runtime-probe.sh\" && test -s /tmp/uu-lab-runtime-probe.sh && echo UU_LAB_PROBE_\"READY\"" {UU_LAB_PROBE_READY} "runtime probe transfer"
     # Disable outbound access BEFORE any official executable is run. The
@@ -61,6 +82,7 @@ if {$mode eq "runtime"} {
     # The script has an independent 32-second process watchdog, an exact
     # /proc/exe ownership check, fw4 recovery and nft residue verification.
     run_step "UU_QEMU_RUNTIME_ONLY=DISPOSABLE_QEMU_GUEST sh /tmp/uu-lab-runtime-probe.sh $arch" {UU_LAB_RUNTIME_CLEAN_PASS} "guarded official executable runtime and cleanup"
+    if {$mode eq "resource"} {puts "QEMU_RESOURCE_PROFILE_VERIFIED arch=$arch ram_mb=$ram_mb"}
 }
 run_step "rm -rf /tmp/uu-lab-extracted /tmp/uu.tar.gz /tmp/expected-md5.txt /tmp/uu-lab-runtime-probe.sh /tmp/uu-lab-dhcp.log && echo UU_LAB_GUEST_CLEANUP_\"PASS\"" {UU_LAB_GUEST_CLEANUP_PASS} "guest temporary cleanup"
 puts "QEMU_OFFICIAL_RELAY_STAGE_PASS $arch"

@@ -9,6 +9,7 @@ on:
         options:
           - boot-stage
           - guarded-runtime
+          - memory-probe
         default: boot-stage
         required: true
   pull_request:
@@ -26,7 +27,7 @@ permissions:
 
 jobs:
   guest-boot:
-    if: github.event_name != 'workflow_dispatch' || inputs.lab_mode != 'guarded-runtime'
+    if: github.event_name != 'workflow_dispatch' || inputs.lab_mode == 'boot-stage'
     strategy:
       fail-fast: false
       matrix:
@@ -45,7 +46,7 @@ jobs:
 
   official-stage:
     # Separate job: archive verification must not be mistaken for plugin runtime.
-    if: github.event_name != 'workflow_dispatch' || inputs.lab_mode != 'guarded-runtime'
+    if: github.event_name != 'workflow_dispatch' || inputs.lab_mode == 'boot-stage'
     strategy:
       fail-fast: false
       matrix:
@@ -80,3 +81,28 @@ jobs:
           sudo apt-get install -y qemu-system-x86 qemu-system-mips expect
       - name: Verify official executable short-lived start and cleanup in disposable offline guest
         run: sh labs/qemu/cross-arch/boot-smoke.sh "${{ matrix.arch }}" runtime
+
+  memory-probe:
+    # Explicit manual-only memory profiles. No plugin execution on PR/push.
+    if: github.event_name == 'workflow_dispatch' && inputs.lab_mode == 'memory-probe'
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - {arch: mipsel, ram_mb: 64}
+          - {arch: mipsel, ram_mb: 128}
+          - {arch: mipsel, ram_mb: 256}
+          - {arch: x86_64, ram_mb: 128}
+          - {arch: x86_64, ram_mb: 256}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Install QEMU and serial-console driver
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86 qemu-system-mips expect
+      - name: Measure official executable in RAM-limited disposable OpenWrt guest
+        run: sh labs/qemu/cross-arch/boot-smoke.sh "${{ matrix.arch }}" resource "${{ matrix.ram_mb }}"
