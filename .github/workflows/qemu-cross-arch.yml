@@ -32,3 +32,21 @@ jobs:
           sudo apt-get install -y qemu-system-x86 qemu-system-mips expect
       - name: Verify pinned OpenWrt guest boot
         run: sh labs/qemu/cross-arch/boot-smoke.sh "${{ matrix.arch }}"
+
+  official-stage:
+    # Separate job: archive verification must not be mistaken for plugin runtime.
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, mipsel]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Install QEMU and serial-console driver
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86 qemu-system-mips expect
+      - name: Stage authentic NetEase archive inside guest without launching plugin
+        run: sh labs/qemu/cross-arch/boot-smoke.sh "${{ matrix.arch }}" stage
