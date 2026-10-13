@@ -3,10 +3,16 @@
 set -eu
 ARCH="${1:-}"
 MODE="${2:-boot}"
+RAM_MB="${3:-256}"
 case "$MODE" in
-    boot|stage|runtime) ;;
-    *) echo "usage: boot-smoke.sh x86_64|mipsel [boot|stage]" >&2; exit 2 ;;
+    boot|stage|runtime|resource) ;;
+    *) echo "usage: boot-smoke.sh x86_64|mipsel [boot|stage|runtime|resource] [ram_mb]" >&2; exit 2 ;;
 esac
+case "$RAM_MB" in
+    64|96|128|256) ;;
+    *) echo "Unsupported bounded RAM profile" >&2; exit 2 ;;
+esac
+[ "$MODE" = resource ] || [ "$RAM_MB" = 256 ] || { echo "Custom RAM only allowed in resource mode" >&2; exit 2; }
 OPENWRT_VERSION=25.12.5
 ROOT=$(CDPATH= cd "$(dirname "$0")/../../.." && pwd) || exit 1
 WORK_DIR="${RUNNER_TEMP:-/tmp}/uu-cross-arch-${ARCH}"
@@ -38,11 +44,11 @@ if [ "$ARCH" = x86_64 ]; then
 else
     GUEST_IMAGE="$WORK_DIR/$IMAGE"
 fi
-if [ "$MODE" = stage ] || [ "$MODE" = runtime ]; then
+if [ "$MODE" = stage ] || [ "$MODE" = runtime ] || [ "$MODE" = resource ]; then
     command -v python3 >/dev/null 2>&1 || { echo 'python3 is required for local relay' >&2; exit 2; }
     RELAY_DIR="$WORK_DIR/official-relay"
     sh "$ROOT/labs/qemu/cross-arch/prepare-official-stage.sh" "$ARCH" "$RELAY_DIR"
-    if [ "$MODE" = runtime ]; then
+    if [ "$MODE" = runtime ] || [ "$MODE" = resource ]; then
         cp "$ROOT/labs/qemu/cross-arch/guest-runtime-probe.sh" "$RELAY_DIR/guest-runtime-probe.sh"
         chmod 0644 "$RELAY_DIR/guest-runtime-probe.sh"
     fi
@@ -59,8 +65,10 @@ if [ "$MODE" = stage ] || [ "$MODE" = runtime ]; then
     sleep 1
     kill -0 "$relay_pid" 2>/dev/null || { echo 'Local relay failed to start' >&2; exit 4; }
     curl -4 -fsS --connect-timeout 3 --max-time 5 "http://localhost:$RELAY_PORT/expected-md5.txt" -o /dev/null
-    expect "$ROOT/labs/qemu/cross-arch/official-stage.exp" "$ARCH" "$GUEST_IMAGE" "$RELAY_PORT" "$MODE"
-    if [ "$MODE" = runtime ]; then
+    expect "$ROOT/labs/qemu/cross-arch/official-stage.exp" "$ARCH" "$GUEST_IMAGE" "$RELAY_PORT" "$MODE" "$RAM_MB"
+    if [ "$MODE" = resource ]; then
+        echo "QEMU_RESOURCE_GUARDED_RUNTIME_PASS arch=$ARCH ram_mb=$RAM_MB"
+    elif [ "$MODE" = runtime ]; then
         echo "QEMU_CROSS_ARCH_GUARDED_RUNTIME_PASS $ARCH"
     else
         echo "QEMU_CROSS_ARCH_OFFICIAL_STAGE_PASS $ARCH"

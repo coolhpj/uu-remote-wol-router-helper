@@ -39,6 +39,29 @@ if ip -4 route show default | grep -q '^default' ||
     echo UU_RUNTIME_OUTBOUND_ROUTE_PRESENT >&2; exit 5
 fi
 
+# Numeric snapshots are guest observations, NOT a claim about full RAM peak.
+# Available memory reflects the entire guest (cache/kernel included); VmHWM
+# records only this process's sampled high-water RSS before cleanup.
+mem_value() {
+    awk -v field="$1" '$1 == field {print $2; exit}' /proc/meminfo
+}
+process_value() {
+    field="$1"
+    [ -n "${plugin_pid:-}" ] && [ -r "/proc/$plugin_pid/status" ] || { echo 0; return; }
+    awk -v field="$field:" '$1 == field {print $2; exit}' "/proc/$plugin_pid/status"
+}
+mem_sample() {
+    phase="$1"
+    total=$(mem_value 'MemTotal:')
+    available=$(mem_value 'MemAvailable:')
+    [ -n "$total" ] && [ -n "$available" ] || {
+        echo UU_LAB_MEMORY_METRIC_MISSING >&2; return 1
+    }
+    rss=$(process_value VmRSS)
+    hwm=$(process_value VmHWM)
+    printf 'UU_LAB_MEM_SAMPLE arch=%s phase=%s total_kb=%s available_kb=%s plugin_rss_kb=%s plugin_hwm_kb=%s\n' "$arch" "$phase" "$total" "$available" "${rss:-0}" "${hwm:-0}"
+}
+
 list_ours() {
     for link in /proc/[0-9]*/exe; do
         target=$(readlink "$link" 2>/dev/null || true)
@@ -60,6 +83,8 @@ stop_ours() {
 [ -z "$(list_ours)" ] || { echo UU_RUNTIME_ALREADY_RUNNING >&2; exit 5; }
 
 watchdog_pid=''
+plugin_pid=''
+mem_sample before_start
 cleanup() {
     rc=$?
     trap - EXIT HUP INT TERM
@@ -75,6 +100,8 @@ cleanup() {
         echo UU_RUNTIME_FIREWALL_RESIDUE >&2
         rc=8
     fi
+    plugin_pid=''
+    mem_sample after_cleanup || rc=8
     if [ "$rc" -eq 0 ]; then
         echo UU_LAB_RUNTIME_CLEAN_PASS
     else
@@ -106,6 +133,7 @@ if [ "$exe" != "$stage/uuplugin" ]; then
     exit 6
 fi
 echo UU_LAB_RUNTIME_ALIVE_AT_4S
+mem_sample after_4s
 sleep 8
 exe=$(readlink "/proc/$plugin_pid/exe" 2>/dev/null || true)
 if [ "$exe" != "$stage/uuplugin" ]; then
@@ -113,5 +141,6 @@ if [ "$exe" != "$stage/uuplugin" ]; then
     exit 7
 fi
 echo UU_LAB_RUNTIME_ALIVE_AT_12S
+mem_sample after_12s
 # cleanup() validates no owned executables or XU_ firewall tables remain.
 exit 0
