@@ -153,8 +153,9 @@ for file in uuplugin xuplugin-guardian uu.conf xtables-nft-multi; do
     cp -p "$STAGE_DIR/files/$file" "$new_dir/$file" || exit 6
 done
 cp -p "$ROOT_DIR/platforms/openwrt/runtime/run.sh" "$new_dir/run.sh" || exit 6
+cp -p "$ROOT_DIR/platforms/openwrt/runtime/stop-owned-guardian.sh" "$new_dir/stop-owned-guardian.sh" || exit 6
 
-chmod 0755 "$new_dir/uuplugin" "$new_dir/xuplugin-guardian" "$new_dir/xtables-nft-multi" "$new_dir/run.sh" || exit 6
+chmod 0755 "$new_dir/uuplugin" "$new_dir/xuplugin-guardian" "$new_dir/xtables-nft-multi" "$new_dir/run.sh" "$new_dir/stop-owned-guardian.sh" || exit 6
 chmod 0644 "$new_dir/uu.conf" || exit 6
 
 {

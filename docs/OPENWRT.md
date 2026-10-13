@@ -163,6 +163,7 @@ Generic OpenWrt 已经不再只是只读诊断：真实 iStoreOS x86_64 已完�
 - `platforms/openwrt/uninstall.sh`
 - `platforms/openwrt/runtime/uu-wol-helper.init`
 - `platforms/openwrt/runtime/run.sh`
+- `platforms/openwrt/runtime/stop-owned-guardian.sh`（仅清理本项目确切安装目录下的守护进程）
 
 设计采用标准 OpenWrt 持久层，而不是复制 XiaoQiang 的 `/data + firewall include`：
 
@@ -173,6 +174,8 @@ Generic OpenWrt 已经不再只是只读诊断：真实 iStoreOS x86_64 已完�
 ```
 
 真实写入前必须同时满足：OpenWrt preflight、官方 package MD5/结构复核、架构与 channel 匹配、以及同一 staging MD5 对应的 `smoke-pass`。安装脚本默认禁用；服务 `enable/start/health` 任一步失败会尝试自动 rollback。卸载脚本只删除带本项目 ownership marker 的文件，避免误删其它 UU 实现。
+
+2026-10-13 安全修整：通用 `procd`（进程服务管理器）停止服务流程不再使用 `killall xuplugin-guardian`（按同名程序一并停止）；改为检查 `/proc/PID/exe`（进程对应的真实可执行文件路径），且发送停止信号之前再次核实目标确切属于 `/usr/lib/uu-wol-helper/xuplugin-guardian`。另外同名安装不应被停止。新增真实双进程自动回归，确认“只停止本项目安装的守护进程，不误杀另一个同名进程”。此改进**不会解锁 MIPS 通用永久安装**；原有 x86、ARM64 自启动及回滚路径必须通过现有回归，真实路由器尚未重新测试本次修订。
 
 2026-08-30 已在 fake-root 环境完成旧目录/旧 init 备份、安装、rollback 恢复、陌生文件拒删、fresh install + uninstall 的自动回归。随后又把同一套脚本原样送入真实 iStoreOS 24.10.7 的 BusyBox 用户态，仅在 `/tmp` fake-root 中复验，结果同样全部通过并已清理。真实 iStoreOS 也确认：`/usr/lib` 与 `/etc/init.d` 都由 `/overlay` 持久化，`rc.common/procd/rc.d` 可用，约 1.6 GiB 可用空间，三个目标路径安装前无冲突。
 
