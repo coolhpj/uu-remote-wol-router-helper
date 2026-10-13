@@ -2,6 +2,11 @@
 # Boots PINNED official OpenWrt guest images; no physical routers touched.
 set -eu
 ARCH="${1:-}"
+MODE="${2:-boot}"
+case "$MODE" in
+    boot|stage) ;;
+    *) echo "usage: boot-smoke.sh x86_64|mipsel [boot|stage]" >&2; exit 2 ;;
+esac
 OPENWRT_VERSION=25.12.5
 ROOT=$(CDPATH= cd "$(dirname "$0")/../../.." && pwd) || exit 1
 WORK_DIR="${RUNNER_TEMP:-/tmp}/uu-cross-arch-${ARCH}"
@@ -33,5 +38,10 @@ if [ "$ARCH" = x86_64 ]; then
 else
     GUEST_IMAGE="$WORK_DIR/$IMAGE"
 fi
-expect "$ROOT/labs/qemu/cross-arch/boot-smoke.exp" "$ARCH" "$GUEST_IMAGE"
-echo "QEMU_CROSS_ARCH_BOOT_PASS $ARCH"
+if [ "$MODE" = stage ]; then
+    expect "$ROOT/labs/qemu/cross-arch/official-stage.exp" "$ARCH" "$GUEST_IMAGE"
+    echo "QEMU_CROSS_ARCH_OFFICIAL_STAGE_PASS $ARCH"
+else
+    expect "$ROOT/labs/qemu/cross-arch/boot-smoke.exp" "$ARCH" "$GUEST_IMAGE"
+    echo "QEMU_CROSS_ARCH_BOOT_PASS $ARCH"
+fi
