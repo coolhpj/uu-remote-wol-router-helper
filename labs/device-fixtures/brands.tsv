@@ -1,0 +1,11 @@
+# brand|model_or_sample|firmware_family|arch|admin_shell_route|evidence|allowed_action
+# NOTE: these are READ-ONLY routing fixtures, not vendor firmware emulators.
+ASUS|RT-AX86U|asuswrt|aarch64|official_ssh_option|real_verified|official_first
+Xiaomi-Redmi|Redmi AX6000|xiaoqiang|aarch64|firmware_dependent|real_verified|preflight_only
+TP-Link|Archer AX23 v1|stock_or_openwrt|unknown|model_specific_openwrt|research_only|collect_only
+NETGEAR|R7800|stock_or_openwrt|unknown|model_specific_openwrt|research_only|collect_only
+Linksys|WRT1900ACS|stock_or_openwrt|unknown|model_specific_openwrt|research_only|collect_only
+Tenda|unspecified|unknown|unknown|unconfirmed|unknown|collect_only
+ZTE|unspecified|unknown|unknown|unconfirmed|unknown|collect_only
+MERCURY|unspecified|unknown|unknown|unconfirmed|unknown|collect_only
+FAST|unspecified|unknown|unknown|unconfirmed|unknown|collect_only
