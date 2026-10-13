@@ -51,7 +51,9 @@ run_step "test \"\$(uname -m)\" = $guest_arch && command -v wget >/dev/null && c
 
 # Official API URL, including query parameters, must never be printed into logs.
 # MD5 here checks archive integrity; it is NOT a cryptographic signature.
-run_step "wget -qO /tmp/uu-lab-api.json 'https://router.uu.163.com/api/plugin?type=$channel' && test -s /tmp/uu-lab-api.json && echo UU_LAB_API_DOWNLOAD_\"PASS\"" {UU_LAB_API_DOWNLOAD_PASS} "guest HTTPS fetch of official API"
+# Only the fixed public API endpoint is used here; print a bounded wget error
+# to distinguish DNS/SSL failure from unexpected JSON or archive changes.
+run_step "wget -O /tmp/uu-lab-api.json 'https://router.uu.163.com/api/plugin?type=$channel' >/tmp/uu-lab-wget.out 2>/tmp/uu-lab-wget.err; rc=\$?; if test \"\$rc\" -ne 0; then echo UU_LAB_PUBLIC_API_WGET_RC_\$rc; sed -n '1,5p' /tmp/uu-lab-wget.err; command -v nslookup >/dev/null && { nslookup router.uu.163.com >/dev/null 2>&1 && echo UU_LAB_DNS_OK || echo UU_LAB_DNS_FAIL; }; false; else test -s /tmp/uu-lab-api.json && echo UU_LAB_API_DOWNLOAD_\"PASS\"; fi" {UU_LAB_API_DOWNLOAD_PASS} "guest HTTPS fetch of official API"
 run_step "test \"\$(jsonfilter -i /tmp/uu-lab-api.json -e '@.status')\" = ok && echo UU_LAB_API_PARSE_\"PASS\"" {UU_LAB_API_PARSE_PASS} "official API returned unexpected status"
 run_step "md5=\$(jsonfilter -i /tmp/uu-lab-api.json -e '@.md5' | tr 'A-F' 'a-f'); url=\$(jsonfilter -i /tmp/uu-lab-api.json -e '@.url'); test \"\$(printf '%s' \"\$md5\" | wc -c)\" -eq 32 && printf '%s\\n' \"\$md5\" | grep -Eq '^[a-f0-9]+$' && case \"\$url\" in http://*|https://*) true;; *) false;; esac && echo UU_LAB_METADATA_\"PASS\"" {UU_LAB_METADATA_PASS} "API metadata validation"
 run_step "url=\$(jsonfilter -i /tmp/uu-lab-api.json -e '@.url'); wget -qO /tmp/uu-lab-package.tar.gz \"\$url\" && echo UU_LAB_DOWNLOAD_\"PASS\"" {UU_LAB_DOWNLOAD_PASS} "official archive download"
