@@ -13,7 +13,7 @@ QEMU Malta **不是** Lenovo Y1/MT7620，也不是 TP-Link、网件等具体路�
 ## 当前工作流
 
 - `.github/workflows/ci.yml`：常规回归，含 `tests/test-resource-advice.sh` 及 `tests/test-brand-fixtures.sh`。
-- `.github/workflows/qemu-cross-arch.yml`：x86_64、MIPS Malta little-endian 官方镜像的独立启动门与独立网易官方包暂存门。为避免耗费资源，只在该实验室的路径变更、对应 PR（合并请求）或人工运行时触发。官方包从网易在线接口获取当前版本，不锁死旧版本；只输出非敏感检查标记，不输出带查询参数的下载地址。**MD5 是完整性比对，不等于独立数字签名。**
+- `.github/workflows/qemu-cross-arch.yml`：x86_64、MIPS Malta little-endian 官方镜像的独立启动门与独立网易官方包暂存门。为避免耗费资源，只在该实验室的路径变更、对应 PR（合并请求）或人工运行时触发。官方包从网易在线接口获取当前版本，不锁死旧版本；若接口下载地址是 HTTP（明文传输），实验室仅对**同一官方主机与路径**升级为 HTTPS（加密传输），然后继续严格核对接口 MD5（文件校验值）；不使用第三方下载源。只输出非敏感检查标记，不输出带查询参数的下载地址。**MD5 是完整性比对，不等于独立数字签名。**
 - `.github/workflows/qemu-arm64.yml`：保留现有完整 ARM64 实验室，不改变其安全边界。
 
 跨架构镜像锁定 OpenWrt **25.12.5**，下载前后验证下列官方 SHA256，版本变更必须同时更新镜像名称与可信校验值：
