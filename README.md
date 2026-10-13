@@ -10,7 +10,7 @@
 
 ## 按平台下载（预览测试版，尚非稳定版）
 
-**[点击这里下载 v0.1.0-beta.1 五平台测试版（GitHub Releases 版本发布页）](https://github.com/coolhpj/uu-remote-wol-router-helper/releases/tag/v0.1.0-beta.1)**。已提供五个独立的 ZIP（压缩包），无需进入自动构建记录中寻找附件。**当前为预览测试版，不要把同架构所有型号当成已验证兼容。**
+**[点击这里下载 v0.1.0-beta.2 五平台测试版（GitHub Releases 版本发布页）](https://github.com/coolhpj/uu-remote-wol-router-helper/releases/tag/v0.1.0-beta.2)**。已提供五个独立的 ZIP（压缩包）及 SHA256（文件校验清单），无需进入自动构建记录中寻找附件。此版包含通用 OpenWrt 服务停止时防止误停其他 UU 守护进程的安全修复。**当前仍为预览测试版，不要把同架构所有型号当成已验证兼容；MIPS 通用永久安装依然禁止。**
 
 | 包名 | 适用环境 | 安装验证范围 |
 | --- | --- | --- |
