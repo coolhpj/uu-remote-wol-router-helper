@@ -9,11 +9,11 @@ if {$argc != 2} {
 set arch [lindex $argv 0]
 set image [lindex $argv 1]
 if {$arch eq "x86_64"} {
-    set cmd [list qemu-system-x86_64 -m 256 -smp 1 -drive "file=$image,format=raw,if=ide" -netdev user,id=lan0,restrict=on -device e1000,netdev=lan0 -netdev user,id=wan0 -device e1000,netdev=wan0 -display none -serial stdio -monitor none -no-reboot]
+    set cmd [list qemu-system-x86_64 -m 256 -smp 1 -drive "file=$image,format=raw,if=ide" -netdev user,id=lan0,restrict=on -device e1000,netdev=lan0 -netdev user,id=wan0,net=10.0.3.0/24 -device e1000,netdev=wan0 -display none -serial stdio -monitor none -no-reboot]
     set channel openwrt-x86_64
     set guest_arch x86_64
 } elseif {$arch eq "mipsel"} {
-    set cmd [list qemu-system-mipsel -M malta -m 256 -kernel $image -append "console=ttyS0" -netdev user,id=lan0,restrict=on -device pcnet,netdev=lan0 -netdev user,id=wan0 -device pcnet,netdev=wan0 -display none -serial stdio -monitor none -no-reboot]
+    set cmd [list qemu-system-mipsel -M malta -m 256 -kernel $image -append "console=ttyS0" -netdev user,id=lan0,restrict=on -device pcnet,netdev=lan0 -netdev user,id=wan0,net=10.0.3.0/24 -device pcnet,netdev=wan0 -display none -serial stdio -monitor none -no-reboot]
     set channel openwrt-mipsel
     set guest_arch mips
 } else {
@@ -46,7 +46,10 @@ set timeout 100
 run_step "n=0; while test \"\$n\" -lt 75; do if test -r /sys/class/net/br-lan/operstate && grep -q '^up$' /sys/class/net/br-lan/operstate; then break; fi; n=\$((n+1)); sleep 1; done; test \"\$n\" -lt 75 && echo UU_LAB_LAN_\"READY\"" {UU_LAB_LAN_READY} "LAN setup"
 set timeout 160
 run_step "ip link set eth1 up && udhcpc -i eth1 -q -n -t 5 >/tmp/uu-lab-dhcp.log 2>&1 && ip -4 addr show dev eth1 | grep -q 'inet ' && echo UU_LAB_WAN_\"READY\"" {UU_LAB_WAN_READY} "WAN DHCP"
-run_step "ip -4 route show default | grep -q '^default' && echo UU_LAB_DEFAULT_ROUTE_\"PASS\"" {UU_LAB_DEFAULT_ROUTE_PASS} "no default route after DHCP"
+run_step "ip -4 route show default | grep -q '^default' && ip -4 addr show eth1 | grep -q '10.0.3.' && echo UU_LAB_DEFAULT_ROUTE_\"PASS\"" {UU_LAB_DEFAULT_ROUTE_PASS} "missing isolated WAN route after DHCP"
+# OpenWrt's LAN DNS forwarder does not inherit manually configured QEMU WAN
+# DNS. Set ONLY the disposable guest's resolver to its own QEMU WAN DNS.
+run_step "printf '%s\\n' 'nameserver 10.0.3.3' >/etc/resolv.conf && nslookup router.uu.163.com 10.0.3.3 >/dev/null 2>&1 && echo UU_LAB_DNS_\"PASS\"" {UU_LAB_DNS_PASS} "isolated QEMU WAN DNS"
 run_step "test \"\$(uname -m)\" = $guest_arch && command -v wget >/dev/null && command -v jsonfilter >/dev/null && command -v md5sum >/dev/null && command -v tar >/dev/null && echo UU_LAB_PREREQ_\"PASS\"" {UU_LAB_PREREQ_PASS} "arch / BusyBox tools"
 
 # Official API URL, including query parameters, must never be printed into logs.
