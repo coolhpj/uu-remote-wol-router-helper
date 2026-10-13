@@ -59,8 +59,7 @@ mem_sample() {
     }
     rss=$(process_value VmRSS)
     hwm=$(process_value VmHWM)
-    printf 'UU_LAB_MEM_SAMPLE arch=%s phase=%s total_kb=%s available_kb=%s plugin_rss_kb=%s plugin_hwm_kb=%s\n' \\
-        "$arch" "$phase" "$total" "$available" "${rss:-0}" "${hwm:-0}"
+    printf 'UU_LAB_MEM_SAMPLE arch=%s phase=%s total_kb=%s available_kb=%s plugin_rss_kb=%s plugin_hwm_kb=%s\n' "$arch" "$phase" "$total" "$available" "${rss:-0}" "${hwm:-0}"
 }
 
 list_ours() {
