@@ -19,7 +19,7 @@ if {$arch eq "x86_64"} {
 }
 spawn {*}$cmd
 expect {
-    -re {root@OpenWrt[^\r\n]*#} {}
+    -re {root@[^\r\n]*#} {}
     -re {Please press Enter to activate this console} {send -- "\r"; exp_continue}
     timeout {puts stderr "QEMU_BOOT_TIMEOUT $arch"; exit 21}
     eof {puts stderr "QEMU_BOOT_EOF $arch"; exit 22}
