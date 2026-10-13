@@ -2,13 +2,16 @@
 # Validate host-verified official bytes AGAIN in disposable x86/MIPS OpenWrt.
 # Local host relay avoids flaky QEMU external sockets. No UU process launched.
 set timeout 180
-if {$argc != 3} {
-    puts stderr "usage: official-stage.exp x86_64|mipsel image local-port"
+if {$argc != 3 && $argc != 4} {
+    puts stderr "usage: official-stage.exp x86_64|mipsel image local-port ?stage|runtime?"
     exit 2
 }
 set arch [lindex $argv 0]
 set image [lindex $argv 1]
 set port [lindex $argv 2]
+set mode stage
+if {$argc == 4} {set mode [lindex $argv 3]}
+if {$mode ne "stage" && $mode ne "runtime"} {exit 2}
 if {![string is integer -strict $port] || $port < 1024 || $port > 65535} {exit 2}
 if {$arch eq "x86_64"} {
     set cmd [list qemu-system-x86_64 -m 256 -smp 1 -drive "file=$image,format=raw,if=ide" -netdev user,id=lan0,restrict=on -device e1000,netdev=lan0 -netdev user,id=wan0 -device e1000,netdev=wan0 -display none -serial stdio -monitor none -no-reboot]
@@ -20,6 +23,8 @@ if {$arch eq "x86_64"} {
     puts stderr "Unsupported arch"
     exit 2
 }
+# No guest persistent changes in runtime mode, even when testing x86 ext4.
+if {$mode eq "runtime" && $arch eq "x86_64"} {lappend cmd -snapshot}
 proc run_step {command marker reason} {
     send -- "( $command ) || echo UU_LAB_STEP_\"FAILED\"\r"
     expect {
@@ -47,7 +52,17 @@ run_step "gw=\$(ip -4 route show default | awk '/dev eth1/ {print \$3; exit}'); 
 run_step "gw=\$(ip -4 route show default | awk '/dev eth1/ {print \$3; exit}'); test -n \"\$gw\" && wget -qO /tmp/uu.tar.gz \"http://\$gw:$port/uu.tar.gz\" && test -s /tmp/uu.tar.gz && echo UU_LAB_LOCAL_DOWNLOAD_\"PASS\"" {UU_LAB_LOCAL_DOWNLOAD_PASS} "host official archive relay"
 run_step "cd /tmp && md5sum -c expected-md5.txt >/dev/null 2>&1 && echo UU_LAB_GUEST_MD5_\"PASS\"" {UU_LAB_GUEST_MD5_PASS} "independent official checksum inside guest"
 run_step "mkdir -p /tmp/uu-lab-extracted && tar -xzf /tmp/uu.tar.gz -C /tmp/uu-lab-extracted && test -s /tmp/uu-lab-extracted/uuplugin && test -s /tmp/uu-lab-extracted/xuplugin-guardian && test -s /tmp/uu-lab-extracted/xtables-nft-multi && test -s /tmp/uu-lab-extracted/uu.conf && echo UU_LAB_GUEST_EXTRACT_\"PASS\"" {UU_LAB_GUEST_EXTRACT_PASS} "guest tar extraction"
-run_step "rm -rf /tmp/uu-lab-extracted /tmp/uu.tar.gz /tmp/expected-md5.txt /tmp/uu-lab-dhcp.log && echo UU_LAB_GUEST_CLEANUP_\"PASS\"" {UU_LAB_GUEST_CLEANUP_PASS} "guest temporary cleanup"
+if {$mode eq "runtime"} {
+    # Fetch the repository-owned watchdog/test script only via local host relay.
+    run_step "gw=\$(ip -4 route show default | awk '/dev eth1/ {print \$3; exit}'); wget -qO /tmp/uu-lab-runtime-probe.sh \"http://\$gw:$port/guest-runtime-probe.sh\" && test -s /tmp/uu-lab-runtime-probe.sh && echo UU_LAB_PROBE_\"READY\"" {UU_LAB_PROBE_READY} "runtime probe transfer"
+    # Disable outbound access BEFORE any official executable is run. The
+    # local host relay is no longer needed after this point.
+    run_step "ip -4 route del default && if ip -6 route show default | grep -q '^default'; then ip -6 route del default; fi; ! ip -4 route show default | grep -q '^default' && ! ip -6 route show default | grep -q '^default' && echo UU_LAB_EGRESS_\"BLOCKED\"" {UU_LAB_EGRESS_BLOCKED} "guest external route removal"
+    # The script has an independent 32-second process watchdog, an exact
+    # /proc/exe ownership check, fw4 recovery and nft residue verification.
+    run_step "UU_QEMU_RUNTIME_ONLY=DISPOSABLE_QEMU_GUEST sh /tmp/uu-lab-runtime-probe.sh $arch" {UU_LAB_RUNTIME_CLEAN_PASS} "guarded official executable runtime and cleanup"
+}
+run_step "rm -rf /tmp/uu-lab-extracted /tmp/uu.tar.gz /tmp/expected-md5.txt /tmp/uu-lab-runtime-probe.sh /tmp/uu-lab-dhcp.log && echo UU_LAB_GUEST_CLEANUP_\"PASS\"" {UU_LAB_GUEST_CLEANUP_PASS} "guest temporary cleanup"
 puts "QEMU_OFFICIAL_RELAY_STAGE_PASS $arch"
 send -- "poweroff\r"
 set timeout 25
