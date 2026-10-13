@@ -1,0 +1,64 @@
+#!/usr/bin/expect -f
+# Official OpenWrt guest only. Verify UU metadata, archive checksum,
+# extraction, and minimal file presence. NEVER launch UU or install anything.
+set timeout 210
+if {$argc != 2} {
+    puts stderr "usage: official-stage.exp x86_64|mipsel image"
+    exit 2
+}
+set arch [lindex $argv 0]
+set image [lindex $argv 1]
+if {$arch eq "x86_64"} {
+    set cmd [list qemu-system-x86_64 -m 256 -smp 1 -drive "file=$image,format=raw,if=ide" -netdev user,id=lan0,restrict=on -device e1000,netdev=lan0 -netdev user,id=wan0 -device e1000,netdev=wan0 -display none -serial stdio -monitor none -no-reboot]
+    set channel openwrt-x86_64
+    set guest_arch x86_64
+} elseif {$arch eq "mipsel"} {
+    set cmd [list qemu-system-mipsel -M malta -m 256 -kernel $image -append "console=ttyS0" -netdev user,id=lan0,restrict=on -device pcnet,netdev=lan0 -netdev user,id=wan0 -device pcnet,netdev=wan0 -display none -serial stdio -monitor none -no-reboot]
+    set channel openwrt-mipsel
+    set guest_arch mips
+} else {
+    puts stderr "unsupported arch"
+    exit 2
+}
+
+proc run_step {command marker reason} {
+    global timeout
+    send -- "$command\r"
+    expect {
+        -re $marker {}
+        timeout {puts stderr "QEMU_STAGE_FAIL: $reason"; exit 20}
+        eof {puts stderr "QEMU_STAGE_GUEST_EXIT: $reason"; exit 21}
+    }
+}
+spawn {*}$cmd
+expect {
+    -re {root@[^\r\n]*#} {}
+    -re {Please press Enter to activate this console} {send -- "\r"; exp_continue}
+    timeout {puts stderr "QEMU_STAGE_BOOT_TIMEOUT $arch"; exit 11}
+    eof {puts stderr "QEMU_STAGE_BOOT_EOF $arch"; exit 12}
+}
+
+# Wait for late network initialization before assigning a dedicated guest WAN.
+set timeout 100
+run_step "n=0; while test \"\$n\" -lt 75; do if test -r /sys/class/net/br-lan/operstate && grep -q '^up$' /sys/class/net/br-lan/operstate; then break; fi; n=\$((n+1)); sleep 1; done; test \"\$n\" -lt 75 && echo UU_LAB_LAN_\"READY\"" {UU_LAB_LAN_READY} "LAN setup"
+set timeout 160
+run_step "ip link set eth1 up && udhcpc -i eth1 -q -n -t 5 >/tmp/uu-lab-dhcp.log 2>&1 && ip -4 addr show dev eth1 | grep -q 'inet ' && echo UU_LAB_WAN_\"READY\"" {UU_LAB_WAN_READY} "WAN DHCP"
+run_step "test \"\$(uname -m)\" = $guest_arch && command -v wget >/dev/null && command -v jsonfilter >/dev/null && command -v md5sum >/dev/null && command -v tar >/dev/null && echo UU_LAB_PREREQ_\"PASS\"" {UU_LAB_PREREQ_PASS} "arch / BusyBox tools"
+
+# Official API URL, including query parameters, must never be printed into logs.
+# MD5 here checks archive integrity; it is NOT a cryptographic signature.
+run_step "wget -qO /tmp/uu-lab-api.json 'https://router.uu.163.com/api/plugin?type=$channel' && test \"\$(jsonfilter -i /tmp/uu-lab-api.json -e '@.status')\" = ok && echo UU_LAB_API_\"PASS\"" {UU_LAB_API_PASS} "official API"
+run_step "md5=\$(jsonfilter -i /tmp/uu-lab-api.json -e '@.md5' | tr 'A-F' 'a-f'); url=\$(jsonfilter -i /tmp/uu-lab-api.json -e '@.url'); test \"\$(printf '%s' \"\$md5\" | wc -c)\" -eq 32 && printf '%s\\n' \"\$md5\" | grep -Eq '^[a-f0-9]+$' && case \"\$url\" in http://*|https://*) true;; *) false;; esac && echo UU_LAB_METADATA_\"PASS\"" {UU_LAB_METADATA_PASS} "API metadata validation"
+run_step "url=\$(jsonfilter -i /tmp/uu-lab-api.json -e '@.url'); wget -qO /tmp/uu-lab-package.tar.gz \"\$url\" && echo UU_LAB_DOWNLOAD_\"PASS\"" {UU_LAB_DOWNLOAD_PASS} "official archive download"
+run_step "md5=\$(jsonfilter -i /tmp/uu-lab-api.json -e '@.md5' | tr 'A-F' 'a-f'); printf '%s  %s\\n' \"\$md5\" /tmp/uu-lab-package.tar.gz | md5sum -c - >/dev/null && echo UU_LAB_MD5_\"PASS\"" {UU_LAB_MD5_PASS} "official archive MD5"
+run_step "mkdir -p /tmp/uu-lab-extracted && tar -xzf /tmp/uu-lab-package.tar.gz -C /tmp/uu-lab-extracted && test -s /tmp/uu-lab-extracted/uuplugin && test -s /tmp/uu-lab-extracted/xuplugin-guardian && test -s /tmp/uu-lab-extracted/xtables-nft-multi && test -s /tmp/uu-lab-extracted/uu.conf && echo UU_LAB_EXTRACT_\"PASS\"" {UU_LAB_EXTRACT_PASS} "official archive extraction"
+
+# No official executable is started. The image and guest are disposable.
+run_step "rm -rf /tmp/uu-lab-extracted /tmp/uu-lab-package.tar.gz /tmp/uu-lab-api.json /tmp/uu-lab-dhcp.log && echo UU_LAB_CLEANUP_\"PASS\"" {UU_LAB_CLEANUP_PASS} "temporary files cleanup"
+puts "QEMU_OFFICIAL_STAGE_PASS $arch ($channel)"
+send -- "poweroff\r"
+set timeout 25
+expect {
+    eof {}
+    timeout {puts stderr "QEMU_STAGE_SHUTDOWN_TIMEOUT $arch"; exit 23}
+}
