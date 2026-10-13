@@ -10,6 +10,7 @@ on:
           - boot-stage
           - guarded-runtime
           - memory-probe
+          - memory-probe-64
         default: boot-stage
         required: true
   pull_request:
@@ -90,7 +91,6 @@ jobs:
       max-parallel: 2
       matrix:
         include:
-          - {arch: mipsel, ram_mb: 64}
           - {arch: mipsel, ram_mb: 128}
           - {arch: mipsel, ram_mb: 256}
           - {arch: x86_64, ram_mb: 128}
@@ -106,3 +106,19 @@ jobs:
           sudo apt-get install -y qemu-system-x86 qemu-system-mips expect
       - name: Measure official executable in RAM-limited disposable OpenWrt guest
         run: sh labs/qemu/cross-arch/boot-smoke.sh "${{ matrix.arch }}" resource "${{ matrix.ram_mb }}"
+
+  memory-probe-64:
+    # Explicit opt-in diagnostic of a known OOM-prone full OpenWrt image.
+    # A failed result is informative and MUST remain an actual failed job.
+    if: github.event_name == 'workflow_dispatch' && inputs.lab_mode == 'memory-probe-64'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Install QEMU and serial-console driver
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-mips expect
+      - name: Explicit MIPS 64 MiB resource-limit diagnostic (may fail with guest OOM)
+        run: sh labs/qemu/cross-arch/boot-smoke.sh mipsel resource 64
