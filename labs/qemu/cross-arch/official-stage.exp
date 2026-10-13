@@ -30,8 +30,9 @@ if {$arch eq "x86_64"} {
 # No guest persistent changes in runtime mode, even when testing x86 ext4.
 if {$mode in {runtime resource} && $arch eq "x86_64"} {lappend cmd -snapshot}
 proc run_step {command marker reason} {
-    # Require both a real emitted phase marker and exit status success.
-    # The serial TTY is put into no-echo mode before any assertion.
+    # Shell exit confirmation is emitted by concatenating two tokens, so
+    # terminal command echo cannot contain the contiguous success marker.
+    # A phase marker alone is NEVER sufficient, even if echoed.
     set saw_phase 0
     send -- "( $command ) && printf '%s%s\\n' 'UU_LAB_STEP_' 'DONE' || printf '%s%s\\n' 'UU_LAB_STEP_' 'FAILED'\r"
     expect {
@@ -51,13 +52,15 @@ expect {
     timeout {puts stderr "QEMU_RELAY_BOOT_TIMEOUT $arch"; exit 11}
     eof {puts stderr "QEMU_RELAY_BOOT_EOF $arch"; exit 12}
 }
-# OpenWrt serial console echoes entire commands, including marker literals.
-# Verify tty echo is disabled before checking any subsequent phase markers.
-send -- "stty -echo && printf '%s%s\\n' 'UU_LAB_CONSOLE_' 'NOECHO'\r"
+# The minimal OpenWrt image may not ship stty. Prove the test driver
+# fails CLOSED: the intentionally failing command must produce FAILED, not
+# DONE, despite serial TTY echoing success-like strings.
+send -- "( false && echo UU_FAKE_SUCCESS ) && printf '%s%s\\n' 'UU_LAB_STEP_' 'DONE' || printf '%s%s\\n' 'UU_LAB_STEP_' 'FAILED'\r"
 expect {
-    -re {UU_LAB_CONSOLE_NOECHO} {}
-    timeout {puts stderr "QEMU_CONSOLE_ECHO_GUARD_FAILED $arch"; exit 13}
-    eof {puts stderr "QEMU_CONSOLE_ECHO_GUARD_EOF $arch"; exit 14}
+    -re {UU_LAB_STEP_FAILED} {puts "QEMU_ASSERTION_FAIL_CLOSED_PROVEN $arch"}
+    -re {UU_LAB_STEP_DONE} {puts stderr "QEMU_ASSERTION_FALSE_SUCCESS"; exit 13}
+    timeout {puts stderr "QEMU_ASSERTION_GUARD_TIMEOUT"; exit 14}
+    eof {puts stderr "QEMU_ASSERTION_GUARD_EOF"; exit 15}
 }
 set timeout 100
 run_step "n=0; while test \"\$n\" -lt 75; do if test -r /sys/class/net/br-lan/operstate && grep -q '^up$' /sys/class/net/br-lan/operstate; then break; fi; n=\$((n+1)); sleep 1; done; test \"\$n\" -lt 75 && echo UU_LAB_LAN_\"READY\"" {UU_LAB_LAN_READY} "late OpenWrt initialization"
