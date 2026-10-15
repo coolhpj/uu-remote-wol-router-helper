@@ -1,10 +1,12 @@
-# 网易 UU 远程开机 · 路由器助手
+# 网易 UU 远程开机路由器助手｜OpenWrt 安装、UU 辅助开机
 
 ![网易 UU 远程开机路由器助手：设计概览图](docs/images/uu-doc-00-overview.png)
 
 *项目功能概览（设计示意图，不代表任何型号已经通过实际远程唤醒验收）。*
 
-让具备 OpenWrt 等环境的路由器，有机会成为网易 UU 远程开机的辅助设备。**自动识别环境、获取并校验官方插件、引导测试与安装**，不用自己挑选一堆命令。
+想用**网易 UU 远程开机**，让家里的路由器充当**UU 辅助开机 / 网易 UU 远程辅助设备**，但找不到适合自己固件的**路由器插件**或 **OpenWrt 安装**方法？本项目提供开源的检测、官方插件下载校验和分平台安装引导，帮助你判断路由器是否适合辅助唤醒关机电脑。**不是网易官方插件，也不保证所有路由器可安装或长期在线。**
+
+**从哪里开始？** [下载五平台预览测试包](https://github.com/coolhpj/uu-remote-wol-router-helper/releases/tag/v0.1.0-beta.2) · [查看支持的设备和固件](docs/COMPATIBILITY.md) · [OpenWrt / iStoreOS 使用说明](docs/OPENWRT.md)
 
 > 非网易官方项目。**不是所有路由器都能安装**；设备型号和固件须满足条件，手机移动网络实际唤醒成功才算验证通过。
 
@@ -16,7 +18,7 @@
 | --- | --- | --- |
 | `uu-helper-openwrt-x86_64.zip` | OpenWrt / iStoreOS x86_64 | 已验证的仅为当前 iStoreOS x86_64 实机样本 |
 | `uu-helper-openwrt-aarch64.zip` | OpenWrt ARM64 | 候选测试包，不保证任意型号可安装 |
-| `uu-helper-openwrt-mipsel-y1-beta.zip` | Lenovo Y1 / Newifi mini R6830 | **实验版**，重启自启与长期稳定性尚待志愿者验收 |
+| `uu-helper-openwrt-mipsel-y1-beta.zip` | Lenovo Y1 / Newifi mini R6830 | **仅限 Y1 的实验版**；实机已安装并观察到重启后服务运行，但发现旧设备绑定跨重启失效，**暂不适合无人值守使用** |
 | `uu-helper-xiaoqiang-aarch64.zip` | 小米 / 红米 XiaoQiang ARM64 固件 | 已验证参考型号为 Redmi AX6000；其他型号仍需验证 |
 | `uu-helper-asuswrt.zip` | 华硕 ASUSWRT / 梅林 | **官方集成优先，只提供检测辅助，不覆盖原厂 UU** |
 
@@ -56,7 +58,7 @@ cd /tmp/uu-remote-wol-router-helper
 sh uu-helper.sh start
 ```
 
-助手自动识别设备并显示可用菜单；是否能安装仍取决于设备及固件。**网易 UU 已直接支持的路由器优先使用官方方案；Lenovo Y1 的移动数据远程开机已在临时运行中获得实机成功反馈。正式通用 MIPS（处理器架构）安装仍然禁用，但现已提供**仅限 Lenovo Y1、需主动确认的实验性持久安装方案**，将官方插件在开机后下载校验并运行于内存中；实机重启和卸载尚待志愿者验证。** 具备本地恢复条件的测试者可查看 [Lenovo Y1 专用试用说明](docs/OPENWRT.md#lenovo-y1自愿试用的持久启动方案尚待真机验收) 与 [Issue #1](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/1)。
+助手自动识别设备并显示可用菜单；是否能安装仍取决于型号和固件。**网易 UU 已原生支持的路由器优先使用官方方案。** Lenovo Y1 已在临时运行阶段完成手机移动数据唤醒，专用实验性服务也已成功安装并在真实重启后显示运行；**但 2026-10-14 测试者确认旧设备绑定跨重启失效、需要重新绑定，因此当前不适合长期无人值守使用**，仍需安全修复与实机复测。**通用 MIPS（处理器架构）持久安装依然禁止**；更多请查看 [Lenovo Y1 实验版说明](docs/OPENWRT.md#lenovo-y1自愿试用的持久启动方案尚待真机验收) 和 [实机反馈与故障跟踪](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/1)。
 
 <details>
 <summary>查看路由器菜单示例</summary>
@@ -103,7 +105,7 @@ sh uu-helper.sh start
 | Redmi AX6000 / RB06 | XiaoQiang / OpenWrt-derived | ✅ | 已完成真实冷启动、UU 云连接、移动数据 Remote WOL |
 | ASUS RT-AX86U | ASUSWRT / Merlin-KoolShare | ✅ | 官方/model-specific 路径；本项目默认不覆盖官方集成 |
 | iStoreOS x86_64 样本 | Generic OpenWrt | ✅ | 已完成持久安装、reboot、自启动、Remote WOL、rollback 与再次 reboot |
-| Lenovo Y1 / Newifi mini R6830 | OpenWrt / MIPS | ✅（临时运行） | 2026-10-12 实机通过手机移动数据远程开机；尚未验证持久安装、重启及回滚，**禁止正式安装** |
+| Lenovo Y1 / Newifi mini R6830 | OpenWrt / MIPS | ✅（仅临时运行） | 2026-10-12 实机手机流量唤醒成功；专用实验版安装并重启后服务运行已观察，但**跨重启旧绑定失效**；正式稳定安装未开放 |
 | 其它 Generic OpenWrt | OpenWrt | 待逐台验证 | 架构相同不等于自动兼容 |
 
 > `✅` 仅表示该设备/样本已有真实移动数据远程开机证据。**临时运行成功不等于已完成永久安装或重启回滚验收**；Lenovo Y1 仍是实验性设备，不标记为完整 Verified（已验证）。
@@ -115,6 +117,22 @@ sh uu-helper.sh start
 ![UU主机加速识别 ASUS RT-AX86U 与 OpenWrt 辅助设备](docs/images/uu-openwrt-device.webp)
 
 ## 最常见的几个问题
+
+### 网易 UU 远程开机一定要装路由器插件吗？
+
+不一定。路由器已提供网易 UU 官方远程开机功能时，优先用官方入口；如果没有，先看[兼容设备清单](docs/COMPATIBILITY.md)，不要因为使用 OpenWrt 就直接安装其他型号的包。电脑仍需事先配置 WOL（网络唤醒），在手机移动数据下完成真实开机测试。
+
+### UU 辅助开机和网易 UU 远程控制有什么区别？
+
+**UU 辅助开机**由局域网里持续在线的辅助设备发送网络唤醒信号，让关机电脑开机；**网易 UU 远程控制**负责电脑开机后的连接和操作。本项目只帮助兼容路由器承担前一种辅助角色，并不替代网易 UU 远程客户端。
+
+### OpenWrt 安装网易 UU 路由器插件后，还需要绑定吗？
+
+需要。先确认路由器上的官方 UU 插件正常运行，再进入**网易 UU 主机加速器 → 路由器加速 → 合作款路由器**添加辅助设备，并在电脑端的 UU 远程开机设置完成关联。**安装成功或看到进程，并不等于手机远程开机已经成功。**
+
+### Lenovo Y1 重启后需要重新绑定 UU 辅助设备怎么办？
+
+这已是[社区实机报告的未修复问题](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/1#issuecomment-6164268516)：当前实验版可能在路由器重启后使原设备显示离线。**不要把反复重新绑定当成稳定解决方法**，也不要自行把整个插件写进空间有限的闪存；我们正在评估内置压缩包或 U 盘持久存储方案，**两者都尚未证明能够保存原绑定身份**。
 
 ### 路由器后台像运营商光猫，没有插件市场，也没有 SSH/root
 

@@ -17,13 +17,15 @@
 | Redmi | AX6000 | RB06 | XiaoQiang / OpenWrt-derived | MT7986 / AArch64 | `openwrt-aarch64` | Required for manual adaptation | ✅ | ✅ | ✅ | ✅ | **Verified** |
 | ASUS | RT-AX86U | RT-AX86U | ASUSWRT / Merlin-KoolShare | AArch64 | `static-asuswrt` | Not required for official UI; required for advanced adaptation/diagnostics | ✅ | ✅ | ✅ | ✅ | **Verified** |
 | iStoreOS | x86_64 VM sample | generic-openwrt-x86_64 | OpenWrt / iStoreOS 24.10.7 | x86_64 / x86/64 | `openwrt-x86_64` | Available | ✅* | ✅* | ✅ | ✅* | **Verified (this sample)**: install + reboot + mobile-data WOL + rollback + post-rollback reboot verified |
-| Lenovo | Y1 / Newifi mini R6830 | lenovo-y1-mipsel-24kc | OpenWrt 22.03-SNAPSHOT / ramips/mt7620 | MT7620A / mipsel_24kc | `openwrt-mipsel` | Available | ⛔ 持久安装禁用 | 未验证 | ✅ 临时连接 | ✅ 临时运行实机成功 | **Experimental（WOL 功能通过）**：2026-10-12 志愿者完成合作款路由器绑定、移动数据远程唤醒；持久运行、重启自启与回滚未验收 |
+| Lenovo | Y1 / Newifi mini R6830 | lenovo-y1-mipsel-24kc | OpenWrt 22.03-SNAPSHOT / ramips/mt7620 | MT7620A / mipsel_24kc | `openwrt-mipsel` | Available | ✅ 仅 Y1 实验性持久服务；通用安装仍禁用 | ✅ 重启后服务显示运行；绑定未保持 | ✅ 临时连接；重启后旧绑定显示离线 | ✅ 临时运行实机成功 | **Experimental（持久绑定故障未解决）**：手机流量唤醒已通过；实机实验性安装和重启后服务运行已有证据，但旧设备跨重启离线、需重绑；稳定性、卸载回滚未通过 |
 
-### Lenovo Y1 实机反馈与限制（2026-10-12）
+### Lenovo Y1 实机反馈与限制（更新至 2026-10-14）
 
 [Issue #1 实机反馈](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/1#issuecomment-6122614795)：Enderlessss 反映在实验性限时脚本运行期间，手机通过 **网易 UU 主机加速器 → 路由器加速 → 合作款路由器** 找到并添加了 Lenovo Y1；随后在移动数据条件下通过「开始协助」流程和首页分别成功远程唤醒电脑。这是**移动数据远程唤醒功能的成功报告**，应覆盖此前测试失败的历史结论。
 
-用户同时表示本次控制台输出与以前相似，尚未提供新版双时钟脚本的完整运行终态、独立清理证据、重启后自启动或安装/回滚证据。因此该设备**不满足本表完整 Verified 的持久安装与重启条件**；`platforms/openwrt/install.sh` 的 MIPS 持久安装禁令、数字菜单限制、通用临时启动禁令仍保留。暂不将成功外推到所有 MIPS/OpenWrt 设备。
+后续 [2026-10-13 实机回复](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/1#issuecomment-6141406520) 已报告：**Lenovo Y1 专用实验性持久服务成功安装，真实重启后后台看到服务运行**。但 [2026-10-14 的新反馈](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/1#issuecomment-6164268516) 进一步证实：原先添加的路由器在第二天显示「插件联网失败」，需要重新绑定辅助路由器，并重新在电脑端执行「开始协助」关联。这是**跨重启设备身份/绑定保持的真实故障**；原因尚未确定，不能直接认定重新下载插件就是身份变化根因。
+
+因此 Y1 **不满足完整 Verified（已验证）的持续稳定运行要求**：目前仅是“临时远程唤醒成功 + 专用实验性服务安装成功 + 重启后服务出现”，并不是“重启后原设备自动恢复绑定并成功唤醒”。U 盘或内置闪存压缩包方案都还在研究，**尚未证明能够保留绑定状态**；卸载和安全回滚亦待实机验收。`platforms/openwrt/install.sh` 的**通用 MIPS 持久安装禁令**、数字菜单限制和通用临时启动限制均保持，不将结果外推至其它 MIPS/OpenWrt 设备。
 
 ## Redmi AX6000 / RB06
 
