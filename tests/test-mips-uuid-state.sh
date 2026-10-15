@@ -49,6 +49,19 @@ if uu_uuid_backup_once; then fail "conflicting identity must not overwrite old b
 [ "$(cat "$state/.uuplugin_uuid")" = sample-device-id-12345 ] || fail "conflicting ID altered original"
 echo "ok - conflict fails closed without rotating existing binding"
 
+# Force a concurrent writer to create the saved name at the exact moment
+# the current worker attempts its atomic no-overwrite link.
+rm "$state/.uuplugin_uuid"
+printf 'late-second-writer-id' > "$stage/files/.uuplugin_uuid"
+ln() {
+    printf 'earlier-first-writer-id' > "$state/.uuplugin_uuid"
+    command ln "$@"
+}
+if uu_uuid_backup_once; then fail "racing second writer must not replace first ID"; fi
+unset -f ln
+[ "$(cat "$state/.uuplugin_uuid")" = earlier-first-writer-id ] || fail "atomic no-overwrite race lost original ID"
+echo "ok - concurrent first-write race preserves original binding"
+
 rm "$state/.uuplugin_uuid"
 printf 'x' > "$state/.uuplugin_uuid"
 rm "$stage/files/.uuplugin_uuid"

@@ -115,8 +115,19 @@ uu_uuid_backup_once() {
         rm -f "$tmp"
         return 2
     }
-    mv "$tmp" "$UU_UUID_STORED" || { rm -f "$tmp"; return 2; }
+    # Two procd workers may race between the existence check and this write.
+    # ln creates the destination name atomically without replacing a saved ID;
+    # a plain mv would silently overwrite a concurrent writer's binding.
+    if ! ln "$tmp" "$UU_UUID_STORED"; then
+        rm -f "$tmp"
+        if uu_uuid_valid "$UU_UUID_STORED" && cmp -s "$UU_UUID_RUNTIME" "$UU_UUID_STORED"; then
+            return 0
+        fi
+        echo "MIPS_UUID_CONFLICT: concurrent binding will not replace original" >&2
+        return 2
+    fi
     sync
+    rm -f "$tmp"
     echo "MIPS_UUID_BACKUP_SAVED"
     return 0
 }
