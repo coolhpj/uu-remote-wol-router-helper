@@ -52,7 +52,11 @@ printf '%s\n' "UU official package staging"
 printf '%s\n' "==========================="
 printf 'channel: %s\n' "$channel"
 printf 'stage_dir: %s\n' "$stage_dir"
-printf '%s\n' "persistent_changes: no"
+if [ "$channel" = openwrt-mipsel ] && [ "${UU_MIPS_ENABLE_CACHE:-0}" = 1 ]; then
+    printf '%s\n' "persistent_changes: Y1 verified archive cache may be updated"
+else
+    printf '%s\n' "persistent_changes: no"
+fi
 printf '%s\n' "process_changes: no"
 
 if ! uu_api_fetch_and_parse "$channel"; then
@@ -135,4 +139,8 @@ for file in uuplugin xuplugin-guardian uu.conf xtables-nft-multi; do
 done
 
 printf '%s\n' "STAGE_READY"
-printf '%s\n' "No plugin process was stopped or started. No persistent path was modified."
+if [ "$channel" = openwrt-mipsel ] && [ "${UU_MIPS_ENABLE_CACHE:-0}" = 1 ]; then
+    printf '%s\n' "No plugin process was stopped or started. Only the verified Y1 cache may change on flash."
+else
+    printf '%s\n' "No plugin process was stopped or started. No persistent path was modified."
+fi

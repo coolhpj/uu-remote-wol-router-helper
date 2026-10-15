@@ -32,8 +32,9 @@ owned_app "$OLD" && owned_app "$NEW" ||
     { echo "MIPS_V2_UNINSTALL_DENIED: unowned application directories" >&2; exit 65; }
 [ -f "$INIT" ] && [ ! -L "$INIT" ] &&
     grep -qx '# managed_by=uu-remote-wol-router-helper-mips-beta' "$INIT" &&
-    grep -qx 'PROG=/usr/lib/uu-mips-wol-helper-v2/boot.sh' "$INIT" || {
-        echo "MIPS_V2_UNINSTALL_DENIED: v2 not selected" >&2
+    { grep -qx 'PROG=/usr/lib/uu-mips-wol-helper-v2/boot.sh' "$INIT" ||
+      grep -qx 'PROG=/usr/lib/uu-mips-wol-helper/boot.sh' "$INIT"; } || {
+        echo "MIPS_V2_UNINSTALL_DENIED: unrecognized v1/v2 boot selector" >&2
         exit 65
     }
 [ -f "$BACKUP" ] && [ ! -L "$BACKUP" ] &&

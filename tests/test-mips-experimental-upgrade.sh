@@ -9,7 +9,7 @@ init="$base/etc/init.d/uu-mips-wol-helper"
 stage="$base/stage"
 state="$base/state"
 mkdir -p "$app" "$(dirname "$init")" "$stage/files"
-trap 'rm -rf "$base" "/tmp/uu-wol-helper-root-upgrade-absent-$$"' EXIT HUP INT TERM
+trap 'rm -rf "$base" "/tmp/uu-wol-helper-root-upgrade-absent-$$" "/tmp/uu-wol-helper-root-upgrade-v2-test-$$"' EXIT HUP INT TERM
 cp "$ROOT/platforms/openwrt/runtime/mips-experimental.init" "$init"
 printf 'managed_by=uu-remote-wol-router-helper-mips-beta\nmodel=Lenovo Y1\n' > "$app/install.meta"
 printf 'legacy bootstrap kept as rollback\n' > "$app/boot.sh"
@@ -62,16 +62,35 @@ fi
 [ ! -e "$missing/usr/lib/uu-mips-wol-helper-v2" ] || fail "missing identity changed install"
 echo "ok - missing original identity blocks upgrade"
 
-# Re-select v2 in the synthetic init file to verify its own controlled uninstall.
+# Verify both supported service selectors: upgraded v2 and rolled-back v1.
+# Clone the managed test trees before the first uninstall so cases stay isolated.
+replay="/tmp/uu-wol-helper-root-upgrade-v2-test-$$"
+mkdir -p "$replay/usr/lib" "$replay/etc/init.d" "$replay/state"
+cp -R "$app" "$replay/usr/lib/uu-mips-wol-helper"
+cp -R "$v2" "$replay/usr/lib/uu-mips-wol-helper-v2"
+cp "$init.v1-backup" "$replay/etc/init.d/uu-mips-wol-helper.v1-backup"
 sed 's|/usr/lib/uu-mips-wol-helper/|/usr/lib/uu-mips-wol-helper-v2/|g' \
-    "$ROOT/platforms/openwrt/runtime/mips-experimental.init" > "$init"
-printf 'nonsecret synthetic archive\n' > "$state/uu.tar.gz"
+    "$ROOT/platforms/openwrt/runtime/mips-experimental.init" > "$replay/etc/init.d/uu-mips-wol-helper"
+cp "$state/.uuplugin_uuid" "$replay/state/.uuplugin_uuid"
+printf 'nonsecret synthetic archive\n' > "$replay/state/uu.tar.gz"
+
 if sh "$ROOT/platforms/openwrt/mips-experimental-v2-uninstall.sh" >/dev/null 2>&1; then
     fail "v2 uninstall without separate opt-in should be denied"
 fi
+UU_TARGET_ROOT="$replay" UU_MIPS_STATE_DIR="$replay/state" \
 UU_MIPS_BETA_V2_UNINSTALL_CONFIRM=REMOVE_Y1_V2_AND_PRESERVE_IDENTITY sh \
-    "$ROOT/platforms/openwrt/mips-experimental-v2-uninstall.sh" >/dev/null || fail "v2 uninstall failed"
-[ ! -e "$v2" ] && [ ! -e "$app" ] && [ ! -e "$init" ] && [ ! -e "$init.v1-backup" ] || fail "v2 uninstaller left executable artifacts"
-[ ! -e "$state/uu.tar.gz" ] && [ -f "$state/.uuplugin_uuid" ] || fail "v2 uninstall did not preserve ID or left compressed archive"
-echo "ok - dedicated v2 uninstall removes app/cache while retaining original ID"
+    "$ROOT/platforms/openwrt/mips-experimental-v2-uninstall.sh" >/dev/null || fail "active v2 uninstall failed"
+[ ! -e "$replay/usr/lib/uu-mips-wol-helper-v2" ] && [ ! -e "$replay/usr/lib/uu-mips-wol-helper" ] &&
+    [ ! -e "$replay/etc/init.d/uu-mips-wol-helper" ] && [ -f "$replay/state/.uuplugin_uuid" ] || fail "active v2 uninstall did not preserve identity or remove artifacts"
+echo "ok - active v2 uninstall removes managed files but preserves UUID"
+
+# The earlier rollback left v1 selected, with both owned trees still present.
+# The dedicated v2 uninstaller must handle this state, too.
+grep -qx 'PROG=/usr/lib/uu-mips-wol-helper/boot.sh' "$init" || fail "rollback selector changed unexpectedly"
+printf 'nonsecret synthetic archive\n' > "$state/uu.tar.gz"
+UU_MIPS_BETA_V2_UNINSTALL_CONFIRM=REMOVE_Y1_V2_AND_PRESERVE_IDENTITY sh \
+    "$ROOT/platforms/openwrt/mips-experimental-v2-uninstall.sh" >/dev/null || fail "rolled-back v1 uninstall failed"
+[ ! -e "$v2" ] && [ ! -e "$app" ] && [ ! -e "$init" ] && [ ! -e "$init.v1-backup" ] || fail "rolled-back uninstall left executable artifacts"
+[ ! -e "$state/uu.tar.gz" ] && [ -f "$state/.uuplugin_uuid" ] || fail "rolled-back uninstall did not preserve ID or left compressed archive"
+echo "ok - upgrade then rollback then uninstall succeeds with UUID retained"
 echo "all MIPS beta upgrade/rollback tests passed"
