@@ -55,6 +55,8 @@ app="$root/usr/lib/uu-mips-wol-helper"
 init="$root/etc/init.d/uu-mips-wol-helper"
 [ -f "$app/install.meta" ] && [ -f "$app/boot.sh" ] && [ -f "$app/stop.sh" ] &&
 [ -f "$app/scripts/stage-package.sh" ] && [ -f "$app/lib/elf.sh" ] &&
+[ -f "$app/uuid-state.sh" ] && [ -f "$app/uuid-watch.sh" ] &&
+[ -f "$app/lib/mips-package-cache.sh" ] &&
 [ -f "$init" ] || fail "required files missing"
 [ ! -e "$app/uuplugin" ] && [ ! -e "$app/xtables-nft-multi" ] || fail "closed binaries not copied to flash"
 grep -q 'managed_by=uu-remote-wol-router-helper-mips-beta' "$app/install.meta" || fail "owner marker"

@@ -90,12 +90,14 @@ fi
 temp="${APP}.new.$$"
 mkdir -p "$temp/lib" "$temp/scripts" "$(dirname "$INIT")" || exit 6
 trap 'rm -rf "$temp"' EXIT HUP INT TERM
-for file in channel.sh checksum.sh archive.sh elf.sh netease-api.sh download.sh; do
+for file in channel.sh checksum.sh archive.sh elf.sh netease-api.sh download.sh mips-package-cache.sh; do
     cp "$ROOT_DIR/lib/$file" "$temp/lib/$file" || exit 6
 done
 cp "$ROOT_DIR/scripts/stage-package.sh" "$temp/scripts/stage-package.sh" || exit 6
 cp "$ROOT_DIR/platforms/openwrt/runtime/mips-experimental-boot.sh" "$temp/boot.sh" || exit 6
 cp "$ROOT_DIR/platforms/openwrt/runtime/mips-experimental-stop.sh" "$temp/stop.sh" || exit 6
+cp "$ROOT_DIR/platforms/openwrt/runtime/mips-uuid-state.sh" "$temp/uuid-state.sh" || exit 6
+cp "$ROOT_DIR/platforms/openwrt/runtime/mips-uuid-watch.sh" "$temp/uuid-watch.sh" || exit 6
 chmod 0755 "$temp/boot.sh" "$temp/stop.sh" "$temp/scripts/stage-package.sh" || exit 6
 printf 'managed_by=uu-remote-wol-router-helper-mips-beta\nmodel=Lenovo Y1\nstage_md5=%s\n' "$md5" > "$temp/install.meta" || exit 6
 chmod 0644 "$temp/install.meta" || exit 6
