@@ -6,9 +6,25 @@ ROOT_DIR=$(CDPATH= cd "$(dirname "$0")/.." 2>/dev/null && pwd) || exit 1
 . "$ROOT_DIR/lib/download.sh"
 . "$ROOT_DIR/lib/archive.sh"
 . "$ROOT_DIR/lib/elf.sh"
-
 channel="${1:-openwrt-aarch64}"
 stage_dir="${UU_STAGE_DIR:-/tmp/uu-wol-helper-stage}"
+# Cache support is Y1 beta-only. Other platform bundles may omit this module.
+if [ "$channel" = openwrt-mipsel ] && [ "${UU_MIPS_ENABLE_CACHE:-0}" = 1 ]; then
+    if [ "${UU_TEST_MODE:-0}" != 1 ]; then
+        case "$ROOT_DIR" in
+            /usr/lib/uu-mips-wol-helper|/usr/lib/uu-mips-wol-helper-v2) ;;
+            *) echo "MIPS cache is restricted to the installed Y1 service" >&2; exit 65 ;;
+        esac
+        [ "$stage_dir" = /tmp/uu-wol-helper-mips-persist ] || exit 65
+        [ -f "$ROOT_DIR/install.meta" ] &&
+            grep -qx "managed_by=uu-remote-wol-router-helper-mips-beta" "$ROOT_DIR/install.meta" || exit 65
+    fi
+    [ -f "$ROOT_DIR/lib/mips-package-cache.sh" ] || {
+        echo "MIPS cache support module is missing" >&2
+        exit 4
+    }
+    . "$ROOT_DIR/lib/mips-package-cache.sh"
+fi
 
 case "$stage_dir" in
     /tmp/uu-wol-helper-*/*)
@@ -66,9 +82,16 @@ fi
 rm -rf "$stage_dir"
 mkdir -p "$stage_dir/files" || exit 1
 package="$stage_dir/uu.tar.gz"
-
-if ! uu_download_with_fallback "$UU_API_URL" "$UU_API_URL_BAK" "$package"; then
-    exit 1
+cache_hit=no
+if [ "$channel" = openwrt-mipsel ] && [ "${UU_MIPS_ENABLE_CACHE:-0}" = 1 ]; then
+    if uu_cache_try_restore "$package" "$UU_API_MD5"; then
+        cache_hit=yes
+    fi
+fi
+if [ "$cache_hit" != yes ]; then
+    if ! uu_download_with_fallback "$UU_API_URL" "$UU_API_URL_BAK" "$package"; then
+        exit 1
+    fi
 fi
 
 if ! uu_verify_md5 "$package" "$UU_API_MD5"; then
@@ -98,6 +121,11 @@ if [ "$channel" = "openwrt-mipsel" ]; then
         exit 1
     fi
     printf '%s\n' "mips_elf_check: pass"
+fi
+
+if [ "$channel" = openwrt-mipsel ] && [ "${UU_MIPS_ENABLE_CACHE:-0}" = 1 ] && [ "$cache_hit" != yes ]; then
+    # Flash writes are best effort; failed updates never prevent RAM-only boot.
+    uu_cache_try_store "$package" "$UU_API_MD5" || echo "MIPS_CACHE_WRITE_SKIPPED"
 fi
 
 printf '%s\n' "staged_files:"

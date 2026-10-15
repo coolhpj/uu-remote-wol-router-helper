@@ -9,6 +9,7 @@ stage="/tmp/uu-wol-helper-boot-stage-$$"
 mkdir -p "$base/app/lib" "$base/app/scripts" "$base/bin" "$stage"
 trap 'rm -rf "$base" "$stage"' EXIT HUP INT TERM
 printf 'managed_by=uu-remote-wol-router-helper-mips-beta\n' > "$base/app/install.meta"
+cp "$ROOT/platforms/openwrt/runtime/mips-uuid-state.sh" "$base/app/uuid-state.sh"
 cat > "$base/app/lib/channel.sh" <<'EOF'
 uu_openwrt_detect_arch() { printf 'mipsel_24kc\n'; }
 EOF
@@ -19,6 +20,7 @@ cat > "$base/app/scripts/stage-package.sh" <<'EOF'
 #!/bin/sh
 [ "$1" = "openwrt-mipsel" ] || exit 3
 [ "${MOCK_STAGE_FAIL:-no}" = no ] || exit 4
+rm -rf "$UU_STAGE_DIR"
 mkdir -p "$UU_STAGE_DIR/files"
 printf 'channel=openwrt-mipsel\n' > "$UU_STAGE_DIR/metadata"
 cat > "$UU_STAGE_DIR/files/uuplugin" <<'INNER'
@@ -33,12 +35,19 @@ cat > "$base/bin/sleep" <<'EOF'
 exit 0
 EOF
 chmod +x "$base/bin/sleep" "$base/app/scripts/stage-package.sh"
-out=$(UU_TEST_MODE=1 UU_MIPS_APP_DIR="$base/app" UU_MIPS_STAGE_DIR="$stage" PATH="$base/bin:$PATH" sh "$BOOT" 2>&1)
+out=$(UU_TEST_MODE=1 UU_MIPS_APP_DIR="$base/app" UU_MIPS_STAGE_DIR="$stage" UU_MIPS_STATE_DIR="$base/state" PATH="$base/bin:$PATH" sh "$BOOT" 2>&1)
 rc=$?
 [ "$rc" -eq 0 ] || fail "boot returned $rc: $out"
 printf "%s\n" "$out" | grep -q MOCK_BOOT_PLUGIN_CALLED || fail "no plugin exec after staged verification"
 echo "ok - boot staging, verification and exec path"
-out=$(UU_TEST_MODE=1 UU_MIPS_APP_DIR="$base/app" UU_MIPS_STAGE_DIR="$stage" MOCK_STAGE_FAIL=yes PATH="$base/bin:$PATH" sh "$BOOT" 2>&1)
+mkdir -p "$stage/files"
+printf 'prior-bound-router-identity' > "$stage/files/.uuplugin_uuid"
+out=$(UU_TEST_MODE=1 UU_MIPS_APP_DIR="$base/app" UU_MIPS_STAGE_DIR="$stage" UU_MIPS_STATE_DIR="$base/state" PATH="$base/bin:$PATH" sh "$BOOT" 2>&1)
+rc=$?
+[ "$rc" -eq 0 ] && [ -f "$base/state/.uuplugin_uuid" ] || fail "old RAM identity not rescued before re-stage"
+cmp -s "$base/state/.uuplugin_uuid" "$stage/files/.uuplugin_uuid" || fail "restage did not restore exact original identity"
+echo "ok - fast respawn rescues UUID before deleting RAM stage"
+out=$(UU_TEST_MODE=1 UU_MIPS_APP_DIR="$base/app" UU_MIPS_STAGE_DIR="$stage" UU_MIPS_STATE_DIR="$base/state" MOCK_STAGE_FAIL=yes PATH="$base/bin:$PATH" sh "$BOOT" 2>&1)
 rc=$?
 [ "$rc" -eq 69 ] || fail "failed download must never start plugin"
 ! printf "%s\n" "$out" | grep -q MOCK_BOOT_PLUGIN_CALLED || fail "plugin started after failed stage"
