@@ -20,7 +20,11 @@ for test_file in \
     tests/test-qemu-memory-metrics.sh \
     tests/test-brand-fixtures.sh \
     tests/test-mips-experimental-persist.sh \
+    tests/test-mips-experimental-upgrade.sh \
     tests/test-mips-experimental-boot.sh \
+    tests/test-mips-uuid-state.sh \
+    tests/test-mips-identity-observe.sh \
+    tests/test-mips-package-cache.sh \
     tests/test-mips-experimental-stop.sh \
     tests/test-evidence-marker.sh \
     tests/test-helper-cli.sh \
