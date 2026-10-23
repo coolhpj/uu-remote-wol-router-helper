@@ -278,6 +278,25 @@ probe_runtime() {
     elif [ "${UU_CI_TRACE_SYSCALLS:-0}" = 1 ]; then
         echo "UU_DOCKER_TRACE_CAPTURED=no"
     fi
+    # Public CI logs must never contain raw vendor output. Only finite,
+    # pre-approved words are emitted; every other token is reduced to "x".
+    if [ -s "$STAGE/probe.log" ]; then
+        allowed_words=$(
+            head -c 384 "$STAGE/probe.log" | tr -cs 'A-Za-z' '\n' \
+                | tr '[:upper:]' '[:lower:]' | head -n 48 \
+                | while IFS= read -r word; do
+                    case "$word" in
+                        failed|fail|error|start|init|create|open|file|pid|sn|mac|uuid|device|router|plugin|uu|guardian|cannot|can|not|found|missing|unknown|network|socket|cloud|login|connection|connect|timeout|read|write|permission|denied|config|system|server|client|get|set|local|default|gateway|ip|port|interface|wan|lan|dns|http|https|response|invalid|up|down|to|for|of|is|or|a|the|in|on|at|no|and)
+                            printf '%s_' "$word" ;;
+                        *) printf 'x_' ;;
+                    esac
+                done
+        )
+        printf 'UU_DOCKER_PROBE_LOG_ALLOWLIST_WORDS=%s\n' "${allowed_words:-none}"
+        if grep -Fqi 'Create or open pid file failed' "$STAGE/probe.log"; then
+            echo "UU_DOCKER_PROBE_LOG_MATCH=pid_file_open_failed"
+        fi
+    fi
     if [ ! -s "$STAGE/probe.log" ]; then
         echo "UU_DOCKER_PROBE_LOG_CLASS=empty"
     elif grep -Eiq 'operation not permitted|permission denied|read-only file system|iptables|netlink|nftables|nft' "$STAGE/probe.log"; then
