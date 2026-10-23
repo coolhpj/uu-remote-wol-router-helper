@@ -179,6 +179,8 @@ probe_runtime() {
     probe_pid=$!
     seen_plugin=no
     seen_plugin_last=no
+    seen_guardian=no
+    seen_guardian_last=no
     seen_cloud_port=no
     count=0
     while [ "$count" -lt 10 ]; do
@@ -186,6 +188,7 @@ probe_runtime() {
         # Record both any observation and the last sample: strace can keep
         # its parent process alive after the traced plugin has terminated.
         currently_running=no
+        guardian_running=no
         for comm_path in /proc/[0-9]*/comm; do
             [ -r "$comm_path" ] || continue
             IFS= read -r comm < "$comm_path" || continue
@@ -193,8 +196,13 @@ probe_runtime() {
                 seen_plugin=yes
                 currently_running=yes
             fi
+            # Linux comm is truncated at 15 bytes for xuplugin-guardian.
+            case "$comm" in
+                xuplugin-guard*) seen_guardian=yes; guardian_running=yes ;;
+            esac
         done
         seen_plugin_last="$currently_running"
+        seen_guardian_last="$guardian_running"
         # In the container network namespace only: established TCP/16000.
         if awk 'FNR > 1 && $4 == "01" && $3 ~ /:3[Ee]80$/ {found=1} END {exit !found}' \
             /proc/net/tcp /proc/net/tcp6 2>/dev/null; then
@@ -213,6 +221,16 @@ probe_runtime() {
     fi
     printf 'UU_DOCKER_PROBE_PROCESS_OBSERVED=%s\n' "$seen_plugin"
     printf 'UU_DOCKER_PROBE_PROCESS_LAST_SAMPLE=%s\n' "$seen_plugin_last"
+    printf 'UU_DOCKER_PROBE_GUARDIAN_OBSERVED=%s\n' "$seen_guardian"
+    printf 'UU_DOCKER_PROBE_GUARDIAN_LAST_SAMPLE=%s\n' "$seen_guardian_last"
+    for fixture in .uuplugin_uuid .sn; do
+        status=no
+        [ -f "$RUNTIME/$fixture" ] && [ -s "$RUNTIME/$fixture" ] && [ ! -L "$RUNTIME/$fixture" ] && status=yes
+        case "$fixture" in
+            .uuplugin_uuid) printf 'UU_DOCKER_UUID_FILE_NONEMPTY=%s\n' "$status" ;;
+            .sn) printf 'UU_DOCKER_SN_FILE_NONEMPTY=%s\n' "$status" ;;
+        esac
+    done
     printf 'UU_DOCKER_PROBE_PORT16000_ESTABLISHED=%s\n' "$seen_cloud_port"
     printf 'UU_DOCKER_PROBE_LAUNCHER_EXIT=%s\n' "$probe_exit"
     printf 'UU_DOCKER_PROBE_LOG_BYTES=%s\n' "$(wc -c < "$STAGE/probe.log" | tr -d '[:space:]')"
