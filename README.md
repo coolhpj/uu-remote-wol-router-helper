@@ -33,6 +33,16 @@
 
 ## Docker 容器安装（实验版）
 
+**一条命令部署（实验版）**：已经安装 Git、Docker Engine 和 Docker Compose 的 Linux 主机，复制下面这一整行到终端即可。启动器会检查 CPU、Docker 权限、现有安装目录，下载独立 Docker 实验分支，再构建并启动容器；不需要管理员特权，也不会修改宿主机防火墙或删除身份卷。
+
+```sh
+curl -fsSLo uu-docker-start.sh https://raw.githubusercontent.com/coolhpj/uu-remote-wol-router-helper/feat/docker-experimental/docker/quickstart.sh && sh uu-docker-start.sh
+```
+
+> 运行前可先[查看一键部署脚本源码](docker/quickstart.sh)，确认只从本仓库下载实验分支。脚本默认安装到 `$HOME/uu-remote-wol-docker`；首次运行要求已有 Git、Docker 和 Compose，**不会自动安装 Docker 或覆盖别人的现有目录**。命令执行完仍须完成下方手机 UU 绑定和移动数据真实开机测试。原有安装可重复执行但**不会自动拉取更新**，升级方法见[完整说明](docker/README.md)。
+
+**手动安装与排障（四步）**：不愿运行快速启动器，或要核对每条命令时，按下面步骤逐项操作。
+
 **适合谁：** 在 Debian 13、Ubuntu、iStoreOS、飞牛 OS 等支持 Linux Docker Engine（容器引擎）的设备上，运行网易 UU 辅助设备。当前优先 x86_64，ARM64 仍是候选。**不需要路由器 SSH，也不需要下载上面的路由器 ZIP 包。**
 
 **目前只开放 [PR #16 实验分支](https://github.com/coolhpj/uu-remote-wol-router-helper/pull/16)**；正式 `main` 和 Releases（版本发布页）还没有 Docker 稳定版。安装前确保主机与待唤醒的电脑在同一个允许局域网广播的网络里、电脑已配置有线网络 WOL（网络唤醒），并检查宿主机没有正在运行的另一份 UU 辅助服务。容器采用宿主网络，可能和已有服务占用相同端口；**不要与现有路由器辅助设备复用身份目录**。

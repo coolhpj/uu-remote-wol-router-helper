@@ -4,6 +4,10 @@ sh -n docker/entrypoint.sh
 sh -n scripts/stage-package.sh
 bash -n tests/docker-real-identity-persistence.sh
 bash -n tests/docker-compose-lifecycle.sh
+sh -n docker/quickstart.sh
+sh tests/test-docker-quickstart.sh
+grep -q 'uu-docker-start.sh' README.md
+grep -q 'uu-docker-start.sh' docker/README.md
 grep -q 'UU_COMPOSE_DOWN_PRESERVES_IDENTITY_VOLUME=pass' tests/docker-compose-lifecycle.sh
 grep -q 'UU_REAL_IDENTITY_AFTER_REFRESH=preserved' tests/docker-real-identity-persistence.sh
 grep -q 'UU_REAL_IDENTITY_AFTER_RECREATE=preserved' tests/docker-real-identity-persistence.sh

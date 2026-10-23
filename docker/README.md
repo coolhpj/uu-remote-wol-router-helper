@@ -4,7 +4,29 @@
 
 适用于安装了 Linux Docker Engine（容器引擎）的 Debian、Ubuntu、iStoreOS、飞牛 OS 等设备。x86_64 优先，ARM64 仅有自动构建证据。**不是网易官方镜像；请勿直接覆盖现有 UU 辅助设备。**
 
-## 从零安装（四步）
+## 一条命令快速部署（Linux 实验版）
+
+已安装 Git、`curl`、Docker Engine 和 Compose 插件的 Linux 主机，可复制**一整行命令**下载安装启动器并执行。它在本机验证 Docker 权限、CPU 架构与安装目录，自动获取实验分支并构建启动，不装 Docker、不使用 `sudo`、不改防火墙、不删除数据卷。
+
+```sh
+curl -fsSLo uu-docker-start.sh https://raw.githubusercontent.com/coolhpj/uu-remote-wol-router-helper/feat/docker-experimental/docker/quickstart.sh && sh uu-docker-start.sh
+```
+
+执行前可先[阅读该脚本源码](quickstart.sh)。脚本默认部署于 `$HOME/uu-remote-wol-docker`；如果该目录是其他项目或存在未提交改动，会拒绝覆盖。已有正确的实验分支会直接复用，不自动拉取新提交。**一条命令安装成功也不是远程开机验收成功；务必继续完成手机绑定和移动数据实际开机测试。**
+
+一键部署后可运行：
+
+```sh
+cd "$HOME/uu-remote-wol-docker"
+docker compose ps
+docker compose stop
+docker compose up -d --force-recreate
+docker compose down
+```
+
+`docker compose down` 默认保留身份卷，切勿误用 `down -v`。需要更新时先备份身份数据卷，按[下方升级说明](#安全及数据)进行操作。
+
+## 从零手动安装（四步）
 
 **1. 检查环境。** 在准备常开的 Linux 主机上运行：
 

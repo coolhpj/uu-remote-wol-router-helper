@@ -10,6 +10,8 @@ on:
       - lib/**
       - scripts/stage-package.sh
       - tests/test-docker-source.sh
+      - tests/test-docker-quickstart.sh
+      - docker/quickstart.sh
       - tests/docker-real-identity-persistence.sh
       - tests/docker-compose-lifecycle.sh
       - .github/workflows/docker-experimental.yml
