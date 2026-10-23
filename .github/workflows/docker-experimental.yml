@@ -11,6 +11,7 @@ on:
       - scripts/stage-package.sh
       - tests/test-docker-source.sh
       - tests/docker-real-identity-persistence.sh
+      - tests/docker-compose-lifecycle.sh
       - .github/workflows/docker-experimental.yml
   workflow_dispatch:
 
@@ -64,6 +65,11 @@ jobs:
         continue-on-error: true
         shell: bash
         run: bash tests/docker-real-identity-persistence.sh
+      - name: Real Compose host-network lifecycle and volume retention
+        id: compose_lifecycle
+        continue-on-error: true
+        shell: bash
+        run: bash tests/docker-compose-lifecycle.sh
       - name: Diagnostic comparison - root without NET_ADMIN (private bridge only)
         if: always()
         continue-on-error: true
@@ -79,6 +85,7 @@ jobs:
         env:
           RUNTIME_OUTCOME: ${{ steps.runtime_probe.outcome }}
           IDENTITY_OUTCOME: ${{ steps.real_identity_persistence.outcome }}
+          COMPOSE_OUTCOME: ${{ steps.compose_lifecycle.outcome }}
         run: |
           {
             echo '## Docker experimental: separate verification gates'
@@ -87,6 +94,7 @@ jobs:
             echo '| Image build, container smoke and persistent fixture | Checked by required steps |'
             echo "| Official UU plugin startup / cloud session | Diagnostic result: ${RUNTIME_OUTCOME} |"
             echo "| Actual generated UUID and SN across refresh and recreation | Diagnostic result: ${IDENTITY_OUTCOME} |"
+            echo "| Real Compose host networking, restart, recreation and down | Diagnostic result: ${COMPOSE_OUTCOME} |"
             echo '| Mobile-data remote WOL on real LAN | **NOT TESTED** |'
             echo ''
             echo '**A green workflow does not certify UU cloud connectivity or real remote power-on.**'
@@ -96,6 +104,9 @@ jobs:
           fi
           if [ "$IDENTITY_OUTCOME" != success ]; then
             echo "::warning::UU-generated identity refresh/recreation preservation not yet proven."
+          fi
+          if [ "$COMPOSE_OUTCOME" != success ]; then
+            echo "::warning::Real Compose lifecycle was not validated; CI unit smoke does not cover full host network deployment."
           fi
 
   openwrt-userland-comparison:
