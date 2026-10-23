@@ -1,6 +1,6 @@
 # Experimental source-only image: official NetEase UU binaries are never bundled.
 FROM alpine:3.22
-RUN apk add --no-cache ca-certificates curl util-linux \
+RUN apk add --no-cache ca-certificates curl util-linux pax-utils \
     && addgroup -S -g 10001 uu \
     && adduser -S -D -H -u 10001 -G uu uu \
     && mkdir -p /opt/uu-helper/scripts /opt/uu-helper/docker /var/lib/uu-wol \

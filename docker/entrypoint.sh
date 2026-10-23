@@ -111,43 +111,71 @@ check_persistence() {
 probe_runtime() {
     stage_official
     cd "$STAGE/files" || die "Cannot enter probe directory"
+    # scanelf reads ELF metadata without invoking the binary.
+    interpreter=$(scanelf -i -F '%i' ./uuplugin 2>/dev/null | head -n 1 | tr -d '[:space:]' || true)
+    case "$interpreter" in
+        ''|-) echo "UU_DOCKER_ELF_INTERPRETER=static_or_unknown" ;;
+        /*)
+            if [ -e "$interpreter" ]; then
+                echo "UU_DOCKER_ELF_INTERPRETER=present"
+            else
+                echo "UU_DOCKER_ELF_INTERPRETER=missing"
+            fi ;;
+        *) echo "UU_DOCKER_ELF_INTERPRETER=unrecognized" ;;
+    esac
+    needed=$(scanelf -n -F '%n' ./uuplugin 2>/dev/null || true)
+    case "$needed" in
+        *libc.so.6*) echo "UU_DOCKER_ELF_LIBC=glibc" ;;
+        *libc.musl*|*ld-musl*) echo "UU_DOCKER_ELF_LIBC=musl" ;;
+        *) echo "UU_DOCKER_ELF_LIBC=static_or_unknown" ;;
+    esac
+
     ( umask 077; : > "$STAGE/probe.log" )
     ./uuplugin ./uu.conf > "$STAGE/probe.log" 2>&1 &
     probe_pid=$!
-    seen_alive=no
+    seen_plugin=no
     seen_cloud_port=no
     count=0
     while [ "$count" -lt 10 ]; do
         sleep 2
-        if ! kill -0 "$probe_pid" 2>/dev/null; then
-            break
-        fi
-        seen_alive=yes
-        # In the private container network namespace only. TCP state 01
-        # = ESTABLISHED, remote port 0x3E80 = 16000. Not proof of UU identity.
+        # The official launcher might daemonize: inspect processes by name
+        # rather than treating a short-lived parent as proof of failure.
+        for comm_path in /proc/[0-9]*/comm; do
+            [ -r "$comm_path" ] || continue
+            IFS= read -r comm < "$comm_path" || continue
+            [ "$comm" = uuplugin ] && seen_plugin=yes
+        done
+        # In the container network namespace only: established TCP/16000.
         if awk 'FNR > 1 && $4 == "01" && $3 ~ /:3[Ee]80$/ {found=1} END {exit !found}' \
             /proc/net/tcp /proc/net/tcp6 2>/dev/null; then
             seen_cloud_port=yes
         fi
+        if ! kill -0 "$probe_pid" 2>/dev/null && [ "$seen_plugin" = no ]; then
+            break
+        fi
         count=$((count + 1))
     done
     kill "$probe_pid" 2>/dev/null || true
-    wait "$probe_pid" 2>/dev/null || true
-    printf 'UU_DOCKER_PROBE_PROCESS_ALIVE=%s\n' "$seen_alive"
-    printf 'UU_DOCKER_PROBE_PORT16000_ESTABLISHED=%s\n' "$seen_cloud_port"
-    if [ "$seen_alive" != yes ]; then
-        if grep -Eiq 'not found|error loading shared library|symbol not found|no such file|exec format' \
-            "$STAGE/probe.log"; then
-            echo "UU_DOCKER_PROBE_DIAG=possible_elf_loader_or_dependency_problem"
-        else
-            echo "UU_DOCKER_PROBE_DIAG=process_exited_early_see_private_runner_logs"
-        fi
-        return 1
+    if wait "$probe_pid" 2>/dev/null; then
+        probe_exit=0
+    else
+        probe_exit=$?
     fi
-    [ "$seen_cloud_port" = yes ] || {
+    printf 'UU_DOCKER_PROBE_PROCESS_OBSERVED=%s\n' "$seen_plugin"
+    printf 'UU_DOCKER_PROBE_PORT16000_ESTABLISHED=%s\n' "$seen_cloud_port"
+    printf 'UU_DOCKER_PROBE_LAUNCHER_EXIT=%s\n' "$probe_exit"
+    if grep -Eiq 'not found|error loading shared library|symbol not found|no such file|exec format|error relocating' "$STAGE/probe.log"; then
+        echo "UU_DOCKER_PROBE_DIAG=possible_elf_loader_or_dependency_problem"
+    elif grep -Eiq 'operation not permitted|permission denied|read-only file system|iptables|netlink|nftables' "$STAGE/probe.log"; then
+        echo "UU_DOCKER_PROBE_DIAG=possible_namespace_or_permission_problem"
+    elif [ "$seen_plugin" != yes ]; then
+        echo "UU_DOCKER_PROBE_DIAG=plugin_not_running"
+    elif [ "$seen_cloud_port" != yes ]; then
         echo "UU_DOCKER_PROBE_DIAG=no_observed_tcp_16000_connection"
-        return 1
-    }
+    else
+        echo "UU_DOCKER_PROBE_DIAG=no_obvious_error"
+    fi
+    [ "$seen_plugin" = yes ] && [ "$seen_cloud_port" = yes ] || return 1
     echo "UU_DOCKER_PROBE_READY_IN_ISOLATED_BRIDGE (not proof of real WOL)"
 }
 
