@@ -4,6 +4,22 @@
 
 *项目功能概览（设计示意图，不代表任何型号已经通过实际远程唤醒验收）。*
 
+## 🐳 Docker 通用实验版（可试用，尚未实机验证）
+
+**适用环境：** Debian、Ubuntu、iStoreOS、飞牛 OS 等安装了 Docker 的常开 Linux 主机。优先 x86_64；ARM64 目前仅完成自动构建测试。**Docker 代码仍在 [PR #16 独立实验分支](https://github.com/coolhpj/uu-remote-wol-router-helper/pull/16)，尚未合并到 `main`，也未发布稳定镜像。**
+
+**一条命令部署：** 预先安装 **Git、curl、Docker Engine 和 Docker Compose**，确认当前用户可正常使用 Docker，再在 Linux 终端复制下面一整行：
+
+```sh
+curl -fsSLo uu-docker-start.sh https://raw.githubusercontent.com/coolhpj/uu-remote-wol-router-helper/feat/docker-experimental/docker/quickstart.sh && sh uu-docker-start.sh
+```
+
+启动器会下载实验分支、检查环境、构建并启动容器，不会自动安装 Docker、改动宿主机防火墙、开启特权容器或删除身份卷。建议先[阅读一键启动器源码](https://github.com/coolhpj/uu-remote-wol-router-helper/blob/feat/docker-experimental/docker/quickstart.sh)。**启动成功不代表远程开机成功**；还需要在网易 UU 手机端绑定，并关闭 Wi-Fi、仅用移动数据真实测试唤醒已关机的电脑。
+
+[Docker 四步安装、绑定、更新和卸载教程](https://github.com/coolhpj/uu-remote-wol-router-helper/blob/feat/docker-experimental/docker/README.md) · [实机测试反馈 Issue #15](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/15)
+
+---
+
 想用**网易 UU 远程开机**，让家里的路由器充当**UU 辅助开机 / 网易 UU 远程辅助设备**，但找不到适合自己固件的**路由器插件**或 **OpenWrt 安装**方法？本项目提供开源的检测、官方插件下载校验和分平台安装引导，帮助你判断路由器是否适合辅助唤醒关机电脑。**不是网易官方插件，也不保证所有路由器可安装或长期在线。**
 
 **从哪里开始？** [下载五平台预览测试包](https://github.com/coolhpj/uu-remote-wol-router-helper/releases/tag/v0.1.0-beta.2) · [查看支持的设备和固件](docs/COMPATIBILITY.md) · [OpenWrt / iStoreOS 使用说明](docs/OPENWRT.md)
