@@ -47,8 +47,8 @@ jobs:
           echo DOCKER_RECREATE_PERSISTENCE_PASS
       - name: Validate Compose config
         run: docker compose config --quiet
-      - name: Optional official download/verify only (no plugin execution)
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.official_stage }}
+      - name: Official package download and verification (no execution)
+        continue-on-error: true
         run: |
           docker run --rm --network host --cap-drop ALL --cap-add NET_RAW --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 10001:10001 uu-docker-experimental:test stage-only
 
