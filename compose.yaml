@@ -11,6 +11,9 @@ services:
     read_only: true
     tmpfs:
       - /tmp:rw,nosuid,nodev,size=64m,mode=1777
+      # UU writes its PID to /var/run/uuplugin.pid. /var/run resolves to
+      # /run in Alpine; keep it writable but never persist a stale PID.
+      - /run:rw,nosuid,nodev,noexec,size=8m,uid=10001,gid=10001,mode=0700
     volumes:
       - uu_wol_data:/var/lib/uu-wol
     user: "10001:10001"

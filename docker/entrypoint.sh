@@ -28,6 +28,13 @@ check_data() {
     [ ! -e "$RUNTIME" ] || [ -d "$RUNTIME" ] || die "Runtime path is not a directory"
 }
 
+check_pid_dir() {
+    [ -d /var/run ] && [ -w /var/run ] ||
+        die "Official UU PID directory /var/run is missing or not writable"
+    [ ! -L /var/run/uuplugin.pid ] ||
+        die "Unsafe official UU PID symlink"
+}
+
 lock_data() {
     # The descriptor survives exec; competing start/refresh fails closed.
     [ ! -L "$DATA/.runtime.lock" ] || die "Unsafe lock symlink"
@@ -111,7 +118,12 @@ check_persistence() {
 # comparison grants NET_ADMIN inside that isolated namespace, not the host.
 # No raw official runtime logs (which may contain identity material) are printed.
 probe_runtime() {
+    # Isolated rootfs experiment only. Production never creates host paths.
+    if [ "${UU_CI_FIX_PID_DIR:-0}" = 1 ]; then
+        mkdir -p /var/run || die "CI cannot create temporary PID directory"
+    fi
     check_data
+    check_pid_dir
     lock_data
     # Use the exact managed installation/working-directory path as production.
     # This prevents false failures from a possible noexec /tmp mount.
@@ -352,6 +364,7 @@ case "$cmd" in
         ;;
     run)
         check_data
+        check_pid_dir
         lock_data
         if [ ! -x "$RUNTIME/uuplugin" ]; then
             install_official

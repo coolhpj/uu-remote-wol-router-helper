@@ -7,6 +7,8 @@ grep -q 'uu_resolve_channel' docker/entrypoint.sh
 grep -q 'NET_RAW' compose.yaml
 grep -q 'network_mode: host' compose.yaml
 grep -q 'read_only: true' compose.yaml
+grep -q '/run:rw,nosuid,nodev,noexec' compose.yaml
+grep -q 'check_pid_dir' docker/entrypoint.sh
 grep -q 'no-new-privileges:true' compose.yaml
 grep -q '^    cap_drop:' compose.yaml
 if grep -Eiq 'privileged:[[:space:]]*true|NET_ADMIN|docker.sock|host_pid' compose.yaml; then

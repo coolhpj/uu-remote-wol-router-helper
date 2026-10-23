@@ -1,6 +1,6 @@
 # Docker 实验版（不属于已验证远程开机设备）
 
-> **当前阻塞：** 官方插件 v14.10.6 下载、MD5 校验与安全解包通过；但在 Alpine 与 OpenWrt 隔离容器中均不能验证稳定云连接，进程测试曾返回 255。系统调用显示曾尝试网络连接，尚不能归因于 ELF 动态库、容器权限或特定 LAN 接口。GitHub 的美国托管运行器不能代替用户真实局域网。**请勿将此分支作为已验证可用版本在家庭网络部署。**
+> **当前阻塞：** 官方插件 v14.10.6 下载、MD5 校验与安全解包通过；但在 Alpine 与 OpenWrt 隔离容器中均不能验证稳定云连接，进程测试曾返回 255。系统调用显示曾尝试网络连接，尚不能归因于 ELF 动态库、容器权限或特定 LAN 接口。GitHub 的美国托管运行器不能代替用户真实局域网。此前诊断确认缺少可写 `/var/run/uuplugin.pid` 路径，已补充隔离 `/run` 临时挂载，但还需要验证插件云连接。**请勿将此分支作为已验证可用版本在家庭网络部署。**
 
 适用于支持 Linux 容器和 `network_mode: host` 的 Debian、Ubuntu、iStoreOS、飞牛 OS 等系统。x86_64 优先；ARM64 为候选。**仅实验用途**，不是网易官方镜像，不承诺对应系统已能完成 UU 云连接或实际远程开机。
 
@@ -13,7 +13,7 @@
 ## 安全及数据
 
 - Compose 使用宿主网络，以允许 LAN WOL 广播；**不是**端口隔离环境。运行前需审查容器将占用的监听端口，不要和宿主原有 UU 服务并行。无特权模式，去除全部 Linux capabilities（能力权限），只加回 `NET_RAW`（原始网络报文），不授予 `NET_ADMIN`（修改主机网络/防火墙）。
-- UID/GID 10001 运行，根文件系统只读，`/tmp` 临时内存空间，`/var/lib/uu-wol` 为命名卷；兼容路径 `/usr/sbin/uu` 也指向此持久化运行目录，保留工作目录、`.uuplugin_uuid` 与账号状态；不把敏感文件写进镜像。不要公开共享该卷、日志或原始 UUID。**没有证据证明官方插件只依赖该文件**，仍需真实跨重建绑定验证。
+- UID/GID 10001 运行，根文件系统只读。`/tmp` 是临时内存空间，`/run` 是仅供 UID 10001 写入的短期 PID 空间（网易官方插件需要 `/var/run/uuplugin.pid`），均不会跨重建保留；`/var/lib/uu-wol` 才是持久化命名卷。兼容路径 `/usr/sbin/uu` 也指向此持久化运行目录，保留工作目录、`.uuplugin_uuid` 与账号状态；不把敏感文件写进镜像。不要公开共享该卷、日志或原始 UUID。**没有证据证明官方插件只依赖该文件**，仍需真实跨重建绑定验证。
 - `docker compose stop` 安全停止；`docker compose up -d --build` 重建/升级开源包装器而不删除数据卷。手动升级官方闭源插件：先 `docker compose stop`，然后 `docker compose run --rm uu-wol refresh`，再 `docker compose up -d`。升级前**务必自行备份命名卷**，尤其是 UU 身份目录。实验性 refresh 不保证官方二进制内部状态向后兼容。
 - 卸载运行容器：`docker compose down`，**默认保留卷**。`docker compose down -v` 会永久删除身份与绑定数据，请只在确认备份后手动使用。不要把它纳入任何自动清理。
 - `docker compose run --rm uu-wol status` 只检查本地状态；`smoke`/ `persistence-check` 是离线容器测试，**不会启动网易插件**，也不代表远程开机成功。
