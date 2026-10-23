@@ -7,6 +7,9 @@ bash -n tests/docker-compose-lifecycle.sh
 grep -q 'UU_COMPOSE_DOWN_PRESERVES_IDENTITY_VOLUME=pass' tests/docker-compose-lifecycle.sh
 grep -q 'UU_REAL_IDENTITY_AFTER_REFRESH=preserved' tests/docker-real-identity-persistence.sh
 grep -q 'UU_REAL_IDENTITY_AFTER_RECREATE=preserved' tests/docker-real-identity-persistence.sh
+grep -q '^## Docker 容器安装（实验版）' README.md
+grep -q 'git clone --branch feat/docker-experimental --single-branch' README.md
+grep -q 'docker compose down' docker/README.md
 grep -q 'scripts/stage-package.sh' docker/entrypoint.sh
 grep -q 'uu_resolve_channel' docker/entrypoint.sh
 grep -q 'NET_RAW' compose.yaml

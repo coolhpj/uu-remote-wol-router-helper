@@ -6,11 +6,14 @@
 
 想用**网易 UU 远程开机**，让家里的路由器充当**UU 辅助开机 / 网易 UU 远程辅助设备**，但找不到适合自己固件的**路由器插件**或 **OpenWrt 安装**方法？本项目提供开源的检测、官方插件下载校验和分平台安装引导，帮助你判断路由器是否适合辅助唤醒关机电脑。**不是网易官方插件，也不保证所有路由器可安装或长期在线。**
 
-**从哪里开始？** [下载五平台预览测试包](https://github.com/coolhpj/uu-remote-wol-router-helper/releases/tag/v0.1.0-beta.2) · [查看支持的设备和固件](docs/COMPATIBILITY.md) · [OpenWrt / iStoreOS 使用说明](docs/OPENWRT.md)
+## 选择适合你的安装方式
 
-**新增候选：** [Docker 通用实验版说明](docker/README.md)（仅独立开发分支验证，尚未完成官方插件容器运行与移动数据远程开机；不要视为稳定支持）。
+| 你打算安装在哪儿？ | 从哪里开始 | 实际验证状态 |
+| --- | --- | --- |
+| **OpenWrt / iStoreOS 路由器**、小米 / 红米、华硕等 | [五平台路由器测试包](https://github.com/coolhpj/uu-remote-wol-router-helper/releases/tag/v0.1.0-beta.2) · [设备兼容清单](docs/COMPATIBILITY.md) | 按具体设备和固件查看结果，不保证同架构通用 |
+| **Debian / Ubuntu / iStoreOS / 飞牛 OS 的 Docker 主机** | [下方 Docker 独立安装步骤](#docker-容器安装实验版) · [详细说明](docker/README.md) | 镜像、插件进程、连接、身份文件及容器重建已在自动测试环境通过；**真实手机流量唤醒待志愿者验证** |
 
-> 非网易官方项目。**不是所有路由器都能安装**；设备型号和固件须满足条件，手机移动网络实际唤醒成功才算验证通过。
+> 本项目不隶属于网易。**路由器原生安装与 Docker 容器安装是两条独立路径，不要混用安装步骤。** 只有手机关闭 Wi-Fi、使用移动数据真正唤醒关机电脑，才算远程开机验证成功。
 
 ## 按平台下载（预览测试版，尚非稳定版）
 
@@ -28,7 +31,55 @@
 
 开发者可运行 `python3 scripts/build-platform-packages.py --output dist` 在本地生成五个确定性 ZIP 和 `SHA256SUMS.txt`（校验清单）；[自动打包记录](https://github.com/coolhpj/uu-remote-wol-router-helper/actions/workflows/platform-packages.yml) 仅供排障和开发者核对。**正式稳定版**仍须等待对应设备完成实机验收。
 
-## 新手快速开始（3 步）
+## Docker 容器安装（实验版）
+
+**适合谁：** 在 Debian 13、Ubuntu、iStoreOS、飞牛 OS 等支持 Linux Docker Engine（容器引擎）的设备上，运行网易 UU 辅助设备。当前优先 x86_64，ARM64 仍是候选。**不需要路由器 SSH，也不需要下载上面的路由器 ZIP 包。**
+
+**目前只开放 [PR #16 实验分支](https://github.com/coolhpj/uu-remote-wol-router-helper/pull/16)**；正式 `main` 和 Releases（版本发布页）还没有 Docker 稳定版。安装前确保主机与待唤醒的电脑在同一个允许局域网广播的网络里、电脑已配置有线网络 WOL（网络唤醒），并检查宿主机没有正在运行的另一份 UU 辅助服务。容器采用宿主网络，可能和已有服务占用相同端口；**不要与现有路由器辅助设备复用身份目录**。
+
+**第 1 步｜检查 Docker（容器环境）。** 在要作为辅助设备的 Linux 主机终端运行：
+
+```sh
+git --version
+docker --version
+docker compose version
+```
+
+以上命令都应正常显示版本。缺少 Git、Docker Engine 或 Compose 插件时，先按操作系统官方教程安装；本项目不负责更改宿主机网络、防火墙或安装 Docker 服务。
+
+**第 2 步｜获取实验代码并启动。** 下列命令会获取 `feat/docker-experimental` 分支（不是 `main`），由本机自行构建开源镜像，首次启动时才下载并校验网易官方插件：
+
+```sh
+git clone --branch feat/docker-experimental --single-branch https://github.com/coolhpj/uu-remote-wol-router-helper.git
+cd uu-remote-wol-router-helper
+docker compose config
+docker compose build
+docker compose up -d
+docker compose ps
+docker compose logs --tail=80 uu-wol
+```
+
+`docker compose ps` 中服务应显示运行中。如果查看日志遇到报错，先停止容器并参照[详细排障与安全说明](docker/README.md)；**切勿公开原始日志、设备 UUID / SN、账号令牌、IP 或 MAC 地址**。
+
+**第 3 步｜绑定、手机流量实测。** 先让手机连接家里的 Wi-Fi，在 **网易 UU 主机加速器 → 路由器加速 → 合作款路由器** 尝试发现和绑定新增的辅助设备；再在电脑的 **UU远程 → 远程开机配置** 中选择相应辅助设备并完成配置。然后**关闭手机 Wi-Fi，仅用移动数据，真实尝试唤醒已关机的电脑**。如果应用没有发现 Docker 辅助设备，记录“无法发现”即可，不要自行开启特权容器或修改防火墙。
+
+**第 4 步｜检查重建与安全卸载。** 只有首次绑定和唤醒尝试完成后，再测试停止及重建，确认原辅助设备是否仍被手机认可：
+
+```sh
+docker compose stop
+docker compose up -d --force-recreate
+docker compose ps
+```
+
+停止并卸载测试容器，但**保留设备身份数据卷**：
+
+```sh
+docker compose down
+```
+
+**禁止误用 `docker compose down -v`**，它会删除设备身份和绑定数据。需要升级或清除身份时先备份数据卷，并参阅[Docker 完整安装、升级和清理教程](docker/README.md)。目前 GitHub Actions（自动测试）已验证程序启动、守护进程、TCP/16000 连接、身份文件刷新与重建保留及完整 Compose 启停，但**不代表网易账号已承认旧绑定，也不能替代家庭网络中的实际远程唤醒**。测试反馈可发至 [Issue #15](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/15)。
+
+## 路由器原生安装：新手快速开始（3 步）
 
 **第 1 步｜设置电脑唤醒。** 打开 Windows **UU远程 → 远程开机配置**，按提示开启主板和网卡的 WOL（网络唤醒）。建议电脑使用网线，并先确认局域网内能唤醒。
 

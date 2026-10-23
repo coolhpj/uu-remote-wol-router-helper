@@ -1,14 +1,54 @@
 # Docker 实验版（不属于已验证远程开机设备）
 
-> **当前状态：** 官方 v14.10.6 下载、MD5 校验与解包通过。先前启动返回 255 的主因是 `/var/run/uuplugin.pid` 无可写运行目录；新增 `/run` 临时挂载后，GitHub 隔离 Alpine 容器中已实测主程序持续运行并观测到 TCP/16000 ESTABLISHED。**这只能证明有目标端口连接，不能证明网易云身份绑定、守护进程全部健康或真实移动网络远程开机。** 仍需检查 `xuplugin-guardian`（守护进程）以及 UUID（设备身份文件）的实际生成和跨重建保持。GitHub 美国托管机不是家庭局域网，请勿把此草稿当作正式可用产品部署。
+> **最新实验状态：** GitHub Actions 已通过 x86_64 / ARM64 构建、官方 v14.10.6 下载与校验；修复可写 `/var/run/uuplugin.pid` 后，Alpine 非特权容器中的主程序、`xuplugin-guardian`（守护程序）、TCP/16000 连接、自动生成的 `.uuplugin_uuid` 和 `.sn` 均通过检测。正式 Compose 的启动、停止、重建、保留身份卷，以及身份文件刷新后保持一致也已通过 GitHub 隔离测试。**这不等于网易账号认可旧绑定，更不等于手机移动数据成功唤醒关机电脑。此版本仍是 PR #16 实验版，不是稳定发布。**
 
-适用于支持 Linux 容器和 `network_mode: host` 的 Debian、Ubuntu、iStoreOS、飞牛 OS 等系统。x86_64 优先；ARM64 为候选。**仅实验用途**，不是网易官方镜像，不承诺对应系统已能完成 UU 云连接或实际远程开机。
+适用于安装了 Linux Docker Engine（容器引擎）的 Debian、Ubuntu、iStoreOS、飞牛 OS 等设备。x86_64 优先，ARM64 仅有自动构建证据。**不是网易官方镜像；请勿直接覆盖现有 UU 辅助设备。**
 
-## 三步测试
+## 从零安装（四步）
 
-1. 安装 Docker Engine 和 Docker Compose 插件，下载本 PR 的源码。先确认宿主机与待唤醒电脑处在允许局域网广播的网络内，并且宿主机没有另一份 UU 服务正在使用同一身份；不要复用路由器现有身份文件。
-2. 在源码目录运行 `docker compose build`，然后 `docker compose up -d`。首次启动才通过仓库现有 `scripts/stage-package.sh` 调用网易官方 API 下载官方插件，并使用仓库既有校验、解包逻辑；镜像本身不带任何闭源二进制。
-3. 用 `docker compose logs --tail=80 uu-wol` 查看启动信息。插件是否在线、手机 UU 账号绑定、Windows UU 远程配置与 **手机关闭 Wi-Fi 仅用移动网络实际唤醒关机电脑** 都必须独立检查。没有完成最后一步，一律不能宣称 WOL 实测成功。
+**1. 检查环境。** 在准备常开的 Linux 主机上运行：
+
+```sh
+git --version
+docker --version
+docker compose version
+```
+
+如无法显示版本，先安装对应系统官方提供的 Git、Docker Engine 与 Compose 插件。主机与要唤醒的电脑应在允许广播的同一局域网，电脑需预先配置 WOL（网络唤醒）。本容器采用宿主网络，请先确认与已有 UU 服务没有端口冲突；不要复用路由器的旧 UUID / SN 文件。
+
+**2. 下载实验分支并启动。** 请确保拿到的是 `feat/docker-experimental` 而非 `main`：
+
+```sh
+git clone --branch feat/docker-experimental --single-branch https://github.com/coolhpj/uu-remote-wol-router-helper.git
+cd uu-remote-wol-router-helper
+docker compose config
+docker compose build
+docker compose up -d
+docker compose ps
+docker compose logs --tail=80 uu-wol
+```
+
+首次启动时，项目通过现有 `scripts/stage-package.sh` 从网易官方接口下载并验证闭源插件，不会在镜像中预装它。遇到失败先运行 `docker compose stop`，只提交脱敏错误描述，不要公开原始日志、UUID、SN、令牌、IP 或 MAC。
+
+**3. 在手机上绑定并实际远程开机。** 手机先连接家中 Wi-Fi，进入 **网易 UU 主机加速器 → 路由器加速 → 合作款路由器**，尝试发现/添加辅助设备。之后在电脑端的 **UU远程 → 远程开机配置** 里选择正确辅助设备，完成配置。待机或关机后，**关闭手机 Wi-Fi、仅使用移动数据**测试远程唤醒。容器运行、TCP 连接、手机看到设备都不能替代真正开机的结果。如果手机无法发现，反馈“无法发现”即可，不要自行启用特权模式或修改主机防火墙。
+
+**4. 测试重建、停止和卸载。** 首次绑定后，可以运行以下命令查看重建后是否仍然保持原绑定：
+
+```sh
+docker compose stop
+docker compose up -d --force-recreate
+docker compose ps
+```
+
+需要退出实验时：
+
+```sh
+docker compose down
+```
+
+`down` 会移除本项目的容器和网络，但默认**保留设备身份数据卷**。**绝对不要在尚需保留绑定时运行 `docker compose down -v`**，它会删除数据卷中的身份文件。详细的更新、备份和权限限制参见下文。愿意反馈结果可到 [Issue #15](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/15)，只需填写“容器运行 / 手机发现与绑定 / 重建后保留 / 手机流量真实开机”四项成功与否。
+
+> 这些步骤与路由器 SSH / ZIP 安装路线完全独立。GitHub Actions 自动测试发生在临时 Linux 环境，真实家庭网络兼容性仍需志愿者验证。
 
 ## 安全及数据
 
