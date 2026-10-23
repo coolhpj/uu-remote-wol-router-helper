@@ -105,12 +105,34 @@ check_persistence() {
     echo "DOCKER_PERSISTENCE_OK (not official plugin)"
 }
 
-# Ephemeral CI diagnostic: deliberately does not use the persistent data volume.
-# The container must be started with a private Docker bridge and no NET_ADMIN.
+# Ephemeral CI diagnostic: uses only an anonymous Docker data volume, removed
+# when the probe container exits. Never mount a user's existing identity volume.
+# Run with a private Docker bridge and no NET_ADMIN.
 # No raw official runtime logs (which may contain identity material) are printed.
 probe_runtime() {
-    stage_official
-    cd "$STAGE/files" || die "Cannot enter probe directory"
+    check_data
+    lock_data
+    # Use the exact managed installation/working-directory path as production.
+    # This prevents false failures from a possible noexec /tmp mount.
+    install_official
+    check_runtime
+    cd "$RUNTIME" || die "Cannot enter managed runtime directory"
+    printf '#!/bin/sh\nexit 0\n' > "$RUNTIME/.probe-exec-test"
+    chmod 700 "$RUNTIME/.probe-exec-test"
+    if "$RUNTIME/.probe-exec-test"; then
+        echo "UU_DOCKER_RUNTIME_VOLUME_EXEC=allowed"
+    else
+        echo "UU_DOCKER_RUNTIME_VOLUME_EXEC=blocked"
+    fi
+    rm -f "$RUNTIME/.probe-exec-test"
+    printf '#!/bin/sh\nexit 0\n' > "$STAGE/.probe-tmp-exec-test"
+    chmod 700 "$STAGE/.probe-tmp-exec-test"
+    if "$STAGE/.probe-tmp-exec-test" >/dev/null 2>&1; then
+        echo "UU_DOCKER_TMP_STAGE_EXEC=allowed"
+    else
+        echo "UU_DOCKER_TMP_STAGE_EXEC=blocked"
+    fi
+    rm -f "$STAGE/.probe-tmp-exec-test"
     # scanelf reads ELF metadata without invoking the binary.
     interpreter=$(scanelf -i -F '%i' ./uuplugin 2>/dev/null | head -n 1 | tr -d '[:space:]' || true)
     case "$interpreter" in
