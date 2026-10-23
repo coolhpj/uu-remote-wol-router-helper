@@ -53,7 +53,7 @@ filter_known_history_fixture() {
     case "$commit" in
         b41296cb9158e748182dec38ffd6211aa9a8e1ad|feddecdb61696312606d440b3fe2896af77a117f)
             printf '%s\n' "$input" \
-                | grep -Ev "^${commit}:docker/openwrt-ci-network[.]sh:(22|36|37):" \
+                | grep -Ev "^${commit}:docker/openwrt-ci-network[.]sh:(22|30|31|36|37):" \
                 || true
             return 0
             ;;
