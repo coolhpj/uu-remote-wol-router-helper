@@ -54,12 +54,12 @@ jobs:
         if: always()
         continue-on-error: true
         run: |
-          timeout 90s docker run --rm --init --network bridge --cap-drop ALL --cap-add NET_RAW --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 0:0 uu-docker-experimental:test probe-runtime
+          timeout 90s docker run --rm --init --network bridge --cap-drop ALL --cap-add DAC_OVERRIDE --cap-add NET_RAW --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 0:0 uu-docker-experimental:test probe-runtime
       - name: Diagnostic comparison - root with NET_ADMIN (private bridge only)
         if: always()
         continue-on-error: true
         run: |
-          timeout 90s docker run --rm --init --network bridge --cap-drop ALL --cap-add NET_RAW --cap-add NET_ADMIN --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 0:0 uu-docker-experimental:test probe-runtime
+          timeout 90s docker run --rm --init --network bridge --cap-drop ALL --cap-add DAC_OVERRIDE --cap-add NET_RAW --cap-add NET_ADMIN --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 0:0 uu-docker-experimental:test probe-runtime
 
   arm64-build:
     runs-on: ubuntu-latest
