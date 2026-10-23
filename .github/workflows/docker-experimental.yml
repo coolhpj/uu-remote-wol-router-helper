@@ -12,12 +12,6 @@ on:
       - tests/test-docker-source.sh
       - .github/workflows/docker-experimental.yml
   workflow_dispatch:
-    inputs:
-      official_stage:
-        description: "Download and validate official package only (never start it)"
-        required: false
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -45,12 +39,18 @@ jobs:
           docker run --rm --network host --cap-drop ALL --cap-add NET_RAW --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 10001:10001 -v "$vol:/var/lib/uu-wol" uu-docker-experimental:test smoke | grep -F DOCKER_CONTAINER_SMOKE_OK
           docker run --rm --network host --cap-drop ALL --cap-add NET_RAW --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 10001:10001 -v "$vol:/var/lib/uu-wol" uu-docker-experimental:test persistence-check | grep -F DOCKER_PERSISTENCE_OK
           echo DOCKER_RECREATE_PERSISTENCE_PASS
+          # Synthetic, non-secret identity fixture; not a UU binding test.
+          docker run --rm --network none --read-only --user 10001:10001 -v "$vol:/var/lib/uu-wol" --entrypoint /bin/sh uu-docker-experimental:test -c 'mkdir -p /var/lib/uu-wol/runtime && printf "%s" "123e4567-e89b-12d3-a456-426614174000" > /var/lib/uu-wol/runtime/.uuplugin_uuid && chmod 600 /var/lib/uu-wol/runtime/.uuplugin_uuid'
+          docker run --rm --network none --read-only --user 10001:10001 -v "$vol:/var/lib/uu-wol" --entrypoint /bin/sh uu-docker-experimental:test -c 'test "$(cat /var/lib/uu-wol/runtime/.uuplugin_uuid)" = "123e4567-e89b-12d3-a456-426614174000" && echo DOCKER_IDENTITY_FIXTURE_RECREATE_PASS'
       - name: Validate Compose config
         run: docker compose config --quiet
-      - name: Official package download and verification (no execution)
+      - name: Official download and verification (required)
+        run: |
+          docker run --rm --network bridge --cap-drop ALL --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 10001:10001 uu-docker-experimental:test stage-only
+      - name: Bounded official runtime/cloud diagnostic (not a WOL test)
         continue-on-error: true
         run: |
-          docker run --rm --network host --cap-drop ALL --cap-add NET_RAW --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 10001:10001 uu-docker-experimental:test stage-only
+          timeout 90s docker run --rm --init --network bridge --cap-drop ALL --cap-add NET_RAW --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 10001:10001 uu-docker-experimental:test probe-runtime
 
   arm64-build:
     runs-on: ubuntu-latest

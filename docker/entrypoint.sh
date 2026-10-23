@@ -105,9 +105,56 @@ check_persistence() {
     echo "DOCKER_PERSISTENCE_OK (not official plugin)"
 }
 
+# Ephemeral CI diagnostic: deliberately does not use the persistent data volume.
+# The container must be started with a private Docker bridge and no NET_ADMIN.
+# No raw official runtime logs (which may contain identity material) are printed.
+probe_runtime() {
+    stage_official
+    cd "$STAGE/files" || die "Cannot enter probe directory"
+    ( umask 077; : > "$STAGE/probe.log" )
+    ./uuplugin ./uu.conf > "$STAGE/probe.log" 2>&1 &
+    probe_pid=$!
+    seen_alive=no
+    seen_cloud_port=no
+    count=0
+    while [ "$count" -lt 10 ]; do
+        sleep 2
+        if ! kill -0 "$probe_pid" 2>/dev/null; then
+            break
+        fi
+        seen_alive=yes
+        # In the private container network namespace only. TCP state 01
+        # = ESTABLISHED, remote port 0x3E80 = 16000. Not proof of UU identity.
+        if awk 'FNR > 1 && $4 == "01" && $3 ~ /:3[Ee]80$/ {found=1} END {exit !found}' \
+            /proc/net/tcp /proc/net/tcp6 2>/dev/null; then
+            seen_cloud_port=yes
+        fi
+        count=$((count + 1))
+    done
+    kill "$probe_pid" 2>/dev/null || true
+    wait "$probe_pid" 2>/dev/null || true
+    printf 'UU_DOCKER_PROBE_PROCESS_ALIVE=%s\n' "$seen_alive"
+    printf 'UU_DOCKER_PROBE_PORT16000_ESTABLISHED=%s\n' "$seen_cloud_port"
+    if [ "$seen_alive" != yes ]; then
+        if grep -Eiq 'not found|error loading shared library|symbol not found|no such file|exec format' \
+            "$STAGE/probe.log"; then
+            echo "UU_DOCKER_PROBE_DIAG=possible_elf_loader_or_dependency_problem"
+        else
+            echo "UU_DOCKER_PROBE_DIAG=process_exited_early_see_private_runner_logs"
+        fi
+        return 1
+    fi
+    [ "$seen_cloud_port" = yes ] || {
+        echo "UU_DOCKER_PROBE_DIAG=no_observed_tcp_16000_connection"
+        return 1
+    }
+    echo "UU_DOCKER_PROBE_READY_IN_ISOLATED_BRIDGE (not proof of real WOL)"
+}
+
 cmd="${1:-run}"
 case "$cmd" in
     smoke) smoke ;;
+    probe-runtime) probe_runtime ;;
     stage-only)
         stage_official
         echo "DOCKER_OFFICIAL_STAGE_ONLY_OK (plugin not executed)"
@@ -141,6 +188,6 @@ case "$cmd" in
         echo "DOCKER_OFFICIAL_REFRESH_DONE (identity directory preserved)"
         ;;
     *)
-        die "Usage: run | refresh | stage-only | status | smoke | persistence-check"
+        die "Usage: run | refresh | stage-only | probe-runtime | status | smoke | persistence-check"
         ;;
 esac
