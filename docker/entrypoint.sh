@@ -199,6 +199,15 @@ probe_runtime() {
     else
         echo "UU_DOCKER_PROBE_LOG_CLASS=unclassified"
     fi
+    # Only emit fixed, public diagnostic vocabulary; never raw UU logs.
+    for keyword in error failed fail init unsupported invalid usage config device router cloud network interface gateway mac uuid uci ubus firewall iptables nft netlink address login license register bind startup openwrt version permission busybox; do
+        if grep -Eiq "(^|[^[:alnum:]_])${keyword}([^[:alnum:]_]|$)" "$STAGE/probe.log"; then
+            printf 'UU_DOCKER_PROBE_LOG_KEYWORD_%s=yes\n' "$keyword"
+        fi
+    done
+    if grep -Eq '错误|失败|无法|初始化|路由|网关|绑定' "$STAGE/probe.log"; then
+        echo "UU_DOCKER_PROBE_LOG_HAS_CHINESE_ERROR_TERMS=yes"
+    fi
     if grep -Eiq 'not found|error loading shared library|symbol not found|no such file|exec format|error relocating' "$STAGE/probe.log"; then
         echo "UU_DOCKER_PROBE_DIAG=possible_elf_loader_or_dependency_problem"
     elif grep -Eiq 'operation not permitted|permission denied|read-only file system|iptables|netlink|nftables' "$STAGE/probe.log"; then

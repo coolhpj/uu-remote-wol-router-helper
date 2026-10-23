@@ -7,3 +7,4 @@
 !docker/
 !docker/entrypoint.sh
 !docker/Dockerfile.openwrt-probe
+!docker/openwrt-ci-network.sh

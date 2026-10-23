@@ -3,11 +3,12 @@
 FROM openwrt/rootfs:x86_64-24.10.8
 RUN mkdir -p /var/lock /var/lib/uu-wol /opt/uu-helper/scripts /opt/uu-helper/docker \
     && opkg update \
-    && opkg install ca-bundle curl flock \
+    && opkg install ca-bundle curl flock ip-full \
     && ln -s /var/lib/uu-wol/runtime /usr/sbin/uu
 COPY lib/ /opt/uu-helper/lib/
 COPY scripts/stage-package.sh /opt/uu-helper/scripts/stage-package.sh
 COPY docker/entrypoint.sh /opt/uu-helper/docker/entrypoint.sh
+COPY docker/openwrt-ci-network.sh /opt/uu-helper/docker/openwrt-ci-network.sh
 RUN chmod 755 /opt/uu-helper/docker/entrypoint.sh /opt/uu-helper/scripts/stage-package.sh
 WORKDIR /var/lib/uu-wol
 VOLUME ["/var/lib/uu-wol"]
