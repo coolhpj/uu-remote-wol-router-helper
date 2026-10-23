@@ -218,6 +218,35 @@ probe_runtime() {
             count=$(grep -Ec "connect\\(.*sin_port=htons\\($port\\)" "$STAGE/probe.strace" || true)
             printf 'UU_DOCKER_TRACE_CONNECT_PORT_%s=%s\n' "$port" "$count"
         done
+        # Emit ports but not remote IPs or the raw syscall trace.
+        ports=$(grep 'connect(.*AF_INET' "$STAGE/probe.strace" \
+            | grep -oE 'sin_port=htons\([0-9]+\)' \
+            | grep -oE '[0-9]+' | sort -un | head -n 8 | paste -sd, - || true)
+        printf 'UU_DOCKER_TRACE_INET_DESTINATION_PORTS=%s\n' "${ports:-none}"
+        # Classify missing-file directories only; never disclose path names.
+        awk '
+            / = -1 ENOENT/ {
+                split($0, pieces, "\"")
+                path=pieces[2]
+                if (path ~ /^\/etc\//) etc++
+                else if (path ~ /^\/usr\//) usr++
+                else if (path ~ /^\/tmp\//) tmp++
+                else if (path ~ /^\/proc\//) proc++
+                else if (path ~ /^\/var\//) var++
+                else if (path ~ /^\/dev\//) dev++
+                else if (path ~ /^\//) other_absolute++
+                else relative++
+            }
+            END {
+                printf "UU_DOCKER_TRACE_MISSING_CLASS_ETC=%d\n", etc+0
+                printf "UU_DOCKER_TRACE_MISSING_CLASS_USR=%d\n", usr+0
+                printf "UU_DOCKER_TRACE_MISSING_CLASS_TMP=%d\n", tmp+0
+                printf "UU_DOCKER_TRACE_MISSING_CLASS_PROC=%d\n", proc+0
+                printf "UU_DOCKER_TRACE_MISSING_CLASS_VAR=%d\n", var+0
+                printf "UU_DOCKER_TRACE_MISSING_CLASS_DEV=%d\n", dev+0
+                printf "UU_DOCKER_TRACE_MISSING_CLASS_OTHER_ABSOLUTE=%d\n", other_absolute+0
+                printf "UU_DOCKER_TRACE_MISSING_CLASS_RELATIVE=%d\n", relative+0
+            }' "$STAGE/probe.strace"
         for network_errno in EINPROGRESS ETIMEDOUT EHOSTUNREACH ECONNRESET EPIPE EAGAIN; do
             count=$(grep -c " = -1 $network_errno" "$STAGE/probe.strace" || true)
             printf 'UU_DOCKER_TRACE_ERRNO_%s=%s\n' "$network_errno" "$count"
