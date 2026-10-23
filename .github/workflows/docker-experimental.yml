@@ -10,6 +10,7 @@ on:
       - lib/**
       - scripts/stage-package.sh
       - tests/test-docker-source.sh
+      - tests/docker-real-identity-persistence.sh
       - .github/workflows/docker-experimental.yml
   workflow_dispatch:
 
@@ -58,6 +59,11 @@ jobs:
         continue-on-error: true
         run: |
           timeout 90s docker run --rm --init --network bridge --cap-drop ALL --cap-add NET_RAW --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --tmpfs /run:rw,nosuid,nodev,noexec,size=8m,uid=10001,gid=10001,mode=0700 --user 10001:10001 uu-docker-experimental:test probe-runtime
+      - name: UU-generated identity survives refresh and container recreation
+        id: real_identity_persistence
+        continue-on-error: true
+        shell: bash
+        run: bash tests/docker-real-identity-persistence.sh
       - name: Diagnostic comparison - root without NET_ADMIN (private bridge only)
         if: always()
         continue-on-error: true
@@ -72,6 +78,7 @@ jobs:
         if: always()
         env:
           RUNTIME_OUTCOME: ${{ steps.runtime_probe.outcome }}
+          IDENTITY_OUTCOME: ${{ steps.real_identity_persistence.outcome }}
         run: |
           {
             echo '## Docker experimental: separate verification gates'
@@ -79,12 +86,16 @@ jobs:
             echo '|---|---|'
             echo '| Image build, container smoke and persistent fixture | Checked by required steps |'
             echo "| Official UU plugin startup / cloud session | Diagnostic result: ${RUNTIME_OUTCOME} |"
+            echo "| Actual generated UUID and SN across refresh and recreation | Diagnostic result: ${IDENTITY_OUTCOME} |"
             echo '| Mobile-data remote WOL on real LAN | **NOT TESTED** |'
             echo ''
             echo '**A green workflow does not certify UU cloud connectivity or real remote power-on.**'
           } >> "$GITHUB_STEP_SUMMARY"
           if [ "$RUNTIME_OUTCOME" != success ]; then
             echo "::warning::UU plugin/cloud diagnostic failed; only Docker build and synthetic persistence are validated."
+          fi
+          if [ "$IDENTITY_OUTCOME" != success ]; then
+            echo "::warning::UU-generated identity refresh/recreation preservation not yet proven."
           fi
 
   openwrt-userland-comparison:
