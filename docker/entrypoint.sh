@@ -166,17 +166,23 @@ probe_runtime() {
     fi
     probe_pid=$!
     seen_plugin=no
+    seen_plugin_last=no
     seen_cloud_port=no
     count=0
     while [ "$count" -lt 10 ]; do
         sleep 2
-        # The official launcher might daemonize: inspect processes by name
-        # rather than treating a short-lived parent as proof of failure.
+        # Record both any observation and the last sample: strace can keep
+        # its parent process alive after the traced plugin has terminated.
+        currently_running=no
         for comm_path in /proc/[0-9]*/comm; do
             [ -r "$comm_path" ] || continue
             IFS= read -r comm < "$comm_path" || continue
-            [ "$comm" = uuplugin ] && seen_plugin=yes
+            if [ "$comm" = uuplugin ]; then
+                seen_plugin=yes
+                currently_running=yes
+            fi
         done
+        seen_plugin_last="$currently_running"
         # In the container network namespace only: established TCP/16000.
         if awk 'FNR > 1 && $4 == "01" && $3 ~ /:3[Ee]80$/ {found=1} END {exit !found}' \
             /proc/net/tcp /proc/net/tcp6 2>/dev/null; then
@@ -194,6 +200,7 @@ probe_runtime() {
         probe_exit=$?
     fi
     printf 'UU_DOCKER_PROBE_PROCESS_OBSERVED=%s\n' "$seen_plugin"
+    printf 'UU_DOCKER_PROBE_PROCESS_LAST_SAMPLE=%s\n' "$seen_plugin_last"
     printf 'UU_DOCKER_PROBE_PORT16000_ESTABLISHED=%s\n' "$seen_cloud_port"
     printf 'UU_DOCKER_PROBE_LAUNCHER_EXIT=%s\n' "$probe_exit"
     printf 'UU_DOCKER_PROBE_LOG_BYTES=%s\n' "$(wc -c < "$STAGE/probe.log" | tr -d '[:space:]')"
@@ -207,6 +214,14 @@ probe_runtime() {
         done
         count=$(grep -c 'connect(.*AF_INET' "$STAGE/probe.strace" || true)
         printf 'UU_DOCKER_TRACE_INET_CONNECT_ATTEMPTS=%s\n' "$count"
+        for port in 53 80 443 16000; do
+            count=$(grep -Ec "connect\\(.*sin_port=htons\\($port\\)" "$STAGE/probe.strace" || true)
+            printf 'UU_DOCKER_TRACE_CONNECT_PORT_%s=%s\n' "$port" "$count"
+        done
+        for network_errno in EINPROGRESS ETIMEDOUT EHOSTUNREACH ECONNRESET EPIPE EAGAIN; do
+            count=$(grep -c " = -1 $network_errno" "$STAGE/probe.strace" || true)
+            printf 'UU_DOCKER_TRACE_ERRNO_%s=%s\n' "$network_errno" "$count"
+        done
         for spec in \
             'OPENWRT_RELEASE:/etc/openwrt_release' \
             'UCI_NETWORK:/etc/config/network' \
@@ -214,7 +229,12 @@ probe_runtime() {
             'UCI_FIREWALL:/etc/config/firewall' \
             'UBUS_SOCKET:/var/run/ubus.sock' \
             'UUSYSTEM_DIR:/usr/sbin/uu' \
+            'SN_STATE:/usr/sbin/uu/.sn' \
             'UUID_STATE:.uuplugin_uuid' \
+            'TMP_UU:/tmp/uu' \
+            'ACTIVATION_STATUS:/tmp/uu/activate_status' \
+            'DHCP_LEASES:/etc/config/dhcpd.leases' \
+            'DNSMASQ:/etc/dnsmasq.conf' \
             'TUN_DEVICE:/dev/net/tun'; do
             label=$(printf '%s' "$spec" | cut -d: -f1)
             path=$(printf '%s' "$spec" | cut -d: -f2-)
@@ -260,7 +280,7 @@ probe_runtime() {
     else
         echo "UU_DOCKER_PROBE_DIAG=no_obvious_error"
     fi
-    [ "$seen_plugin" = yes ] && [ "$seen_cloud_port" = yes ] || return 1
+    [ "$seen_plugin_last" = yes ] && [ "$seen_cloud_port" = yes ] || return 1
     echo "UU_DOCKER_PROBE_READY_IN_ISOLATED_BRIDGE (not proof of real WOL)"
 }
 

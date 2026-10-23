@@ -48,6 +48,11 @@ jobs:
         run: |
           docker run --rm --network bridge --cap-drop ALL --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 10001:10001 uu-docker-experimental:test stage-only
       - name: Bounded official runtime/cloud diagnostic (nonroot, not WOL)
+        id: runtime_probe
+        # The hosted US runner is not a real LAN and may not reach UU cloud.
+        # Keep the distinct runtime outcome visible without failing verified
+        # build/persistence gates or generating a failure-email storm.
+        continue-on-error: true
         run: |
           timeout 90s docker run --rm --init --network bridge --cap-drop ALL --cap-add NET_RAW --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 10001:10001 uu-docker-experimental:test probe-runtime
       - name: Diagnostic comparison - root without NET_ADMIN (private bridge only)
@@ -60,6 +65,24 @@ jobs:
         continue-on-error: true
         run: |
           timeout 90s docker run --rm --init --network bridge --cap-drop ALL --cap-add DAC_OVERRIDE --cap-add NET_RAW --cap-add NET_ADMIN --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 0:0 uu-docker-experimental:test probe-runtime
+      - name: Distinguish build success from UU runtime certification
+        if: always()
+        env:
+          RUNTIME_OUTCOME: ${{ steps.runtime_probe.outcome }}
+        run: |
+          {
+            echo '## Docker experimental: separate verification gates'
+            echo '| Gate | CI status |'
+            echo '|---|---|'
+            echo '| Image build, container smoke and persistent fixture | Checked by required steps |'
+            echo "| Official UU plugin startup / cloud session | Diagnostic result: ${RUNTIME_OUTCOME} |"
+            echo '| Mobile-data remote WOL on real LAN | **NOT TESTED** |'
+            echo ''
+            echo '**A green workflow does not certify UU cloud connectivity or real remote power-on.**'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$RUNTIME_OUTCOME" != success ]; then
+            echo "::warning::UU plugin/cloud diagnostic failed; only Docker build and synthetic persistence are validated."
+          fi
 
   openwrt-userland-comparison:
     # Diagnostic-only: OpenWrt userland and NET_ADMIN inside a private bridge
