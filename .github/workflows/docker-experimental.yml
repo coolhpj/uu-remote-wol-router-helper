@@ -1,0 +1,147 @@
+name: Docker experimental (source-only)
+
+on:
+  pull_request:
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - compose.yaml
+      - docker/**
+      - lib/**
+      - scripts/stage-package.sh
+      - tests/test-docker-source.sh
+      - tests/test-docker-quickstart.sh
+      - docker/quickstart.sh
+      - tests/docker-real-identity-persistence.sh
+      - tests/docker-compose-lifecycle.sh
+      - .github/workflows/docker-experimental.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify source and shell syntax
+        run: sh tests/test-docker-source.sh
+      - name: Build native amd64 image
+        run: docker build --pull -t uu-docker-experimental:test .
+      - name: Verify source-only contents
+        run: |
+          docker run --rm --entrypoint /bin/sh uu-docker-experimental:test -c 'test ! -e /opt/uu-helper/uuplugin && test ! -e /var/lib/uu-wol/runtime/uuplugin && echo IMAGE_SOURCE_ONLY_OK'
+      - name: Verify ephemeral UU PID directory writable by UID 10001
+        run: |
+          docker run --rm --network none --cap-drop ALL --read-only --user 10001:10001 --tmpfs /run:rw,nosuid,nodev,noexec,size=8m,uid=10001,gid=10001,mode=0700 --entrypoint /bin/sh uu-docker-experimental:test -c 'test -d /var/run && : > /var/run/.uu-ci-pid-probe && rm -f /var/run/.uu-ci-pid-probe && echo DOCKER_EPHEMERAL_PID_DIR_OK'
+      - name: Exercise container start and persistence across recreation
+        shell: bash
+        run: |
+          set -euo pipefail
+          vol="uu-docker-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          docker volume create "$vol"
+          trap 'docker volume rm "$vol" >/dev/null || true' EXIT
+          docker run --rm --network host --cap-drop ALL --cap-add NET_RAW --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --tmpfs /run:rw,nosuid,nodev,noexec,size=8m,uid=10001,gid=10001,mode=0700 --user 10001:10001 -v "$vol:/var/lib/uu-wol" uu-docker-experimental:test smoke | grep -F DOCKER_CONTAINER_SMOKE_OK
+          docker run --rm --network host --cap-drop ALL --cap-add NET_RAW --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --tmpfs /run:rw,nosuid,nodev,noexec,size=8m,uid=10001,gid=10001,mode=0700 --user 10001:10001 -v "$vol:/var/lib/uu-wol" uu-docker-experimental:test persistence-check | grep -F DOCKER_PERSISTENCE_OK
+          echo DOCKER_RECREATE_PERSISTENCE_PASS
+          # Synthetic, non-secret identity fixture; not a UU binding test.
+          docker run --rm --network none --read-only --user 10001:10001 -v "$vol:/var/lib/uu-wol" --entrypoint /bin/sh uu-docker-experimental:test -c 'mkdir -p /var/lib/uu-wol/runtime && printf "%s" "123e4567-e89b-12d3-a456-426614174000" > /var/lib/uu-wol/runtime/.uuplugin_uuid && chmod 600 /var/lib/uu-wol/runtime/.uuplugin_uuid'
+          docker run --rm --network none --read-only --user 10001:10001 -v "$vol:/var/lib/uu-wol" --entrypoint /bin/sh uu-docker-experimental:test -c 'test "$(cat /var/lib/uu-wol/runtime/.uuplugin_uuid)" = "123e4567-e89b-12d3-a456-426614174000" && echo DOCKER_IDENTITY_FIXTURE_RECREATE_PASS'
+      - name: Validate Compose config
+        run: docker compose config --quiet
+      - name: Official download and verification (required)
+        run: |
+          docker run --rm --network bridge --cap-drop ALL --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --tmpfs /run:rw,nosuid,nodev,noexec,size=8m,uid=10001,gid=10001,mode=0700 --user 10001:10001 uu-docker-experimental:test stage-only
+      - name: Bounded official runtime/cloud diagnostic (nonroot, not WOL)
+        id: runtime_probe
+        # The hosted US runner is not a real LAN and may not reach UU cloud.
+        # Keep the distinct runtime outcome visible without failing verified
+        # build/persistence gates or generating a failure-email storm.
+        continue-on-error: true
+        run: |
+          timeout 90s docker run --rm --init --network bridge --cap-drop ALL --cap-add NET_RAW --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --tmpfs /run:rw,nosuid,nodev,noexec,size=8m,uid=10001,gid=10001,mode=0700 --user 10001:10001 uu-docker-experimental:test probe-runtime
+      - name: UU-generated identity survives refresh and container recreation
+        id: real_identity_persistence
+        continue-on-error: true
+        shell: bash
+        run: bash tests/docker-real-identity-persistence.sh
+      - name: Real Compose host-network lifecycle and volume retention
+        id: compose_lifecycle
+        continue-on-error: true
+        shell: bash
+        run: bash tests/docker-compose-lifecycle.sh
+      - name: Diagnostic comparison - root without NET_ADMIN (private bridge only)
+        if: always()
+        continue-on-error: true
+        run: |
+          timeout 90s docker run --rm --init --network bridge --cap-drop ALL --cap-add DAC_OVERRIDE --cap-add NET_RAW --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --tmpfs /run:rw,nosuid,nodev,noexec,size=8m,uid=10001,gid=10001,mode=0700 --user 0:0 uu-docker-experimental:test probe-runtime
+      - name: Diagnostic comparison - root with NET_ADMIN (private bridge only)
+        if: always()
+        continue-on-error: true
+        run: |
+          timeout 90s docker run --rm --init --network bridge --cap-drop ALL --cap-add DAC_OVERRIDE --cap-add NET_RAW --cap-add NET_ADMIN --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --tmpfs /run:rw,nosuid,nodev,noexec,size=8m,uid=10001,gid=10001,mode=0700 --user 0:0 uu-docker-experimental:test probe-runtime
+      - name: Distinguish build success from UU runtime certification
+        if: always()
+        env:
+          RUNTIME_OUTCOME: ${{ steps.runtime_probe.outcome }}
+          IDENTITY_OUTCOME: ${{ steps.real_identity_persistence.outcome }}
+          COMPOSE_OUTCOME: ${{ steps.compose_lifecycle.outcome }}
+        run: |
+          {
+            echo '## Docker experimental: separate verification gates'
+            echo '| Gate | CI status |'
+            echo '|---|---|'
+            echo '| Image build, container smoke and persistent fixture | Checked by required steps |'
+            echo "| Official UU plugin startup / cloud session | Diagnostic result: ${RUNTIME_OUTCOME} |"
+            echo "| Actual generated UUID and SN across refresh and recreation | Diagnostic result: ${IDENTITY_OUTCOME} |"
+            echo "| Real Compose host networking, restart, recreation and down | Diagnostic result: ${COMPOSE_OUTCOME} |"
+            echo '| Mobile-data remote WOL on real LAN | **NOT TESTED** |'
+            echo ''
+            echo '**A green workflow does not certify UU cloud connectivity or real remote power-on.**'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$RUNTIME_OUTCOME" != success ]; then
+            echo "::warning::UU plugin/cloud diagnostic failed; only Docker build and synthetic persistence are validated."
+          fi
+          if [ "$IDENTITY_OUTCOME" != success ]; then
+            echo "::warning::UU-generated identity refresh/recreation preservation not yet proven."
+          fi
+          if [ "$COMPOSE_OUTCOME" != success ]; then
+            echo "::warning::Real Compose lifecycle was not validated; CI unit smoke does not cover full host network deployment."
+          fi
+
+  openwrt-userland-comparison:
+    # Diagnostic-only: OpenWrt userland and NET_ADMIN inside a private bridge
+    # network namespace. Never use host networking in this job.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build official OpenWrt-rootfs source-only candidate
+        run: docker build --pull -f docker/Dockerfile.openwrt-probe -t uu-openwrt-probe:test .
+      - name: Probe UU in isolated OpenWrt userland (not a WOL test)
+        continue-on-error: true
+        run: |
+          timeout 90s docker run --rm --init --network bridge --cap-drop ALL --cap-add DAC_OVERRIDE --cap-add NET_RAW --cap-add NET_ADMIN --security-opt no-new-privileges -e UU_CI_FIX_PID_DIR=1 --tmpfs /tmp:rw,nosuid,nodev,size=64m --tmpfs /run:rw,nosuid,nodev,noexec,size=8m,uid=10001,gid=10001,mode=0700 --user 0:0 uu-openwrt-probe:test probe-runtime
+      - name: Compare synthetic br-lan fixture in private network namespace
+        if: always()
+        continue-on-error: true
+        run: |
+          timeout 90s docker run --rm --init --network bridge --cap-drop ALL --cap-add DAC_OVERRIDE --cap-add NET_RAW --cap-add NET_ADMIN --security-opt no-new-privileges -e UU_CI_FIX_PID_DIR=1 -e UU_CI_ISOLATED_NETWORK=1 --tmpfs /tmp:rw,nosuid,nodev,size=64m --tmpfs /run:rw,nosuid,nodev,noexec,size=8m,uid=10001,gid=10001,mode=0700 --user 0:0 --entrypoint /bin/sh uu-openwrt-probe:test /opt/uu-helper/docker/openwrt-ci-network.sh
+
+  arm64-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Cross-build ARM64 (no registry push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/arm64
+          push: false
+          tags: uu-docker-experimental:arm64-test

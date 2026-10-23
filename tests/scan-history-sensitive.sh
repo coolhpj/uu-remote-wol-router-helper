@@ -46,6 +46,19 @@ filter_known_history_fixture() {
         return 0
     fi
 
+    # Two immutable Docker diagnostic commits used only RFC5737 TEST-NET
+    # addresses in an isolated CI fixture. The current tree has removed all
+    # dotted-quad literals from that fixture. Exclude only these exact historical
+    # file/line coordinates; all other history and current-tree checks remain strict.
+    case "$commit" in
+        b41296cb9158e748182dec38ffd6211aa9a8e1ad|feddecdb61696312606d440b3fe2896af77a117f)
+            printf '%s\n' "$input" \
+                | grep -Ev "^${commit}:docker/openwrt-ci-network[.]sh:(22|30|31|36|37):" \
+                || true
+            return 0
+            ;;
+    esac
+
     printf '%s\n' "$input"
 }
 

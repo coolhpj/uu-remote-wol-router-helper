@@ -1,0 +1,30 @@
+# Experimental Linux Docker path; host networking is required for LAN broadcast.
+# The source-only image downloads the official UU binary at first launch.
+services:
+  uu-wol:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: uu-remote-wol-helper:docker-experimental
+    network_mode: host
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=64m,mode=1777
+      # UU writes its PID to /var/run/uuplugin.pid. /var/run resolves to
+      # /run in Alpine; keep it writable but never persist a stale PID.
+      - /run:rw,nosuid,nodev,noexec,size=8m,uid=10001,gid=10001,mode=0700
+    volumes:
+      - uu_wol_data:/var/lib/uu-wol
+    user: "10001:10001"
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    stop_grace_period: 30s
+
+volumes:
+  uu_wol_data:
