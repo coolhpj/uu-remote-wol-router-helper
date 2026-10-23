@@ -8,6 +8,8 @@
 
 **从哪里开始？** [下载五平台预览测试包](https://github.com/coolhpj/uu-remote-wol-router-helper/releases/tag/v0.1.0-beta.2) · [查看支持的设备和固件](docs/COMPATIBILITY.md) · [OpenWrt / iStoreOS 使用说明](docs/OPENWRT.md)
 
+**新增候选：** [Docker 通用实验版说明](docker/README.md)（仅独立开发分支验证，尚未完成官方插件容器运行与移动数据远程开机；不要视为稳定支持）。
+
 > 非网易官方项目。**不是所有路由器都能安装**；设备型号和固件须满足条件，手机移动网络实际唤醒成功才算验证通过。
 
 ## 按平台下载（预览测试版，尚非稳定版）

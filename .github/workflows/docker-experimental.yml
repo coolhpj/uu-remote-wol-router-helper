@@ -1,0 +1,69 @@
+name: Docker experimental (source-only)
+
+on:
+  pull_request:
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - compose.yaml
+      - docker/**
+      - lib/**
+      - scripts/stage-package.sh
+      - tests/test-docker-source.sh
+      - .github/workflows/docker-experimental.yml
+  workflow_dispatch:
+    inputs:
+      official_stage:
+        description: "Download and validate official package only (never start it)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify source and shell syntax
+        run: sh tests/test-docker-source.sh
+      - name: Build native amd64 image
+        run: docker build --pull -t uu-docker-experimental:test .
+      - name: Verify source-only contents
+        run: |
+          docker run --rm --entrypoint /bin/sh uu-docker-experimental:test -c 'test ! -e /opt/uu-helper/uuplugin && test ! -e /var/lib/uu-wol/runtime/uuplugin && echo IMAGE_SOURCE_ONLY_OK'
+      - name: Exercise container start and persistence across recreation
+        shell: bash
+        run: |
+          set -euo pipefail
+          vol="uu-docker-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          docker volume create "$vol"
+          trap 'docker volume rm "$vol" >/dev/null || true' EXIT
+          docker run --rm --network host --cap-drop ALL --cap-add NET_RAW --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 10001:10001 -v "$vol:/var/lib/uu-wol" uu-docker-experimental:test smoke | grep -F DOCKER_CONTAINER_SMOKE_OK
+          docker run --rm --network host --cap-drop ALL --cap-add NET_RAW --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 10001:10001 -v "$vol:/var/lib/uu-wol" uu-docker-experimental:test persistence-check | grep -F DOCKER_PERSISTENCE_OK
+          echo DOCKER_RECREATE_PERSISTENCE_PASS
+      - name: Validate Compose config
+        run: docker compose config --quiet
+      - name: Optional official download/verify only (no plugin execution)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.official_stage }}
+        run: |
+          docker run --rm --network host --cap-drop ALL --cap-add NET_RAW --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 10001:10001 uu-docker-experimental:test stage-only
+
+  arm64-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Cross-build ARM64 (no registry push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/arm64
+          push: false
+          tags: uu-docker-experimental:arm64-test

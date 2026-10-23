@@ -1,0 +1,18 @@
+#!/bin/sh
+set -eu
+sh -n docker/entrypoint.sh
+sh -n scripts/stage-package.sh
+grep -q 'scripts/stage-package.sh' docker/entrypoint.sh
+grep -q 'uu_resolve_channel' docker/entrypoint.sh
+grep -q 'NET_RAW' compose.yaml
+grep -q 'network_mode: host' compose.yaml
+grep -q 'read_only: true' compose.yaml
+grep -q 'no-new-privileges:true' compose.yaml
+grep -q '^    cap_drop:' compose.yaml
+if grep -Eiq 'privileged:[[:space:]]*true|NET_ADMIN|docker.sock|host_pid' compose.yaml; then
+    echo 'Unsafe Docker Compose privilege expansion' >&2
+    exit 1
+fi
+[ ! -e docker/uuplugin ]
+[ ! -e docker/xuplugin-guardian ]
+echo DOCKER_SOURCE_GUARDS_PASS

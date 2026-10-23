@@ -1,0 +1,8 @@
+**
+!Dockerfile
+!lib/
+!lib/**
+!scripts/
+!scripts/stage-package.sh
+!docker/
+!docker/entrypoint.sh
