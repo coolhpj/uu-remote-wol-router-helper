@@ -61,6 +61,20 @@ jobs:
         run: |
           timeout 90s docker run --rm --init --network bridge --cap-drop ALL --cap-add DAC_OVERRIDE --cap-add NET_RAW --cap-add NET_ADMIN --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 0:0 uu-docker-experimental:test probe-runtime
 
+  openwrt-userland-comparison:
+    # Diagnostic-only: OpenWrt userland and NET_ADMIN inside a private bridge
+    # network namespace. Never use host networking in this job.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build official OpenWrt-rootfs source-only candidate
+        run: docker build --pull -f docker/Dockerfile.openwrt-probe -t uu-openwrt-probe:test .
+      - name: Probe UU in isolated OpenWrt userland (not a WOL test)
+        continue-on-error: true
+        run: |
+          timeout 90s docker run --rm --init --network bridge --cap-drop ALL --cap-add DAC_OVERRIDE --cap-add NET_RAW --cap-add NET_ADMIN --security-opt no-new-privileges --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 0:0 uu-openwrt-probe:test probe-runtime
+
   arm64-build:
     runs-on: ubuntu-latest
     timeout-minutes: 25
