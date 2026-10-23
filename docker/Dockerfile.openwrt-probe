@@ -3,7 +3,7 @@
 FROM openwrt/rootfs:x86_64-24.10.8
 RUN mkdir -p /var/lock /var/lib/uu-wol /opt/uu-helper/scripts /opt/uu-helper/docker \
     && opkg update \
-    && opkg install ca-bundle curl flock ip-full \
+    && opkg install ca-bundle curl flock ip-full strace \
     && ln -s /var/lib/uu-wol/runtime /usr/sbin/uu
 COPY lib/ /opt/uu-helper/lib/
 COPY scripts/stage-package.sh /opt/uu-helper/scripts/stage-package.sh

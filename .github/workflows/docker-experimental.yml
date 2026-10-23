@@ -73,12 +73,12 @@ jobs:
       - name: Probe UU in isolated OpenWrt userland (not a WOL test)
         continue-on-error: true
         run: |
-          timeout 90s docker run --rm --init --network bridge --cap-drop ALL --cap-add DAC_OVERRIDE --cap-add NET_RAW --cap-add NET_ADMIN --security-opt no-new-privileges --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 0:0 uu-openwrt-probe:test probe-runtime
+          timeout 90s docker run --rm --init --network bridge --cap-drop ALL --cap-add DAC_OVERRIDE --cap-add NET_RAW --cap-add NET_ADMIN --security-opt no-new-privileges -e UU_CI_TRACE_SYSCALLS=1 --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 0:0 uu-openwrt-probe:test probe-runtime
       - name: Compare synthetic br-lan fixture in private network namespace
         if: always()
         continue-on-error: true
         run: |
-          timeout 90s docker run --rm --init --network bridge --cap-drop ALL --cap-add DAC_OVERRIDE --cap-add NET_RAW --cap-add NET_ADMIN --security-opt no-new-privileges -e UU_CI_ISOLATED_NETWORK=1 --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 0:0 --entrypoint /bin/sh uu-openwrt-probe:test /opt/uu-helper/docker/openwrt-ci-network.sh
+          timeout 90s docker run --rm --init --network bridge --cap-drop ALL --cap-add DAC_OVERRIDE --cap-add NET_RAW --cap-add NET_ADMIN --security-opt no-new-privileges -e UU_CI_ISOLATED_NETWORK=1 -e UU_CI_TRACE_SYSCALLS=1 --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 0:0 --entrypoint /bin/sh uu-openwrt-probe:test /opt/uu-helper/docker/openwrt-ci-network.sh
 
   arm64-build:
     runs-on: ubuntu-latest

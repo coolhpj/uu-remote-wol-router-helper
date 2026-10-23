@@ -154,7 +154,16 @@ probe_runtime() {
     esac
 
     ( umask 077; : > "$STAGE/probe.log" )
-    ./uuplugin ./uu.conf > "$STAGE/probe.log" 2>&1 &
+    if [ "${UU_CI_TRACE_SYSCALLS:-0}" = 1 ] && command -v strace >/dev/null 2>&1; then
+        # Collect a private ephemeral trace; never print paths, endpoints,
+        # process arguments, UUIDs, addresses or original trace lines.
+        strace -qq -f -e trace=%file,%network,ioctl -o "$STAGE/probe.strace" \
+            ./uuplugin ./uu.conf > "$STAGE/probe.log" 2>&1 &
+        echo "UU_DOCKER_TRACE_ATTEMPTED=yes"
+    else
+        ./uuplugin ./uu.conf > "$STAGE/probe.log" 2>&1 &
+        echo "UU_DOCKER_TRACE_ATTEMPTED=no"
+    fi
     probe_pid=$!
     seen_plugin=no
     seen_cloud_port=no
@@ -188,6 +197,15 @@ probe_runtime() {
     printf 'UU_DOCKER_PROBE_PORT16000_ESTABLISHED=%s\n' "$seen_cloud_port"
     printf 'UU_DOCKER_PROBE_LAUNCHER_EXIT=%s\n' "$probe_exit"
     printf 'UU_DOCKER_PROBE_LOG_BYTES=%s\n' "$(wc -c < "$STAGE/probe.log" | tr -d '[:space:]')"
+    if [ -s "$STAGE/probe.strace" ]; then
+        echo "UU_DOCKER_TRACE_CAPTURED=yes"
+        for errno in ENOENT EACCES EPERM EROFS ENETUNREACH ECONNREFUSED EADDRNOTAVAIL EINVAL ENOSYS; do
+            count=$(grep -c " = -1 ${errno}" "$STAGE/probe.strace" || true)
+            printf 'UU_DOCKER_TRACE_ERRNO_%s=%s\n' "$errno" "$count"
+        done
+    elif [ "${UU_CI_TRACE_SYSCALLS:-0}" = 1 ]; then
+        echo "UU_DOCKER_TRACE_CAPTURED=no"
+    fi
     if [ ! -s "$STAGE/probe.log" ]; then
         echo "UU_DOCKER_PROBE_LOG_CLASS=empty"
     elif grep -Eiq 'operation not permitted|permission denied|read-only file system|iptables|netlink|nftables|nft' "$STAGE/probe.log"; then
