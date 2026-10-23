@@ -199,6 +199,29 @@ probe_runtime() {
     printf 'UU_DOCKER_PROBE_LOG_BYTES=%s\n' "$(wc -c < "$STAGE/probe.log" | tr -d '[:space:]')"
     if [ -s "$STAGE/probe.strace" ]; then
         echo "UU_DOCKER_TRACE_CAPTURED=yes"
+        # Emit only aggregated syscall counts; never print trace arguments,
+        # paths, IP addresses, account identifiers or original log lines.
+        for call in openat newfstatat stat statx access readlink execve connect ioctl; do
+            count=$(grep -Ec "$call\(.* = -1 ENOENT" "$STAGE/probe.strace" || true)
+            printf 'UU_DOCKER_TRACE_ENOENT_CALL_%s=%s\n' "$call" "$count"
+        done
+        count=$(grep -c 'connect(.*AF_INET' "$STAGE/probe.strace" || true)
+        printf 'UU_DOCKER_TRACE_INET_CONNECT_ATTEMPTS=%s\n' "$count"
+        for spec in \
+            'OPENWRT_RELEASE:/etc/openwrt_release' \
+            'UCI_NETWORK:/etc/config/network' \
+            'UCI_SYSTEM:/etc/config/system' \
+            'UCI_FIREWALL:/etc/config/firewall' \
+            'UBUS_SOCKET:/var/run/ubus.sock' \
+            'UUSYSTEM_DIR:/usr/sbin/uu' \
+            'UUID_STATE:.uuplugin_uuid' \
+            'TUN_DEVICE:/dev/net/tun'; do
+            label=$(printf '%s' "$spec" | cut -d: -f1)
+            path=$(printf '%s' "$spec" | cut -d: -f2-)
+            if grep -F "$path" "$STAGE/probe.strace" | grep -q ENOENT; then
+                printf 'UU_DOCKER_TRACE_MISSING_%s=yes\n' "$label"
+            fi
+        done
         for errno in ENOENT EACCES EPERM EROFS ENETUNREACH ECONNREFUSED EADDRNOTAVAIL EINVAL ENOSYS; do
             count=$(grep -c " = -1 ${errno}" "$STAGE/probe.strace" || true)
             printf 'UU_DOCKER_TRACE_ERRNO_%s=%s\n' "$errno" "$count"
