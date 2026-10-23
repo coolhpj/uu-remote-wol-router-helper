@@ -47,9 +47,19 @@ jobs:
       - name: Official download and verification (required)
         run: |
           docker run --rm --network bridge --cap-drop ALL --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 10001:10001 uu-docker-experimental:test stage-only
-      - name: Bounded official runtime/cloud diagnostic (not a WOL test)
+      - name: Bounded official runtime/cloud diagnostic (nonroot, not WOL)
         run: |
           timeout 90s docker run --rm --init --network bridge --cap-drop ALL --cap-add NET_RAW --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 10001:10001 uu-docker-experimental:test probe-runtime
+      - name: Diagnostic comparison - root without NET_ADMIN (private bridge only)
+        if: always()
+        continue-on-error: true
+        run: |
+          timeout 90s docker run --rm --init --network bridge --cap-drop ALL --cap-add NET_RAW --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 0:0 uu-docker-experimental:test probe-runtime
+      - name: Diagnostic comparison - root with NET_ADMIN (private bridge only)
+        if: always()
+        continue-on-error: true
+        run: |
+          timeout 90s docker run --rm --init --network bridge --cap-drop ALL --cap-add NET_RAW --cap-add NET_ADMIN --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --user 0:0 uu-docker-experimental:test probe-runtime
 
   arm64-build:
     runs-on: ubuntu-latest

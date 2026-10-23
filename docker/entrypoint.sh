@@ -107,7 +107,8 @@ check_persistence() {
 
 # Ephemeral CI diagnostic: uses only an anonymous Docker data volume, removed
 # when the probe container exits. Never mount a user's existing identity volume.
-# Run with a private Docker bridge and no NET_ADMIN.
+# All probes use a private Docker bridge, never host networking. One CI-only
+# comparison grants NET_ADMIN inside that isolated namespace, not the host.
 # No raw official runtime logs (which may contain identity material) are printed.
 probe_runtime() {
     check_data
@@ -186,6 +187,18 @@ probe_runtime() {
     printf 'UU_DOCKER_PROBE_PROCESS_OBSERVED=%s\n' "$seen_plugin"
     printf 'UU_DOCKER_PROBE_PORT16000_ESTABLISHED=%s\n' "$seen_cloud_port"
     printf 'UU_DOCKER_PROBE_LAUNCHER_EXIT=%s\n' "$probe_exit"
+    printf 'UU_DOCKER_PROBE_LOG_BYTES=%s\n' "$(wc -c < "$STAGE/probe.log" | tr -d '[:space:]')"
+    if [ ! -s "$STAGE/probe.log" ]; then
+        echo "UU_DOCKER_PROBE_LOG_CLASS=empty"
+    elif grep -Eiq 'operation not permitted|permission denied|read-only file system|iptables|netlink|nftables|nft' "$STAGE/probe.log"; then
+        echo "UU_DOCKER_PROBE_LOG_CLASS=permission_or_firewall"
+    elif grep -Eiq 'not found|error loading shared library|symbol not found|exec format|error relocating' "$STAGE/probe.log"; then
+        echo "UU_DOCKER_PROBE_LOG_CLASS=elf_dependency"
+    elif grep -Eiq 'openwrt|uci|ubus|router|interface|network' "$STAGE/probe.log"; then
+        echo "UU_DOCKER_PROBE_LOG_CLASS=router_environment"
+    else
+        echo "UU_DOCKER_PROBE_LOG_CLASS=unclassified"
+    fi
     if grep -Eiq 'not found|error loading shared library|symbol not found|no such file|exec format|error relocating' "$STAGE/probe.log"; then
         echo "UU_DOCKER_PROBE_DIAG=possible_elf_loader_or_dependency_problem"
     elif grep -Eiq 'operation not permitted|permission denied|read-only file system|iptables|netlink|nftables' "$STAGE/probe.log"; then
