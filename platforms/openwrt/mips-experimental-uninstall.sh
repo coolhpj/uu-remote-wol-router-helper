@@ -17,6 +17,16 @@ else
     APP="$TARGET_ROOT/usr/lib/uu-mips-wol-helper"
     INIT="$TARGET_ROOT/etc/init.d/uu-mips-wol-helper"
 fi
+# The legacy uninstaller must not leave an upgraded v2 app orphaned.
+if [ "$TARGET_ROOT" = / ]; then
+    V2=/usr/lib/uu-mips-wol-helper-v2
+else
+    V2="$TARGET_ROOT/usr/lib/uu-mips-wol-helper-v2"
+fi
+if [ -e "$V2" ] || [ -L "$V2" ] || [ -e "$INIT.v1-backup" ] || [ -L "$INIT.v1-backup" ]; then
+    echo "MIPS_BETA_UNINSTALL_DENIED: upgraded installation needs the v2 uninstaller" >&2
+    exit 65
+fi
 [ -d "$APP" ] && [ ! -L "$APP" ] && [ -f "$APP/install.meta" ] &&
     grep -qx 'managed_by=uu-remote-wol-router-helper-mips-beta' "$APP/install.meta" ||
     { echo "No managed beta app found; refusing to remove unrelated files" >&2; exit 4; }
