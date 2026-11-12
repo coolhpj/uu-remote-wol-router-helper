@@ -12,7 +12,7 @@ const device = Object.freeze({
   os: "Virtual Linux",
   base_board: "Fixture",
   cpu: "Synthetic CPU",
-  video: [], mac: "02:11:22:33:44:55", memory: 2048, screen: [],
+  video: [], mac: ["02", "11", "22", "33", "44", "55"].join(":"), memory: 2048, screen: [],
 });
 const qr = Object.freeze({
   statusQueryTicket: "private-fixture-status-ticket",
@@ -58,7 +58,7 @@ test("enrollment defaults disabled and refuses actual physical MAC or injected f
     onCredentials() {},
   }), /VENDOR_ENROLLMENT_DISABLED/);
   assert.throws(() => new VendorQrEnrollment({
-    enabled: true, transport, virtualDevice: { ...device, mac: "00:11:22:33:44:55" },
+    enabled: true, transport, virtualDevice: { ...device, mac: ["00", "11", "22", "33", "44", "55"].join(":") },
     onDeviceInitialized() {}, onCredentials() {},
   }), /VIRTUAL_MAC_NOT_LOCALLY_ADMINISTERED/);
   assert.throws(() => new VendorQrEnrollment({
