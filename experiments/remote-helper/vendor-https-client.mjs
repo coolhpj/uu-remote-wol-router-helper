@@ -6,7 +6,16 @@ import { prepareSignedRequest, parseQrIssued } from "./vendor-wire-contract.mjs"
 
 export const VENDOR_ORIGIN = "https://api.nrd.nie.163.com";
 const MAX_REPLY_BYTES = 16 * 1024;
+const QR_STATUS_PATH = "/api/v1/qrcode/login/status";
 function reject(code) { throw new Error(code); }
+
+// QR status may be a 60-second long poll; other endpoints remain short-lived.
+export function resolveVendorTimeout(path, normalMs = 10000, qrPollMs = 65000) {
+  if (!Number.isInteger(normalMs) || normalMs < 1000 || normalMs > 15000 ||
+      !Number.isInteger(qrPollMs) || qrPollMs < 60000 || qrPollMs > 70000)
+    reject("VENDOR_TIMEOUT_INVALID");
+  return path === QR_STATUS_PATH ? qrPollMs : normalMs;
+}
 
 async function readJsonBounded(response) {
   const contentType = response.headers?.get?.("content-type") ?? "";
@@ -43,17 +52,28 @@ async function readJsonBounded(response) {
 
 export function createVendorHttpsClient({
   enabled = false, signingKey, xParams, fetchImpl = globalThis.fetch,
-  timeoutMs = 10000,
+  timeoutMs = 10000, qrPollTimeoutMs = 65000, clock = Date.now,
 } = {}) {
   if (enabled !== true) reject("VENDOR_NETWORK_DISABLED");
   if (process.env.NODE_TLS_REJECT_UNAUTHORIZED === "0")
     reject("VENDOR_TLS_VERIFICATION_DISABLED");
   if (typeof fetchImpl !== "function") reject("VENDOR_FETCH_UNAVAILABLE");
-  if (!Number.isInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 15000)
-    reject("VENDOR_TIMEOUT_INVALID");
+  if (typeof clock !== "function") reject("VENDOR_CLOCK_UNAVAILABLE");
+  resolveVendorTimeout(QR_STATUS_PATH, timeoutMs, qrPollTimeoutMs);
 
   async function request(path, body = null, method = "POST") {
-    const signed = prepareSignedRequest({ method, path, xParams, body, signingKey });
+    // Resolve fresh headers for every request: a static timestamp or device ID
+    // from before registration cannot authenticate a later QR poll.
+    let params;
+    let now;
+    try { now = clock(); }
+    catch { reject("VENDOR_CLOCK_UNAVAILABLE"); }
+    if (!Number.isSafeInteger(now) || now < 0) reject("VENDOR_CLOCK_INVALID");
+    try { params = typeof xParams === "function" ? xParams({ path, method, nowSeconds: Math.floor(now / 1000) }) : xParams; }
+    catch { reject("VENDOR_SIGNING_PARAMS_UNAVAILABLE"); }
+    const signed = prepareSignedRequest({ method, path, xParams: params, body, signingKey });
+    if (Math.abs(Number(signed.headers["x-param-ts"]) * 1000 - now) > 120000)
+      reject("VENDOR_SIGNING_TIMESTAMP_STALE");
     const url = new URL(path, VENDOR_ORIGIN);
     if (url.origin !== VENDOR_ORIGIN || url.pathname !== path || url.search || url.hash)
       reject("VENDOR_URL_REJECTED");
@@ -65,7 +85,7 @@ export function createVendorHttpsClient({
           ...(method === "POST" ? { "content-type": "application/json" } : {}) },
         body: method === "POST" ? signed.bodyText : undefined,
         redirect: "error", credentials: "omit", cache: "no-store",
-        signal: AbortSignal.timeout(timeoutMs),
+        signal: AbortSignal.timeout(resolveVendorTimeout(path, timeoutMs, qrPollTimeoutMs)),
       });
     } catch {
       // No URLs, requests, signatures, keys, tickets or response bodies in errors.

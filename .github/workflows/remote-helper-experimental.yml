@@ -67,5 +67,8 @@ jobs:
       - name: Disabled-by-default vendor HTTPS adapter (mock-only, no live requests)
         run: node --test --test-reporter=spec tests/test-remote-helper-vendor-https.mjs
 
+      - name: Virtual-device QR enrollment and cancellation (mock-only, no live requests)
+        run: node --test --test-reporter=spec tests/test-remote-helper-vendor-enrollment.mjs
+
       - name: Real UDP one-packet test on localhost only
         run: python3 tests/test-remote-helper-loopback.py

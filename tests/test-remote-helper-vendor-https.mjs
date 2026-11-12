@@ -4,7 +4,8 @@ import { createVendorHttpsClient, sanitizedVendorResult, VENDOR_ORIGIN }
   from "../experiments/remote-helper/vendor-https-client.mjs";
 
 const options = {
-  enabled: true, signingKey: "synthetic-ci-test-key", xParams: {
+  enabled: true, signingKey: "synthetic-ci-test-key", clock: () => 1763000000000,
+  xParams: {
     "x-param-ts": "1763000000", "x-param-plat": "1",
   },
 };
@@ -131,4 +132,57 @@ test("no signing key means zero network attempts", async () => {
     name: "synthetic-test-device",
   }), /SIGNING_KEY_REQUIRED/);
   assert.equal(count, 0);
+});
+
+test("stale signing timestamp prevents any network attempt", async () => {
+  let sent = 0;
+  const client = createVendorHttpsClient({
+    ...options, clock: () => 1763000300000,
+    fetchImpl: async () => { sent++; return result({ code: 0, data: {} }); },
+  });
+  await assert.rejects(client.request("/api/v1/device/windows/init", {
+    name: "virtual-fixture",
+  }), /VENDOR_SIGNING_TIMESTAMP_STALE/);
+  assert.equal(sent, 0);
+});
+
+test("dynamic timestamp and device identity are refreshed on each signed request", async () => {
+  let now = 1763000000000;
+  let deviceId = "";
+  const headers = [];
+  const client = createVendorHttpsClient({
+    ...options, clock: () => now,
+    xParams: ({ nowSeconds }) => ({
+      "x-param-ts": String(nowSeconds), "x-param-plat": "1",
+      ...(deviceId ? { "x-param-device-id": deviceId } : {}),
+    }),
+    fetchImpl: async (_url, init) => {
+      headers.push(init.headers);
+      return result({ code: 0, data: {} });
+    },
+  });
+  await client.request("/api/v1/device/windows/init", {});
+  now += 200000;
+  deviceId = "synthetic-fixture-device";
+  await client.request("/api/v1/qrcode/gen/login", null);
+  assert.equal(headers.length, 2);
+  assert.equal(headers[0]["x-param-device-id"], undefined);
+  assert.equal(headers[1]["x-param-device-id"], deviceId);
+  assert.equal(headers[0]["x-param-ts"], "1763000000");
+  assert.equal(headers[1]["x-param-ts"], "1763000200");
+  assert.notEqual(headers[0]["x-param-sign"], headers[1]["x-param-sign"]);
+});
+
+test("signing parameter provider failure is redacted and sends no HTTP", async () => {
+  let sent = 0;
+  const client = createVendorHttpsClient({
+    ...options, xParams: () => { throw Error("sensitive-local-secret"); },
+    fetchImpl: async () => { sent++; return result({ code: 0, data: {} }); },
+  });
+  await assert.rejects(client.request("/api/v1/qrcode/gen/login", null), e => {
+    assert.equal(e.message, "VENDOR_SIGNING_PARAMS_UNAVAILABLE");
+    assert.equal(e.message.includes("sensitive-local-secret"), false);
+    return true;
+  });
+  assert.equal(sent, 0);
 });
