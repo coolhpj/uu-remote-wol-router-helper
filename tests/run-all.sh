@@ -45,7 +45,10 @@ done
 
 echo "== Remote Helper experimental offline protocol tests =="
 if command -v node >/dev/null 2>&1; then
-    node --test --test-reporter=spec tests/test-remote-helper-cloud.mjs tests/test-remote-helper-cloud-bridge.mjs
+    node --test --test-reporter=spec \
+        tests/test-remote-helper-cloud.mjs tests/test-remote-helper-cloud-bridge.mjs \
+        tests/test-remote-helper-enrollment.mjs tests/test-remote-helper-credentials.mjs \
+        tests/test-remote-helper-qr-loopback.mjs tests/test-remote-helper-room-loopback.mjs
 else
     echo "REMOTE_HELPER_CLOUD_CONTRACT_SKIPPED: Node.js unavailable (separate CI must enforce)"
 fi

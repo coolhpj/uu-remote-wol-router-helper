@@ -1,6 +1,6 @@
 # Remote WoL helper: isolated network-layer prototype
 
-Status: **isolated, offline-only helper prototype**. Read-only discovery, safe-by-default sender and a pure registration/cloud-push validation contract are now implemented and mock-tested. A separate real `socat` loopback test exists. **Real LAN transmission, UU login, cloud registration and push delivery, identity persistence, and actual PC wake remain unverified**. This is not a usable UU client or a Docker release.
+Status: **isolated, offline-only helper prototype**. Read-only discovery, safe-by-default sender, synthetic cloud command validation, and **test-only QR enrollment / room authentication over loopback** are implemented and tested. A real `socat` UDP loopback test also exists. **Real LAN transmission, vendor-issued QR login, server registration, real cloud push, reboot identity retention, and actual PC wake remain unverified**. This is not a usable UU client or a Docker release.
 
 This directory explores a second, optional NetEase UU Remote wake-helper identity **without changing** the existing official router `uuplugin` Docker experiment (PR #16). The two identities, login credentials, cloud channels, persistent volumes and install/cleanup responsibilities must remain separate.
 
@@ -16,6 +16,8 @@ This directory explores a second, optional NetEase UU Remote wake-helper identit
 
 `test-remote-helper-cloud-bridge.mjs` runs a fully synthetic registration→message→wake-plan→shell-sender path using a **fake** `ip` and `socat`; no host network is touched. This is the bridge contract, **not** a live end-to-end UU test. Node.js is currently a development harness only; the eventual production implementation and runtime for low-memory router hardware are undecided.
 
+`enrollment-state.mjs` is a deterministic QR state machine with five-minute maximum QR lifetime, distinct pending/scanned/approved/exchanging states, replay rejection and redacted public status. `fixture-qr-client.mjs` uses **only** loopback HTTP to exercise a synthetic QR server; external API URLs are rejected. `private-credentials.mjs` implements opt-in local token persistence under a private 0700 directory with atomic 0600 file writes, no-follow and restrictive ownership checks. **Tokens are stored in plaintext, not encrypted**; never mount shared folders or put real tokens into CI tests. `fixture-room-client.mjs` connects only to a local mock WebSocket server, requires the correct room token and account acknowledgement before interpreting synthetic `bmsg_push` frames, and closes on disconnect/expiry. It never connects to UU or sends WOL packets. The mock uses a test-defined handshake, **not verified Socket.IO/Engine.IO vendor authentication**.
+
 Offline verification:
 
 ```sh
@@ -24,12 +26,13 @@ sh tests/test-remote-helper-magic.sh
 sh tests/test-remote-helper-discovery.sh
 sh tests/test-remote-helper-sender.sh
 node --test tests/test-remote-helper-cloud.mjs tests/test-remote-helper-cloud-bridge.mjs
+node --test tests/test-remote-helper-enrollment.mjs tests/test-remote-helper-credentials.mjs tests/test-remote-helper-qr-loopback.mjs tests/test-remote-helper-room-loopback.mjs
 sh tests/run-all.sh
 # Where python3 and socat are installed, test real socket behavior on 127.0.0.1 only:
 python3 tests/test-remote-helper-loopback.py
 ```
 
-The project adds **71 shell offline cases**: 19 LAN input checks, 10 Magic Packet encoding cases, 27 synthetic interface-discovery cases (including BusyBox multiline parsing) and 15 mock socket-sender cases. It also adds **53 Node offline contract/bridge cases** (48 registration/push validation, five fake-end-to-end bridge tests), for **124 new offline cases**. Fixtures use RFC 5737 example IPs and a fake `socat`; no tests use a real UU account. The optional real-UDP loopback test runs only where both Python 3 and socat are available; on the existing DNAS workspace they are absent and the full suite explicitly prints `REMOTE_HELPER_LOOPBACK_SKIPPED`, rather than claiming a live UDP pass.
+The project adds **71 shell offline cases**: 19 LAN input checks, 10 Magic Packet encoding cases, 27 synthetic interface-discovery cases (including BusyBox multiline parsing) and 15 mock socket-sender cases. It also adds **77 Node offline and loopback-auth cases** (53 original protocol/bridge cases plus 24 QR, credential and room cases), for **148 new cases** across the project. Fixtures use RFC 5737 example IPs and a fake `socat`; no tests use a real UU account. The optional real-UDP loopback test runs only where both Python 3 and socat are available; on the existing DNAS workspace they are absent and the full suite explicitly prints `REMOTE_HELPER_LOOPBACK_SKIPPED`, rather than claiming a live UDP pass.
 
 ## Why this is separate
 
@@ -43,7 +46,7 @@ See [protocol-review.md](protocol-review.md) for the exact publicly observed QR 
 
 1. Verify live read-only LAN interface discovery on representative OpenWrt, iStoreOS and NAS systems, including the new BusyBox multiline fallback. Distinguish default WAN, VLAN and LAN membership and confirm alias ambiguity handling.
 2. Complete the isolated full-sender integration: exercise the actual `wol-send.sh` route preflight and socat on a dedicated virtual LAN in an environment with appropriate capabilities, then verify one 102-byte UDP broadcast and fail-closed behavior. The separate raw socat loopback test has passed, but the full sender's real socket branch is not yet exercised. Do not send to the user's real LAN without explicit approval.
-3. Build a real **account-authenticated** UU remote transport and QR enrollment adapter, scoped to authorized WOL only, with private credential persistence, token expiry/refresh and server-accepted registration; test against a loopback Socket.IO fixture before any live login. The existing JavaScript module only validates synthetic frames and does not authenticate them. Avoid enabling remote desktop, terminal, file transfer or port forwarding.
+3. Independently implement and verify a **real vendor-authenticated** UU remote enrollment/room transport (vendor request signing, TLS server verification, token rotation/refresh, helper registration and genuine Socket.IO/Engine.IO handshake), then exercise it against a controlled mock and user-authorized account. The current HTTP and WebSocket tests connect to a **loopback fixture only** and do not prove the real service protocol. Never add remote desktop, terminal, file transfer or port forwarding.
 4. Only then build x86_64 and ARM64 experimental containers without touching PR #16. Actual offsite wake and post-reboot binding validation remain separate acceptance gates.
 
 This prototype is not published, installed, or connected to any NetEase account.
