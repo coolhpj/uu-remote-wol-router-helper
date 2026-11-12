@@ -24,9 +24,12 @@ fail() { echo "not ok - $*" >&2; exit 1; }
 [ -f "$helper" ] || fail 'missing helper'
 ! grep -Eq '(^|[[:space:]])killall[[:space:]]' "$init" || fail 'init must not killall by basename'
 mkdir -p "$test_dir/managed" "$test_dir/unrelated"
-sleep_binary=$(command -v sleep) || exit 1
-cp "$sleep_binary" "$owned"
-cp "$sleep_binary" "$foreign"
+# Avoid renaming GNU coreutils multicall 'sleep' (it refuses unknown argv[0]
+# on newer GitHub runners). A copied POSIX shell stays alive in a while loop
+# and still exposes the exact mock /proc/PID/exe paths we need to verify.
+fixture_shell=$(command -v sh) || exit 1
+cp "$fixture_shell" "$owned"
+cp "$fixture_shell" "$foreign"
 chmod 0755 "$owned" "$foreign"
 
 # Confirm an untrusted caller cannot retarget the production helper.
@@ -37,9 +40,9 @@ if UU_TEST_MODE=1 UU_TEST_GUARDIAN_PATH=/tmp/foreign/xuplugin-guardian sh "$help
     fail 'test path outside owned fixture prefix must be refused'
 fi
 
-"$owned" 90 >/dev/null 2>&1 &
+"$owned" -c 'while :; do sleep 1; done' >/dev/null 2>&1 &
 owned_pid=$!
-"$foreign" 90 >/dev/null 2>&1 &
+"$foreign" -c 'while :; do sleep 1; done' >/dev/null 2>&1 &
 foreign_pid=$!
 sleep 1
 [ "$(readlink "/proc/$owned_pid/exe")" = "$owned" ] || fail 'owned fixture executable mismatch'
