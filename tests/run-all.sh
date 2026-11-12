@@ -11,6 +11,10 @@ echo "== unit / guard tests =="
 for test_file in \
     tests/test-api-parser.sh \
     tests/test-channel.sh \
+    tests/test-remote-helper-lan.sh \
+    tests/test-remote-helper-magic.sh \
+    tests/test-remote-helper-discovery.sh \
+    tests/test-remote-helper-sender.sh \
     tests/test-mips-elf.sh \
     tests/test-mips-runtime-readiness.sh \
     tests/test-mips-runtime-health.sh \
@@ -37,6 +41,20 @@ for test_file in \
  do
     sh "$test_file"
 done
+
+echo "== Remote Helper experimental offline protocol tests =="
+if command -v node >/dev/null 2>&1; then
+    node --test --test-reporter=spec tests/test-remote-helper-cloud.mjs tests/test-remote-helper-cloud-bridge.mjs
+else
+    echo "REMOTE_HELPER_CLOUD_CONTRACT_SKIPPED: Node.js unavailable (separate CI must enforce)"
+fi
+
+echo "== Optional real UDP loopback =="
+if command -v python3 >/dev/null 2>&1; then
+    python3 tests/test-remote-helper-loopback.py
+else
+    echo "REMOTE_HELPER_LOOPBACK_SKIPPED: python3 unavailable (separate CI must enforce)"
+fi
 
 echo "== sensitive scan =="
 sh tests/scan-sensitive.sh

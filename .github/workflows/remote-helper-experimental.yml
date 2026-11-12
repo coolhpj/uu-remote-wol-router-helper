@@ -1,0 +1,56 @@
+name: Remote Helper Experimental
+
+on:
+  pull_request:
+    paths:
+      - 'experiments/remote-helper/**'
+      - 'tests/fixtures/remote-helper-*'
+      - 'tests/test-remote-helper-*'
+      - 'tests/run-all.sh'
+      - '.github/workflows/remote-helper-experimental.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  remote-helper-offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Check out test candidate
+        uses: actions/checkout@v4
+
+      - name: Require Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Require Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install real UDP loopback test transport
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends socat
+
+      - name: Verify test dependencies (no SKIP permitted)
+        run: |
+          command -v node
+          command -v python3
+          command -v socat
+
+      - name: Offline LAN, packet, discovery and sender tests
+        run: |
+          sh tests/test-remote-helper-lan.sh
+          sh tests/test-remote-helper-magic.sh
+          sh tests/test-remote-helper-discovery.sh
+          sh tests/test-remote-helper-sender.sh
+
+      - name: Registration and cloud-push synthetic contracts
+        run: node --test --test-reporter=spec tests/test-remote-helper-cloud.mjs tests/test-remote-helper-cloud-bridge.mjs
+
+      - name: Real UDP one-packet test on localhost only
+        run: python3 tests/test-remote-helper-loopback.py
