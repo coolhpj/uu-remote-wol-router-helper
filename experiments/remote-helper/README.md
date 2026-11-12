@@ -18,6 +18,8 @@ This directory explores a second, optional NetEase UU Remote wake-helper identit
 
 `credential-session.mjs` adds a test-only credential lifecycle: restores an existing account, checks token expiry with a safety margin, coalesces concurrent refreshes into one callback, atomically saves fresh credentials using the private vault, rejects cross-account changes and requires owner reauthorization on expiry or failed refresh. Refresh is **injected from a test fixture**, not a real vendor API; it does not schedule background jobs or connect externally. Stored tokens remain plaintext and require a private trusted volume.
 
+`vendor-wire-contract.mjs` independently implements an **inert** HMAC-SHA256 request-signature format and explicit vendor QR ticket/poll/exchange field checks based on *unofficial published observations*. Its signing key is always provided by a caller; no vendor client secret or private account credential is included. Current evidence says QR status polling should use `status_query_ticket` rather than the legacy generation `token`; the contract fails closed if this ticket is absent. No request is sent to any vendor endpoint and no real UU API compatibility is claimed.
+
 `enrollment-state.mjs` is a deterministic QR state machine with five-minute maximum QR lifetime, distinct pending/scanned/approved/exchanging states, replay rejection and redacted public status. `fixture-qr-client.mjs` uses **only** loopback HTTP to exercise a synthetic QR server; external API URLs are rejected. `private-credentials.mjs` implements opt-in local token persistence under a private 0700 directory with atomic 0600 file writes, no-follow and restrictive ownership checks. **Tokens are stored in plaintext, not encrypted**; never mount shared folders or put real tokens into CI tests. `fixture-room-client.mjs` connects only to a local mock WebSocket server, requires the correct room token and account acknowledgement before interpreting synthetic `bmsg_push` frames, and closes on disconnect/expiry. It never connects to UU or sends WOL packets. The mock requires **separate registration evidence** showing both successful helper registration and enabled WoL before a room may accept events; room connection alone is insufficient. This fixture evidence is still synthetic. The mock uses a test-defined handshake, **not verified Socket.IO/Engine.IO vendor authentication**.
 
 Offline verification:
@@ -28,13 +30,13 @@ sh tests/test-remote-helper-magic.sh
 sh tests/test-remote-helper-discovery.sh
 sh tests/test-remote-helper-sender.sh
 node --test tests/test-remote-helper-cloud.mjs tests/test-remote-helper-cloud-bridge.mjs
-node --test tests/test-remote-helper-enrollment.mjs tests/test-remote-helper-credentials.mjs tests/test-remote-helper-qr-loopback.mjs tests/test-remote-helper-room-loopback.mjs tests/test-remote-helper-credential-session.mjs
+node --test tests/test-remote-helper-enrollment.mjs tests/test-remote-helper-credentials.mjs tests/test-remote-helper-qr-loopback.mjs tests/test-remote-helper-room-loopback.mjs tests/test-remote-helper-credential-session.mjs tests/test-remote-helper-vendor-wire.mjs
 sh tests/run-all.sh
 # Where python3 and socat are installed, test real socket behavior on 127.0.0.1 only:
 python3 tests/test-remote-helper-loopback.py
 ```
 
-The project adds **71 shell offline cases**: 19 LAN input checks, 10 Magic Packet encoding cases, 27 synthetic interface-discovery cases (including BusyBox multiline parsing) and 15 mock socket-sender cases. It also adds **87 Node offline and loopback-auth cases** (53 original protocol/bridge cases plus 26 QR, credential and room cases and 8 credential lifecycle cases), for **158 new cases** across the project. Fixtures use RFC 5737 example IPs and a fake `socat`; no tests use a real UU account. The optional real-UDP loopback test runs only where both Python 3 and socat are available; on the existing DNAS workspace they are absent and the full suite explicitly prints `REMOTE_HELPER_LOOPBACK_SKIPPED`, rather than claiming a live UDP pass.
+The project adds **71 shell offline cases**: 19 LAN input checks, 10 Magic Packet encoding cases, 27 synthetic interface-discovery cases (including BusyBox multiline parsing) and 15 mock socket-sender cases. It also adds **97 Node offline, QR protocol and loopback-auth cases** (53 original protocol/bridge cases, 26 QR/credential/room cases, eight credential lifecycle cases and ten vendor wire-format checks), for **168 new cases** across the project. Fixtures use RFC 5737 example IPs and a fake `socat`; no tests use a real UU account. The optional real-UDP loopback test runs only where both Python 3 and socat are available; on the existing DNAS workspace they are absent and the full suite explicitly prints `REMOTE_HELPER_LOOPBACK_SKIPPED`, rather than claiming a live UDP pass.
 
 ## Why this is separate
 
