@@ -5,9 +5,9 @@ const LOOPBACK_HOST = [127, 0, 0, 1].join(".");
 function fail(code) { throw new Error(code); }
 function check(v, code) { if (!v) fail(code); }
 export class FixtureRoomClient {
-  #url; #config; #room; #clock; #onPlan;
+  #url; #config; #room; #registration; #clock; #onPlan;
   #socket = null; #status = "idle"; #rejected = 0; #accepted = 0;
-  constructor({ url, room, config, clock = Date.now, onPlan = () => {} }) {
+  constructor({ url, room, config, registrationEvidence, clock = Date.now, onPlan = () => {} }) {
     let parsed;
     try { parsed = new URL(url); } catch { fail("INVALID_ROOM_URL"); }
     check(parsed.protocol === "ws:" && parsed.hostname === LOOPBACK_HOST &&
@@ -20,8 +20,11 @@ export class FixtureRoomClient {
       typeof room.accountId === "string" && room.accountId === config?.accountId &&
       Number.isSafeInteger(room.expiresAt) && room.expiresAt > clock(),
       "INVALID_ROOM_CONTRACT");
+    check(registrationEvidence?.accepted === true && registrationEvidence?.enabled === true &&
+      registrationEvidence?.cloudPushVerified === false, "REGISTRATION_GATE_REQUIRED");
     check(typeof onPlan === "function" && typeof clock === "function", "INVALID_ROOM_CALLBACK");
     this.#url = parsed.href; this.#room = { ...room }; this.#config = config;
+    this.#registration = registrationEvidence;
     this.#clock = clock; this.#onPlan = onPlan;
   }
   #expired() {
@@ -82,8 +85,10 @@ export class FixtureRoomClient {
         if (this.#status !== "ready") return;
         try {
           const state = {
-            authenticated: true, roomConnected: true, registrationAccepted: true,
-            wolEnabled: true, accountId: this.#room.accountId, expired: false,
+            authenticated: true, roomConnected: true,
+            registrationAccepted: this.#registration.accepted,
+            wolEnabled: this.#registration.enabled,
+            accountId: this.#room.accountId, expired: false,
           };
           const planned = validateWakePush(data, state, this.#config);
           if (planned.kind === "authorized_wake_plan") {

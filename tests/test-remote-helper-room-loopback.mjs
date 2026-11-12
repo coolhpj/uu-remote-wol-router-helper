@@ -3,9 +3,11 @@ import assert from "node:assert/strict";
 import http from "node:http";
 import { createHash } from "node:crypto";
 import { FixtureRoomClient } from "../experiments/remote-helper/fixture-room-client.mjs";
+import { registrationResult } from "../experiments/remote-helper/cloud-contract.mjs";
 
 const accountId = "fixture-account-01";
 const token = "fixture-validated-room-token";
+const evidence = registrationResult(200, { code: 0, data: { turn_on_wol: true } });
 const config = {
   accountId,
   helper: { lanInterface: "br-lan", ip: "198.51.100.1",
@@ -103,7 +105,7 @@ async function until(condition, timeout = 1800) {
 test("real loopback websocket: no premature push, trusted fixture ack, allowlisted wake plan", () =>
   withRoom("valid", async ({ url, room }) => {
     const plans = [];
-    const client = new FixtureRoomClient({ url, room, config,
+    const client = new FixtureRoomClient({ url, room, config, registrationEvidence: evidence,
       onPlan(plan) { plans.push(plan); } });
     const status = await client.connect();
     assert.equal(status.status, "ready");
@@ -119,14 +121,14 @@ test("real loopback websocket: no premature push, trusted fixture ack, allowlist
 test("wrong room token is rejected, no wake plan", () =>
   withRoom("valid", async ({ url, room }) => {
     const client = new FixtureRoomClient({ url, room: { ...room,
-      roomToken: "fixture-invalid-token" }, config });
+      roomToken: "fixture-invalid-token" }, config, registrationEvidence: evidence });
     await assert.rejects(client.connect(), /ROOM_AUTH_REJECTED/);
     assert.equal(client.publicStatus().acceptedPlans, 0);
     client.close();
   }));
 test("room disconnect invalidates local authenticated session", () =>
   withRoom("disconnect", async ({ url, room }) => {
-    const client = new FixtureRoomClient({ url, room, config });
+    const client = new FixtureRoomClient({ url, room, config, registrationEvidence: evidence });
     try { await client.connect(); } catch (e) {
       assert.match(e.message, /ROOM_DISCONNECTED/);
     }
@@ -137,20 +139,36 @@ test("room disconnect invalidates local authenticated session", () =>
 test("stale or mismatched accounts never open a socket", () => {
   for (const url of ["wss://example.invalid/fixture/room",
     "ws://example.invalid:15000/fixture/room", "ws://127.0.0.1:1234/other"]) {
-    assert.throws(() => new FixtureRoomClient({ url, config, room: {
+    assert.throws(() => new FixtureRoomClient({ url, config, registrationEvidence: evidence, room: {
       roomId: "fixture-room-01", accountId, roomToken: token, expiresAt: Date.now()+2000
     } }), /ROOM_LOOPBACK_ONLY/);
   }
   assert.throws(() => new FixtureRoomClient({
-    url: "ws://127.0.0.1:1234/fixture/room", config,
+    url: "ws://127.0.0.1:1234/fixture/room", config, registrationEvidence: evidence,
     room: { roomId: "fixture-room-01", roomToken: token,
       accountId: "wrong-account", expiresAt: Date.now()+2000 }
   }), /INVALID_ROOM_CONTRACT/);
 });
+test("room authentication alone never implies helper registration", () => {
+  const url = "ws://127.0.0.1:1234/fixture/room";
+  const room = { roomId: "fixture-room-01", roomToken: token,
+    accountId, expiresAt: Date.now() + 60_000 };
+  assert.throws(() => new FixtureRoomClient({ url, room, config }),
+    /REGISTRATION_GATE_REQUIRED/);
+});
+test("registered helper with WoL disabled cannot accept room pushes", () => {
+  const url = "ws://127.0.0.1:1234/fixture/room";
+  const room = { roomId: "fixture-room-01", roomToken: token,
+    accountId, expiresAt: Date.now() + 60_000 };
+  const disabled = registrationResult(200, { code: 0, data: { turn_on_wol: false } });
+  assert.throws(() => new FixtureRoomClient({
+    url, room, config, registrationEvidence: disabled
+  }), /REGISTRATION_GATE_REQUIRED/);
+});
 test("expired room cannot open or process wake data", () =>
   withRoom("valid", async ({ url, room }) => {
     let current = room.expiresAt - 1;
-    const client = new FixtureRoomClient({ url, room, config, clock: () => current });
+    const client = new FixtureRoomClient({ url, room, config, registrationEvidence: evidence, clock: () => current });
     current = room.expiresAt + 1;
     await assert.rejects(client.connect(), /ROOM_EXPIRED/);
     assert.equal(client.publicStatus().status, "closed");
