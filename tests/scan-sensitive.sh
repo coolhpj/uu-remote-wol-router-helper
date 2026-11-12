@@ -14,9 +14,26 @@ set -e
 
 case "$rc" in
     0)
-        printf '%s\n' "$output"
-        echo "Sensitive-looking value detected. Review and redact before committing." >&2
-        exit 1
+        # Git reports syntactically matching candidates. Only explicit test
+        # fixture literals may be masked; then re-run the original strict rule.
+        FILTER="$ROOT_DIR/tests/filter-remote-helper-fixtures.awk"
+        [ -f "$FILTER" ] || { echo "Missing fixture filter" >&2; exit 2; }
+        if ! filtered=$(printf '%s\n' "$output" | awk -f "$FILTER"); then
+            echo "Fixture filter failed" >&2
+            exit 2
+        fi
+        set +e
+        remaining=$(printf '%s\n' "$filtered" | grep -E "$PATTERN")
+        remaining_rc=$?
+        set -e
+        case "$remaining_rc" in
+            0)
+                printf '%s\n' "$remaining"
+                echo "Sensitive-looking value detected. Review and redact before committing." >&2
+                exit 1 ;;
+            1) echo "sensitive scan passed (known synthetic fixtures checked)" ;;
+            *) echo "Sensitive scan grep failed" >&2; exit "$remaining_rc" ;;
+        esac
         ;;
     1)
         printf '%s\n' "sensitive scan passed"

@@ -11,6 +11,7 @@ echo "== unit / guard tests =="
 for test_file in \
     tests/test-api-parser.sh \
     tests/test-channel.sh \
+    tests/test-remote-helper-sensitive-filter.sh \
     tests/test-mips-elf.sh \
     tests/test-mips-runtime-readiness.sh \
     tests/test-mips-runtime-health.sh \
