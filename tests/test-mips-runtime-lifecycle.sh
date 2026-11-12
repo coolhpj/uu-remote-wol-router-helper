@@ -140,11 +140,13 @@ printf '%s\n' "$(cat "$run/watchdog.log")" | grep -F 'owner_exited: auto_cleanup
 ok "POSIX shell watcher survives SSH-style SIGHUP without nohup"
 
 # Confirm exact /proc executable ownership: a staged binary is stopped,
-# unrelated process survives. This uses a host sleep COPY, never UU binaries.
-cp "$(command -v sleep)" "$BASE/files/uuplugin" || fail "copy host sleep fixture"
-"$BASE/files/uuplugin" 60 &
+# unrelated process survives. Use a host POSIX shell executable (not a
+# renamed coreutils multicall 'sleep', which can reject argv[0]=uuplugin).
+cp "$(command -v sh)" "$BASE/files/uuplugin" || fail "copy host shell fixture"
+"$BASE/files/uuplugin" -c 'while :; do sleep 1; done' &
 owned_pid=$!
 sleep 1
+[ "$(readlink "/proc/$owned_pid/exe" 2>/dev/null)" = "$BASE/files/uuplugin" ] || fail "owned test process is not running as staged uuplugin"
 sleep 60 &
 unrelated_pid=$!
 create_run 5
@@ -157,10 +159,11 @@ wait "$owned_pid" 2>/dev/null || true
 ok "PID-scoped cleanup stops staged process only"
 
 mkdir -p "$BASE/rogue"
-cp "$(command -v sleep)" "$BASE/rogue/uuplugin"
-"$BASE/rogue/uuplugin" 60 &
+cp "$(command -v sh)" "$BASE/rogue/uuplugin"
+"$BASE/rogue/uuplugin" -c 'while :; do sleep 1; done' &
 rogue_pid=$!
 sleep 1
+[ "$(readlink "/proc/$rogue_pid/exe" 2>/dev/null)" = "$BASE/rogue/uuplugin" ] || fail "rogue test process is not running as unowned uuplugin"
 create_run 6
 out=$(sh "$STOP" "$BASE" "$run" 2>&1)
 rc=$?
