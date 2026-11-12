@@ -15,6 +15,7 @@ for test_file in \
     tests/test-remote-helper-magic.sh \
     tests/test-remote-helper-discovery.sh \
     tests/test-remote-helper-sender.sh \
+    tests/test-remote-helper-sensitive-filter.sh \
     tests/test-mips-elf.sh \
     tests/test-mips-runtime-readiness.sh \
     tests/test-mips-runtime-health.sh \
