@@ -58,7 +58,8 @@ jobs:
             tests/test-remote-helper-enrollment.mjs \
             tests/test-remote-helper-credentials.mjs \
             tests/test-remote-helper-qr-loopback.mjs \
-            tests/test-remote-helper-room-loopback.mjs
+            tests/test-remote-helper-room-loopback.mjs \
+            tests/test-remote-helper-credential-session.mjs
 
       - name: Real UDP one-packet test on localhost only
         run: python3 tests/test-remote-helper-loopback.py
