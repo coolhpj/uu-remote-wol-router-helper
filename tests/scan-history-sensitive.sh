@@ -5,6 +5,8 @@ ROOT_DIR=$(CDPATH= cd "$(dirname "$0")/.." 2>/dev/null && pwd) || exit 1
 PATTERN='gho_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|key1=[A-Fa-f0-9]{16,}|key2=[A-Fa-f0-9]{6,}|([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}|\b([0-9]{1,3}\.){3}[0-9]{1,3}\b'
 
 cd "$ROOT_DIR"
+FILTER="$ROOT_DIR/tests/filter-remote-helper-fixtures.awk"
+[ -f "$FILTER" ] || { echo "Missing fixture filter" >&2; exit 2; }
 commits=$(git -c safe.directory="$ROOT_DIR" rev-list --all)
 [ -n "$commits" ] || {
     echo "No Git history found." >&2
@@ -72,12 +74,25 @@ for commit in $commits; do
     case "$rc" in
         0)
             output=$(filter_known_history_fixture "$commit" "$output")
-            if [ -n "$output" ]; then
-                printf 'Sensitive-looking history value in commit %s (%s):\n' \
-                    "$commit" "$(git -c safe.directory="$ROOT_DIR" show -s --format='%s' "$commit")" >&2
-                printf '%s\n' "$output" >&2
-                found=1
+            # Preserve exact legacy exceptions; only synthetically generated
+            # WOL test addresses in enumerated fixture paths may be redacted.
+            if ! output=$(printf '%s\n' "$output" | awk -f "$FILTER"); then
+                echo "Fixture history filter failed" >&2
+                exit 2
             fi
+            set +e
+            remaining=$(printf '%s\n' "$output" | grep -E "$PATTERN")
+            remaining_rc=$?
+            set -e
+            case "$remaining_rc" in
+                0)
+                    printf 'Sensitive-looking history value in commit %s (%s):\n' \
+                        "$commit" "$(git -c safe.directory="$ROOT_DIR" show -s --format='%s' "$commit")" >&2
+                    printf '%s\n' "$remaining" >&2
+                    found=1 ;;
+                1) ;;
+                *) echo "History pattern scan failed at $commit" >&2; exit "$remaining_rc" ;;
+            esac
             ;;
         1) ;;
         *)

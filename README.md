@@ -18,6 +18,8 @@ curl -fsSLo uu-docker-start.sh https://raw.githubusercontent.com/coolhpj/uu-remo
 
 [Docker 四步安装、绑定、更新和卸载教程](https://github.com/coolhpj/uu-remote-wol-router-helper/blob/feat/docker-experimental/docker/README.md) · [实机测试反馈 Issue #15](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/15)
 
+**另一个独立研发方向（尚不可安装）：** [Draft PR #19：UU远程辅助设备 WoL-only 实验](https://github.com/coolhpj/uu-remote-wol-router-helper/pull/19) 研究让常开的路由器、Linux 主机或 NAS 使用 **UU远程辅助设备身份**接收唤醒指令，而不是复用上述 Docker 的官方路由器 `uuplugin` 身份。当前仅完成 GitHub Actions 的模拟扫码、注册/认证消息校验及本机 UDP 测试，**尚未完成真实网易 UU 账号绑定、云端指令或手机移动网络开机验证；不提供该模式的安装命令或可用镜像**。PR #16 与 PR #19 是两条互不混淆的实验路线。
+
 ---
 
 想用**网易 UU 远程开机**，让家里的路由器充当**UU 辅助开机 / 网易 UU 远程辅助设备**，但找不到适合自己固件的**路由器插件**或 **OpenWrt 安装**方法？本项目提供开源的检测、官方插件下载校验和分平台安装引导，帮助你判断路由器是否适合辅助唤醒关机电脑。**不是网易官方插件，也不保证所有路由器可安装或长期在线。**
@@ -44,7 +46,7 @@ curl -fsSLo uu-docker-start.sh https://raw.githubusercontent.com/coolhpj/uu-remo
 
 ## 新手快速开始（3 步）
 
-**第 1 步｜设置电脑唤醒。** 打开 Windows **UU远程 → 远程开机配置**，按提示开启主板和网卡的 WOL（网络唤醒）。建议电脑使用网线，并先确认局域网内能唤醒。
+**第 1 步｜设置电脑唤醒。** 打开 Windows **UU远程**，找到当前版本的远程开机相关设置或协助向导（部分版本显示 **「允许通过远程开机启动」→「开始协助」**，不一定存在名为「远程开机配置」的菜单），按向导提示开启主板和网卡的 WOL（网络唤醒）。建议电脑使用网线，并先确认局域网内能唤醒。
 
 **第 2 步｜启动路由器助手。** 路由器需要已开启 SSH（远程登录），并能用管理员账号登录。优先从上面的 **Releases（版本发布页）** 下载与你的路由器系统、架构匹配的 ZIP（压缩包），解压后双击 **`start-windows.cmd`**，输入路由器地址。助手会自动上传文件，打开数字菜单。开发者仍可用 GitHub 的 **Code → Download ZIP（下载完整源码）** 获取全部源文件。
 
