@@ -61,6 +61,18 @@ filter_known_history_fixture() {
             ;;
     esac
 
+    # PR #19 offline QR enrollment initially had two deterministic virtual
+    # MAC literals. They were replaced by generated fixtures in the next
+    # commit, but the first commit remains an immutable Draft PR ancestor.
+    # This exclusion is scoped to its exact SHA, fixture path and two lines.
+    # Every other MAC/IP/token in current source or history still fails.
+    if [ "$commit" = "08343e127a0adf54df32d7fd39506bbe66c38177" ]; then
+        printf '%s\n' "$input" \
+            | grep -Ev "^${commit}:tests/test-remote-helper-vendor-enrollment[.]mjs:(15|61):" \
+            || true
+        return 0
+    fi
+
     printf '%s\n' "$input"
 }
 
