@@ -2,9 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
 import { createHash } from "node:crypto";
+import dgram from "node:dgram";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { FixtureRoomClient } from "../experiments/remote-helper/fixture-room-client.mjs";
 import { registrationResult } from "../experiments/remote-helper/cloud-contract.mjs";
 
+const packetEncoderPath = fileURLToPath(new URL("../experiments/remote-helper/magic-packet-hex.sh", import.meta.url));
 const accountId = "fixture-account-01";
 const token = "fixture-validated-room-token";
 const evidence = registrationResult(200, { code: 0, data: { turn_on_wol: true } });
@@ -174,3 +178,62 @@ test("expired room cannot open or process wake data", () =>
     assert.equal(client.publicStatus().status, "closed");
     assert.equal(client.publicStatus().acceptedPlans, 0);
   }));
+
+test("virtual end-to-end: authenticated room push sends original 102-byte Magic Packet to isolated UDP loopback", async () => {
+  // The only UDP destination is loopback inside this test runner, never a LAN.
+  // The real WOL sender's route and one-shot approval gates remain separate.
+  const receiver = dgram.createSocket("udp4");
+  const sender = dgram.createSocket("udp4");
+  const received = [], errors = [], planned = [];
+  receiver.on("message", (bytes, info) => received.push({ bytes, info }));
+  receiver.on("error", error => errors.push(error));
+  sender.on("error", error => errors.push(error));
+  try {
+    await new Promise((resolve, reject) => {
+      receiver.once("error", reject);
+      receiver.bind(0, "127.0.0.1", resolve);
+    });
+    const port = receiver.address().port;
+    await withRoom("valid", async ({ url, room }) => {
+      const client = new FixtureRoomClient({
+        url, room, config, registrationEvidence: evidence,
+        onPlan(plan) {
+          planned.push(plan);
+          assert.equal(plan.packetSent, false);
+          assert.equal(plan.targetIP, config.allowedTargets[0].ip);
+          assert.equal(plan.targetMAC.replace(/:/g, "").toLowerCase(),
+            config.allowedTargets[0].mac.replace(/:/g, "").toLowerCase());
+          // Reuse the project's original shell packet encoder, not a test-only
+          // encoder, then send its exact bytes over a real OS UDP loopback socket.
+          const hex = execFileSync("sh", [packetEncoderPath, plan.targetMAC],
+            { encoding: "utf8", timeout: 3000, maxBuffer: 2048 }).trim();
+          assert.match(hex, /^[A-F0-9]{204}$/);
+          sender.send(Buffer.from(hex, "hex"), port, "127.0.0.1",
+            error => { if (error) errors.push(error); });
+        }
+      });
+      try {
+        const status = await client.connect();
+        assert.equal(status.status, "ready");
+        await until(() => received.length === 1 || errors.length > 0);
+        await new Promise(resolve => setTimeout(resolve, 75));
+        assert.deepEqual(errors, []);
+        assert.equal(client.publicStatus().acceptedPlans, 1);
+        assert.ok(client.publicStatus().rejectedMessages >= 2);
+        assert.equal(planned.length, 1);
+        assert.equal(received.length, 1, "only allowlisted post-auth push produces UDP");
+        assert.equal(received[0].info.address, "127.0.0.1");
+        const payload = received[0].bytes;
+        assert.equal(payload.length, 102);
+        const expectedMAC = Buffer.from(planned[0].targetMAC.replace(/:/g, ""), "hex");
+        assert.deepEqual(payload.subarray(0, 6), Buffer.alloc(6, 0xff));
+        for (let i = 0; i < 16; i++)
+          assert.deepEqual(payload.subarray(6 + i * 6, 12 + i * 6), expectedMAC);
+        assert.equal(client.publicStatus().containsCredentials, false);
+      } finally { client.close(); }
+    });
+  } finally {
+    receiver.close();
+    sender.close();
+  }
+});

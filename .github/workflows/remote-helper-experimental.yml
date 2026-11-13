@@ -52,7 +52,7 @@ jobs:
       - name: Registration and cloud-push synthetic contracts
         run: node --test --test-reporter=spec tests/test-remote-helper-cloud.mjs tests/test-remote-helper-cloud-bridge.mjs
 
-      - name: QR enrollment and token vault plus authenticated room fixture
+      - name: QR enrollment, authenticated room and real UDP virtual receiver (loopback only)
         run: |
           node --test --test-reporter=spec \
             tests/test-remote-helper-enrollment.mjs \
