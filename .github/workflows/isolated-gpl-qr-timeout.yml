@@ -1,0 +1,66 @@
+name: Isolated GPL QR Timeout Diagnostic
+on:
+  push:
+    branches: [test/gpl-qr-poll-isolated-20261113]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - name: Dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends build-essential pkg-config libx11-dev libxext-dev libxtst-dev libxfixes-dev
+          rustup update stable --no-self-update
+      - name: Fetch verified GPL upstream and patch only the QR status retry
+        run: |
+          git clone --depth 1 --branch v0.2.58 https://github.com/VallierDev/uu-remote-linux.git "$RUNNER_TEMP/gpl-source"
+          cd "$RUNNER_TEMP/gpl-source"
+          test "$(git rev-parse HEAD)" = "0e1e935fb41c2aac2bdd5eebdd4b38a7476d14bc"
+          grep -q 'GPL-3.0-or-later' Cargo.toml
+          python3 - <<'PY'
+          from pathlib import Path
+          f=Path('src/login.rs')
+          source=f.read_text()
+          patches=[
+            ('    let timeout = Duration::from_secs(60);','    let timeout = Duration::from_secs(75);'),
+            ('        let mut login_status = 1i64;\n        let failure = loop {','        let mut login_status = 1i64;\n        let qr_started_at = std::time::Instant::now();\n        let failure = loop {'),
+            ('                Err(e) => {\n                    eprintln!("QR status query failed: {e}; last_status={login_status}");',
+             '                Err(e) if e.kind == QrRequestErrorKind::Timeout && qr_started_at.elapsed() < Duration::from_secs(300) => {\n                    eprintln!("QR status timeout: keep same ticket and retry");\n                    tokio::time::sleep(Duration::from_millis(500)).await;\n                    continue;\n                }\n                Err(e) => {\n                    eprintln!("QR status query failed: {e}; last_status={login_status}");'),
+          ]
+          for old,new in patches:
+            assert source.count(old)==1, 'Unexpected GPL upstream context'
+            source=source.replace(old,new,1)
+          assert source.count('QR status timeout: keep same ticket and retry')==1
+          f.write_text(source)
+          print('QR retry timeout patch applied to separate GPL source')
+          PY
+          git diff --check
+          git diff --stat
+      - name: Compile stand-alone GPL headless host
+        env:
+          UU_NO_GTK: "1"
+          CARGO_BUILD_JOBS: "2"
+          CARGO_INCREMENTAL: "0"
+        run: |
+          cd "$RUNNER_TEMP/gpl-source"
+          cargo build --locked --bin uuremote-server
+          strip target/debug/uuremote-server
+          test -s target/debug/uuremote-server
+          grep -q 'keep same ticket and retry' src/login.rs
+      - name: Package separate GPL diagnostics
+        run: |
+          cd "$RUNNER_TEMP/gpl-source"
+          mkdir -p "$RUNNER_TEMP/gpl-qr-build"
+          cp target/debug/uuremote-server LICENSE "$RUNNER_TEMP/gpl-qr-build/"
+          printf '%s\n' 'GPL-3.0-or-later upstream: https://github.com/VallierDev/uu-remote-linux at v0.2.58 (0e1e935fb41c2aac2bdd5eebdd4b38a7476d14bc)' 'QR fix: 75-second single poll and retry of identical ticket for up to 300 seconds. Source patch and build recipe in this workflow. Not part of MIT project; experimental only.' > "$RUNNER_TEMP/gpl-qr-build/ATTRIBUTION.txt"
+          cd "$RUNNER_TEMP/gpl-qr-build"
+          sha256sum uuremote-server > SHA256SUMS
+          ls -lh uuremote-server LICENSE ATTRIBUTION.txt SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: isolated-gpl-qr-timeout
+          path: ${{ runner.temp }}/gpl-qr-build/
+          retention-days: 2
