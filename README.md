@@ -88,7 +88,13 @@ curl -fsSLo uu-docker-start.sh https://raw.githubusercontent.com/coolhpj/uu-remo
 
 ## 常见问题
 
-**NAS 和 Docker 有什么区别？NAS 用户该选哪个？** NAS 是群晖、威联通、飞牛等网络存储设备；Docker 是在 NAS 或 Linux 主机上运行程序的工具。**NAS 支持 Docker，就看上面的「Docker 版（支持 NAS）」**，不需要另找 NAS 专用版；不支持 Docker 的 NAS 则不能直接使用这套方案。普通 NAS 可优先测试「独立辅助设备模式」，也可了解「路由器插件模式」；两者的绑定数据不能混用，真实远程开机效果都还需要实机验证。
+**我该选路由器版，还是 Docker 版（支持 NAS）？**
+
+- **有 OpenWrt / iStoreOS / 小米等路由器，且型号、固件符合兼容要求**：选[路由器版](#路由器版)。下载对应 ZIP，Windows 用户双击 `start-windows.cmd`，通过 SSH 连接路由器并按菜单操作。路由器已自带官方 UU 的，直接用官方功能即可。
+- **有群晖、威联通、飞牛、极空间等 NAS，或一台常开的 Linux 主机，并且支持 Docker Compose**：选[Docker 版（支持 NAS）](#docker-版支持-nas)，在设备终端按对应模式的教程构建、启动。**NAS 是设备，Docker 是安装方式，不需要再找单独的 NAS 版。**
+- **设备没有 Docker，也不符合路由器版安装条件**：暂时不能直接使用这两种安装方案，不要强行套用其他设备的脚本。
+
+**Docker 版里的两种模式怎么选？** 普通 NAS 尤其不是家庭主路由器时，可优先尝试[独立辅助设备模式](docs/NAS-WOL-ONLY-BETA.md)（需要配置电脑 MAC、NAS 网卡并扫码）；有 Docker 的路由器或 Linux 主机，也可以测试[路由器插件模式](docs/NAS.md)（首页提供一键安装命令）。**两种模式的绑定数据不能混用，均尚未通过本项目版本的手机移动数据真实远程开机验收。**
 
 **路由器已自带 UU，还要安装吗？** 不用。优先使用官方功能。
 
