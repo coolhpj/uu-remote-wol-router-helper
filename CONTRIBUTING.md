@@ -17,6 +17,15 @@
 5. 通过 GitHub Issue 提交“New Router Support / 新路由器支持”请求。
 6. 未经真实硬件验证，不要直接把新设备加入 `Verified`。
 
+## Docker / NAS 测试反馈
+
+Docker 版有两种设备身份，别混用测试结果：
+
+- [路由器插件模式：Issue #15](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/15)
+- [独立辅助设备模式：Issue #23](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/23)
+
+只需说明系统、CPU、能否绑定、手机移动数据是否真正唤醒，以及重启后是否有效。不需要公开账号、MAC、Token 或完整日志。
+
 ## 验证等级
 
 - Detect：平台与架构可识别。
