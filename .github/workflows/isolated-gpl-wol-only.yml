@@ -1,0 +1,59 @@
+name: Isolated GPL WOL-only Source Gate
+on:
+  push:
+    branches: [test/gpl-qr-poll-isolated-20261113]
+    paths:
+      - labs/gpl-isolation/**
+      - .github/workflows/isolated-gpl-wol-only.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect-only:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 50
+    env:
+      UU_NO_GTK: "1"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain for separate GPL source, not the MIT product
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            build-essential pkg-config libx11-dev libxext-dev libxtst-dev libxfixes-dev
+          rustup update stable --no-self-update
+      - name: Retrieve exact upstream GPL-3.0-or-later release
+        run: |
+          git clone --depth 1 --branch v0.2.58 https://github.com/VallierDev/uu-remote-linux.git "$RUNNER_TEMP/gpl-source"
+          cd "$RUNNER_TEMP/gpl-source"
+          test "$(git rev-parse HEAD)" = "0e1e935fb41c2aac2bdd5eebdd4b38a7476d14bc"
+          grep -q 'GPL-3.0-or-later' Cargo.toml
+      - name: Apply test-only allowlisted WOL source gates
+        run: |
+          python3 labs/gpl-isolation/apply-wol-only.py "$RUNNER_TEMP/gpl-source"
+          cd "$RUNNER_TEMP/gpl-source"
+          git diff --check
+          git diff --stat
+          grep -q 'if wol_only_mode && !wol_only_event_allowed(&evt)' src/main.rs
+          grep -q 'WOL-only directed packet not sent' src/wol.rs
+          grep -q 'return Ok(1)' src/wol.rs
+      - name: Rust GPL-only ingress and directed UDP9 egress unit gates
+        run: |
+          cd "$RUNNER_TEMP/gpl-source"
+          cargo test --locked --bin uuremote-server wol_only -- --nocapture
+      - name: Compile isolated GPL WOL-only candidate (NEVER run it)
+        run: |
+          cd "$RUNNER_TEMP/gpl-source"
+          cargo build --locked --bin uuremote-server
+          test -s target/debug/uuremote-server
+          sha256sum target/debug/uuremote-server | cut -d' ' -f1 | sed 's/^/ISOLATED_GPL_BINARY_SHA256=/'
+          echo "GPL_WOL_ONLY_COMPILE_PASS"
+          echo "NOT_INSTALLABLE: no real vendor authentication, no interface-bound packet proof, no runtime sandbox / reboot gate"
+      - name: Confirm temporary GPL sources remain outside MIT worktree
+        run: |
+          test -d "$RUNNER_TEMP/gpl-source/.git"
+          test ! -e src/main.rs
+          test ! -e src/wol.rs
+          echo "MIT_GPL_SOURCE_SEPARATION_PASS"
