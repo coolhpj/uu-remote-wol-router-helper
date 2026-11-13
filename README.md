@@ -62,6 +62,14 @@ Docker 是安装方式，**NAS 只是其中一种设备**。目前有两种不�
 
 [下载源码测试版 ZIP](https://github.com/coolhpj/uu-remote-wol-router-helper/archive/28a25816101b68e8fc269109942c2f465f0e5b72.zip) · [Docker / NAS 安装教程](docs/NAS.md) · [反馈测试结果 #15](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/15)
 
+**一键拉取并启动（Linux / NAS 终端）：** 先安装 Git、curl、Docker Engine 和 Docker Compose，再执行：
+
+```sh
+curl -fsSLo uu-docker-start.sh https://raw.githubusercontent.com/coolhpj/uu-remote-wol-router-helper/feat/docker-experimental/docker/quickstart.sh && sh uu-docker-start.sh
+```
+
+[查看启动脚本](https://github.com/coolhpj/uu-remote-wol-router-helper/blob/feat/docker-experimental/docker/quickstart.sh)。默认安装到 `$HOME/uu-remote-wol-docker`，拉取的是**路由器插件模式实验分支**，不是上面的固定 ZIP，也**不适用于独立辅助设备模式**。脚本会构建并启动容器，运行前请确认没有现役 UU 容器或端口冲突。
+
 **当前状态：** Docker 镜像构建和身份卷测试通过；普通 NAS 的实际 UU 绑定与远程开机仍需用户验证。没有稳定镜像。
 
 两种 Docker 方案都需自行在受控设备上构建，使用宿主网络（`host`），不是完全网络隔离。**手机移动数据真正唤醒关机电脑，才算测试成功。**
