@@ -7,7 +7,7 @@
 - Docker 构建阶段下载精确的 GPL 上游固定提交，在本地临时源码里应用 `../apply-wol-only.py`，无需复制/合并 GPL Rust 源码到 MIT 项目。
 - 可执行程序**没有完整远控入口**：唯一交互子命令是 `login --no-gui`，常驻服务强制要求 `UU_WOL_ONLY=1`；其余命令在初始化音频、输入、桌面和远控会话之前被拒绝。
 - 指定唯一 MAC 和 LAN 接口，同网段限制，UDP/9 单包定向广播；不要求 root、Docker socket、`privileged`、`NET_ADMIN` 或公网映射端口，但使用 **host 网络**（网络暴露不等于容器隔离）。
-- 身份与账号凭据保存在**独立命名卷** `uu_wol_only_data`。不要把它与 PR #16 的路由器 UUID/SN 数据卷混用。
+- 身份与账号凭据保存在**独立命名卷** `uu_wol_only_data`，首次注册生成独立随机 `machine_guid` 并持久化，不继承基础容器镜像可能重复的 `/etc/machine-id`。不要把它与 PR #16 的路由器 UUID/SN 数据卷混用，也不要清除卷后误认为还是原绑定身份。
 
 ## 隔离环境中准备复验的方法（暂勿用于正式生产 NAS）
 
