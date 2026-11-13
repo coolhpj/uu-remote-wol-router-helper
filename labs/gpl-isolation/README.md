@@ -1,59 +1,72 @@
 # GPL WOL-only isolation laboratory — NOT INSTALLABLE
 
-This is **not** part of the MIT helper implementation or a Docker package.
-The separate GPL-3.0-or-later upstream is fetched into the temporary GitHub
-Runner directory from a pinned official tag and commit. The original GPL
-source and license remain with that temporary checkout. No GPL Rust source
-is copied into the MIT repository. No credentials, real UU API request,
-real network broadcast or production hardware is used by this workflow.
+This work belongs to a **separate GPL-3.0-or-later experimental client**,
+not the MIT UU Router Helper product and not the downloadable router-identity
+Docker beta from PR #16. Each CI job clones the exact upstream
+`VallierDev/uu-remote-linux v0.2.58` revision and applies the diagnostic
+patch in the ephemeral GitHub Runner. No third-party Rust source or NetEase
+signing material is copied into the MIT product.
 
-The patch prototype adds a *default-off*, explicitly configured
-`UU_WOL_ONLY=1` mode which:
+## What the test-only patch changes
 
-- requires `UU_WOL_HELPER=1`, `UU_REMOTE_ASSIST=0`,
-  `UU_PORT_MAPPING=0` and an explicit `UU_WOL_ALLOWED_MAC`;
-- rejects WebRTC/remote-control, file, terminal, port mapping and desktop
-  signaling events **before** constructing a peer session;
-- keeps only the room lifecycle and `wake_on_lan` push;
-- validates exact allowed target MAC, local LAN subnet and contiguous mask;
-- sends at most **one directed UDP/9 packet** in WOL-only mode, rather
-  than the upstream's general-broadcast UDP/7 and UDP/9 fan-out.
+- **Startup gate first:** the isolated binary has no ordinary full-remote-host
+  fallback, including when `UU_WOL_ONLY` is omitted. It allows only
+  `login --no-gui` for account enrollment and a precisely configured
+  `UU_WOL_ONLY=1` service. All other commands (including `assist`) fail
+  before initializing the original desktop/audio/input/assist/WebRTC host.
+- **Separate service:** the WOL-only route loads existing private credentials,
+  creates a room, exchanges Engine.IO / Socket.IO signaling and accepts only
+  a successful room-info acknowledgement before enabling any wake push.
+  Non-wake remote-control, file, terminal, clipboard and WebRTC signaling
+  events never construct peer sessions.
+- **Strict egress:** requires `UU_WOL_HELPER=1`, `UU_REMOTE_ASSIST=0`,
+  `UU_PORT_MAPPING=0`, one explicit `UU_WOL_ALLOWED_MAC` and a
+  `UU_WOL_LAN_IFACE`. Sender/source IP must match the selected Linux
+  interface and LAN subnet; the socket also uses Linux `SO_BINDTODEVICE`.
+  Wrong subnet, mask, target, interface or binding fails closed. A permitted
+  wake sends **one 102-byte directed UDP/9 packet** and no UDP/7.
+- **QR timeout fix:** retains the same single-use login ticket across
+  transient status-poll timeouts, with a bounded polling period, based on
+  the separately tested GPL QR diagnostic. No login tokens are committed.
 
-The compile/test CI gate additionally creates **two ephemeral isolated Linux
-network namespaces** and runs only the patched Rust unit-test binary inside
-one namespace, capturing the actual UDP packet in the other. It must verify
-**exactly one 102-byte UDP/9** frame and **no UDP/7**, without any host NIC,
-Internet route, UU login or production service. This proves the synthetic
-single-packet path, not that a real NAS network interface or post-reboot
-identity has been safely configured. The container is not started by CI. There is no published binary artifact,
-Docker image, GitHub Release or end-user installation guide.
+## CI coverage and limits
 
-## Remaining gates before recruiting Docker volunteers
+The isolated GitHub workflow compiles the patched upstream and checks
+configuration guards, authentication-message gating and error cases. It
+tests the real Linux kernel's UDP interface binding in two short-lived,
+disconnected network namespaces: one sender, one independent receiver.
+The receiver must see **exactly one 102-byte UDP/9 datagram** and **no UDP/7**.
+The startup checks also execute the actual Linux binary in deliberately
+invalid configurations to prove that assist and full-host fallback are
+rejected before any cloud connection.
 
-1. Verify real account sign-in and device listing without personal PC WOL
-   on an isolated virtual test identity.
-2. Verify no remote terminal, file-transfer, desktop/WebRTC or port-mapping
-   capability is reachable at runtime, and no unintended background services
-   use sensitive host privileges.
-3. Prove interface-bound UDP/9 sends exactly one packet only to an explicitly
-   approved LAN target in an independent virtual network. Fail closed when
-   the Docker bridge has the wrong subnet.
-4. Provide clear, reviewed GPL source distribution/attribution, signed
-   or digest-pinned artifacts, isolated nonprivileged container deployment,
-   opt-in enrollment and rollback.
-5. Only then invite opt-in real NAS/OpenWrt/Linux users with a redacted
-   test checklist. Do **not** ask for UU account tokens, QR ticket values,
-   public IP/MAC, complete raw logs, or full network configuration.
+These gates **do not prove live NetEase authorization or a sustained
+WOL-only runtime against genuine cloud messages**. The workflow never runs
+the cloud-connected host with personal credentials, cannot prove complete
+resource isolation under every NAS kernel, and does not verify power-on of
+a real PC, device persistence after a NAS reboot or multi-NIC/VLAN behavior.
+No ready-to-install GPL image or binary is published by this workflow.
 
-The existing OpenWrt/router beta and its community feedback are separate
-from this still-unreleased Docker helper.
+## Remaining before an opt-in community WOL-only Docker release
 
-## Vendor/licensing boundary
+1. A dedicated nonprivileged, read-only Docker image with no Docker socket,
+   no privileged mode, no remote-tool host mounts, bounded resources, and
+   a private persistent credential volume; verify ownership and rollback.
+2. Runtime checks that no desktop, terminal, files, audio, WebRTC,
+   local listener or port mapping is reachable when actual WOL-only room
+   signaling is active; include unauthorized cloud-event negative tests.
+3. An opt-in real account/room/registration trial in a segregated virtual
+   device environment, followed by explicitly consenting volunteer NAS
+   tests for real mobile-data wake and reboot persistence.
+4. Published GPL attribution and complete corresponding patch/source,
+   reproducible build and pinned SHA-256 for any distributed binaries.
+   Do not relicense GPL code as MIT or repackage the original full remote
+   host as a WOL-only image.
 
-The GPL client is independent of the MIT original project and unofficial
-with respect to NetEase. Source inspection and virtual CI do not confer
-NetEase API authorization. Do not relicense GPL material as MIT or ship
-a full-featured remote host while labeling it WOL-only.
+Never request volunteers' UU tokens, QR tickets, full raw logs, private IP,
+MAC addresses, NAS credentials or identity volumes. The existing PR #16
+router-identity NAS source beta and its Issue #15 feedback remain separate.
 
-Original upstream: https://github.com/VallierDev/uu-remote-linux
-Pinned tag: v0.2.58, commit 0e1e935fb41c2aac2bdd5eebdd4b38a7476d14bc
+Upstream: https://github.com/VallierDev/uu-remote-linux
+
+Pinned revision: `0e1e935fb41c2aac2bdd5eebdd4b38a7476d14bc`
