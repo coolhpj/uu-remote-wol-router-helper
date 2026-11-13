@@ -61,6 +61,32 @@ filter_known_history_fixture() {
             ;;
     esac
 
+    # PR #19 offline QR enrollment initially had two deterministic virtual
+    # MAC literals. They were replaced by generated fixtures in the next
+    # commit, but the first commit remains an immutable Draft PR ancestor.
+    # This exclusion is scoped to its exact SHA, fixture path and two lines.
+    # Every other MAC/IP/token in current source or history still fails.
+    if [ "$commit" = "08343e127a0adf54df32d7fd39506bbe66c38177" ]; then
+        printf '%s\n' "$input" \
+            | grep -Ev "^${commit}:tests/test-remote-helper-vendor-enrollment[.]mjs:(15|61):" \
+            || true
+        return 0
+    fi
+
+    # An old test-only room-host pinning fixture had a synthetic private
+    # address string. Current source constructs that negative-case IP at
+    # runtime, with no dotted-quad literal. The immutable DNAS and GitHub
+    # parent commits contain the same one source line. Exclude only that
+    # line in those exact commits; do not broaden any scan pattern.
+    case "$commit" in
+        086bcdb9d9488190a1f95a199ca3336699d628c5|b8add7a263138f401f09a0c3d85602950553b087)
+            printf '%s\n' "$input" \
+                | grep -v "^${commit}:tests/test-remote-helper-vendor-room[.]mjs:81:" \
+                || true
+            return 0
+            ;;
+    esac
+
     printf '%s\n' "$input"
 }
 

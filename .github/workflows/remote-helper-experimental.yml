@@ -1,0 +1,94 @@
+name: Remote Helper Experimental
+
+on:
+  pull_request:
+    paths:
+      - 'experiments/remote-helper/**'
+      - 'tests/fixtures/remote-helper-*'
+      - 'tests/test-remote-helper-*'
+      - 'tests/run-all.sh'
+      - '.github/workflows/remote-helper-experimental.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  remote-helper-offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Check out test candidate
+        uses: actions/checkout@v4
+
+      - name: Require Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Require Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install real UDP loopback test transport
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends socat iproute2
+
+      - name: Verify test dependencies (no SKIP permitted)
+        run: |
+          command -v node
+          command -v python3
+          command -v socat
+
+      - name: Offline LAN, packet, discovery and sender tests
+        run: |
+          sh tests/test-remote-helper-lan.sh
+          sh tests/test-remote-helper-magic.sh
+          sh tests/test-remote-helper-discovery.sh
+          sh tests/test-remote-helper-sender.sh
+
+      - name: Registration and cloud-push synthetic contracts
+        run: node --test --test-reporter=spec tests/test-remote-helper-cloud.mjs tests/test-remote-helper-cloud-bridge.mjs
+
+      - name: QR enrollment, authenticated room and real UDP virtual receiver (loopback only)
+        run: |
+          node --test --test-reporter=spec \
+            tests/test-remote-helper-enrollment.mjs \
+            tests/test-remote-helper-credentials.mjs \
+            tests/test-remote-helper-qr-loopback.mjs \
+            tests/test-remote-helper-room-loopback.mjs \
+            tests/test-remote-helper-credential-session.mjs
+
+      - name: Engine.IO v4 and Socket.IO packet transcript (fixture only; never authenticated)
+        run: node --test --test-reporter=spec tests/test-remote-helper-engineio-v4.mjs
+
+      - name: Real Engine.IO v4 frames over a local WebSocket (fixture-only, not vendor authorization)
+        run: node --test --test-reporter=spec tests/test-remote-helper-engineio-socket.mjs
+
+      - name: Synthetic TLS and real WSS Upgrade over loopback (temporary CA, never UU)
+        run: |
+          command -v openssl
+          node --test --test-reporter=spec tests/test-remote-helper-fixture-wss.mjs
+
+      - name: Signed vendor wire format and QR ticket contract (offline only)
+        run: node --test --test-reporter=spec tests/test-remote-helper-vendor-wire.mjs
+
+      - name: Optional authorized external signing provider contract (synthetic callback only)
+        run: node --test --test-reporter=spec tests/test-remote-helper-external-signer.mjs
+
+      - name: Disabled-by-default vendor HTTPS adapter (mock-only, no live requests)
+        run: node --test --test-reporter=spec tests/test-remote-helper-vendor-https.mjs
+
+      - name: Room-create WSS exact-host pin and bearer lifecycle (mock-only, no vendor requests)
+        run: node --test --test-reporter=spec tests/test-remote-helper-vendor-room.mjs
+
+      - name: Virtual-device QR enrollment and cancellation (mock-only, no live requests)
+        run: node --test --test-reporter=spec tests/test-remote-helper-vendor-enrollment.mjs
+
+      - name: Real UDP one-packet test on localhost only
+        run: python3 tests/test-remote-helper-loopback.py
+
+      - name: Real original WoL sender over two isolated Linux virtual LAN namespaces
+        run: sudo sh tests/test-remote-helper-virtual-netns.sh
