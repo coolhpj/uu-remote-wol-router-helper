@@ -45,8 +45,17 @@ ip -n "$rn" link set pc0 up
 # reads /proc/net/route; its gateway is inside the equally isolated peer.
 # The receiver has no default route, no host NIC and IP forwarding disabled.
 ip -n "$sn" route add default via 198.51.100.40 dev br-lan
-test -z "$(ip -n "$rn" route show default)"
-test "$(ip netns exec "$rn" cat /proc/sys/net/ipv4/ip_forward)" = "0"
+if [ -n "$(ip -n "$rn" route show default)" ]; then
+    echo "VIRTUAL_GPL_WOL_UNEXPECTED_RECEIVER_ROUTE" >&2
+    exit 70
+fi
+# The setting is namespaced, not changed on the Runner host.
+ip netns exec "$rn" sysctl -qw net.ipv4.ip_forward=0
+if [ "$(ip netns exec "$rn" cat /proc/sys/net/ipv4/ip_forward)" != "0" ]; then
+    echo "VIRTUAL_GPL_WOL_FORWARDING_NOT_DISABLED" >&2
+    exit 70
+fi
+echo "VIRTUAL_GPL_WOL_NETNS_PRECHECK_PASS"
 
 cat > "$work/listener.py" <<'PY'
 import select
@@ -102,10 +111,25 @@ ip netns exec "$sn" env \
     UU_PORT_MAPPING=0 \
     UU_WOL_ALLOWED_MAC=02:11:22:33:44:55 \
     "$binary" --exact wol::tests::wol_only_ci_isolated_packet_sender \
-        --nocapture > "$work/rust-test.log"
-grep -q "1 passed; 0 failed" "$work/rust-test.log"
+        --nocapture > "$work/rust-test.log" || {
+    cat "$work/rust-test.log" >&2
+    echo "VIRTUAL_GPL_WOL_RUST_SENDER_FAILURE" >&2
+    exit 70
+}
+grep -q "1 passed; 0 failed" "$work/rust-test.log" || {
+    cat "$work/rust-test.log" >&2
+    echo "VIRTUAL_GPL_WOL_RUST_TEST_NO_PASS" >&2
+    exit 70
+}
+echo "VIRTUAL_GPL_WOL_RUST_TEST_PASS"
 wait "$receiver_pid"
 receiver_pid=""
-grep -q '^VIRTUAL_GPL_WOL_EGRESS_PASS packets=1 port=9 bytes=102 udp7=0$' "$work/result"
+grep -q '^VIRTUAL_GPL_WOL_EGRESS_PASS packets=1 port=9 bytes=102 udp7=0
+cat "$work/result"
+echo "VIRTUAL_GPL_WOL_NETWORK_ISOLATION_PASS sender_only_virtual_lan=yes"
+ "$work/result" || {
+    echo "VIRTUAL_GPL_WOL_CAPTURE_REPORT_MISSING" >&2
+    exit 70
+}
 cat "$work/result"
 echo "VIRTUAL_GPL_WOL_NETWORK_ISOLATION_PASS sender_only_virtual_lan=yes"
