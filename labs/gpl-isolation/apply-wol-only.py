@@ -393,12 +393,12 @@ fn wol_only_bind_interface(_: &UdpSocket, _: &str) -> Result<(), String> {
         "    let timeout = Duration::from_secs(60);",
         "    let timeout = Duration::from_secs(75);", "src/login.rs")
     login_rs = replace_once(login_rs,
-        "        let mut login_status = 1i64;\\n        let failure = loop {".replace("\\\\n", "\\n"),
-        "        let mut login_status = 1i64;\\n        let qr_started_at = std::time::Instant::now();\\n        let failure = loop {".replace("\\\\n", "\\n"),
+        "        let mut login_status = 1i64;\n        let failure = loop {",
+        "        let mut login_status = 1i64;\n        let qr_started_at = std::time::Instant::now();\n        let failure = loop {",
         "src/login.rs")
     login_rs = replace_once(login_rs,
-        '                Err(e) => {\\n                    eprintln!("QR status query failed: {e}; last_status={login_status}");'.replace("\\\\n", "\\n"),
-        '                Err(e) if e.kind == QrRequestErrorKind::Timeout && qr_started_at.elapsed() < Duration::from_secs(300) => {\\n                    eprintln!("QR status timeout: keep same ticket and retry");\\n                    tokio::time::sleep(Duration::from_millis(500)).await;\\n                    continue;\\n                }\\n                Err(e) => {\\n                    eprintln!("QR status query failed: {e}; last_status={login_status}");'.replace("\\\\n", "\\n"),
+        '                Err(e) => {\n                    eprintln!("QR status query failed: {e}; last_status={login_status}");',
+        '                Err(e) if e.kind == QrRequestErrorKind::Timeout && qr_started_at.elapsed() < Duration::from_secs(300) => {\n                    eprintln!("QR status timeout: keep same ticket and retry");\n                    tokio::time::sleep(Duration::from_millis(500)).await;\n                    continue;\n                }\n                Err(e) => {\n                    eprintln!("QR status query failed: {e}; last_status={login_status}");',
         "src/login.rs")
     path.write_text(main_rs, encoding="utf-8")
     wolpath.write_text(wol_rs, encoding="utf-8")
