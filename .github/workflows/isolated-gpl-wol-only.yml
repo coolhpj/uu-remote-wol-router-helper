@@ -43,6 +43,7 @@ jobs:
           grep -q 'return wol_only_host().await' src/main.rs
           grep -q 'fn wol_only_startup_policy' src/main.rs
           grep -q 'SO_BINDTODEVICE' src/wol.rs
+          grep -Fq '("machine_guid", random_uuid)]' src/login.rs
           grep -q 'WOL-only directed packet not sent' src/wol.rs
           grep -q 'return Ok(1)' src/wol.rs
       - name: Rust GPL-only ingress and directed UDP9 egress unit gates
