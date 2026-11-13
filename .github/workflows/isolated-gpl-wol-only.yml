@@ -54,7 +54,7 @@ jobs:
       - name: Virtual-LAN proof of exactly one GPL WOL UDP9 packet (never real network)
         run: |
           cd "$RUNNER_TEMP/gpl-source"
-          test_binary="$(find "$PWD/target/debug/deps" -maxdepth 1 -type f -name 'uuremote_server-*' -perm /111 | head -n 1)"
+          test_binary="$(find "$PWD/target/debug/build/uu-remote-linux" -type f -name 'uuremote_server-*' -perm /111 | head -n 1)"
           test -n "$test_binary" && test -x "$test_binary"
           sudo sh "$GITHUB_WORKSPACE/labs/gpl-isolation/test-virtual-egress.sh" "$test_binary"
       - name: Confirm temporary GPL sources remain outside MIT worktree
