@@ -176,21 +176,28 @@ mod wol_only_isolation_tests {
         guard_and_tests + "#[cfg(test)]\nmod peer_release_tests {", "src/main.rs",
     )
     marker = '''    let portal_desktop = (capture.backend == desktop_backend::DesktopBackend::Portal && !desktop_backend::headless())'''
-    startup = '''    // This early return precedes desktop, input, audio and assist initialization.
-    // Login is a separate interactive command with UU_WOL_ONLY unset.
-    if std::env::var("UU_WOL_ONLY").ok().as_deref() == Some("1") {
-        let allowed = std::env::var("UU_WOL_ALLOWED_MAC").ok();
-        let iface = std::env::var("UU_WOL_LAN_IFACE").ok();
-        if !wol_only_startup_policy(std::env::args().len(), wol::enabled(),
-            &std::env::var("UU_REMOTE_ASSIST").unwrap_or_default(),
-            &std::env::var("UU_PORT_MAPPING").unwrap_or_default(),
-            allowed.as_deref(), iface.as_deref()) {
-            return Err("WOL_ONLY_STARTUP_DENIED: mode and LAN allowlist required".into());
-        }
-        env_logger::Builder::new().filter_level(log::LevelFilter::Off)
-            .filter_module("uuremote_server", log::LevelFilter::Info).init();
-        return wol_only_host().await;
+    startup = '''    // This diagnostic GPL binary can NEVER start the upstream full remote host.
+    // Only headless QR enrollment or the guarded WOL-only service is reachable.
+    let wol_args = std::env::args().collect::<Vec<_>>();
+    if wol_args.len() == 3 && wol_args[1] == "login" && wol_args[2] == "--no-gui" {
+        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("warn")).init();
+        if login::run(false).await.is_err() { std::process::exit(1); }
+        return Ok(());
     }
+    if std::env::var("UU_WOL_ONLY").ok().as_deref() != Some("1") {
+        return Err("WOL_ONLY_STARTUP_DENIED: isolated build requires UU_WOL_ONLY=1".into());
+    }
+    let allowed = std::env::var("UU_WOL_ALLOWED_MAC").ok();
+    let iface = std::env::var("UU_WOL_LAN_IFACE").ok();
+    if !wol_only_startup_policy(wol_args.len(), wol::enabled(),
+        &std::env::var("UU_REMOTE_ASSIST").unwrap_or_default(),
+        &std::env::var("UU_PORT_MAPPING").unwrap_or_default(),
+        allowed.as_deref(), iface.as_deref()) {
+        return Err("WOL_ONLY_STARTUP_DENIED: mode and LAN allowlist required".into());
+    }
+    env_logger::Builder::new().filter_level(log::LevelFilter::Off)
+        .filter_module("uuremote_server", log::LevelFilter::Info).init();
+    return wol_only_host().await;
 '''
     main_rs = replace_once(main_rs, "async fn main() -> Result<(), Box<dyn std::error::Error>> {",
         "async fn main() -> Result<(), Box<dyn std::error::Error>> {\n" + startup, "src/main.rs")
@@ -377,9 +384,26 @@ fn wol_only_bind_interface(_: &UdpSocket, _: &str) -> Result<(), String> {
         new_tests + "    #[test]\n    fn push_without_target_is_rejected() {",
         "src/wol.rs",
     )
+    # Integrate the separately compiled v0.2.58 QR retry fix. It retains the
+    # SAME authorized ticket across transient 60s timeout instead of discarding
+    # an already user-approved login. Never read credentials into this script.
+    login_path = source / "src/login.rs"
+    login_rs = login_path.read_text(encoding="utf-8")
+    login_rs = replace_once(login_rs,
+        "    let timeout = Duration::from_secs(60);",
+        "    let timeout = Duration::from_secs(75);", "src/login.rs")
+    login_rs = replace_once(login_rs,
+        "        let mut login_status = 1i64;\\n        let failure = loop {".replace("\\\\n", "\\n"),
+        "        let mut login_status = 1i64;\\n        let qr_started_at = std::time::Instant::now();\\n        let failure = loop {".replace("\\\\n", "\\n"),
+        "src/login.rs")
+    login_rs = replace_once(login_rs,
+        '                Err(e) => {\\n                    eprintln!("QR status query failed: {e}; last_status={login_status}");'.replace("\\\\n", "\\n"),
+        '                Err(e) if e.kind == QrRequestErrorKind::Timeout && qr_started_at.elapsed() < Duration::from_secs(300) => {\\n                    eprintln!("QR status timeout: keep same ticket and retry");\\n                    tokio::time::sleep(Duration::from_millis(500)).await;\\n                    continue;\\n                }\\n                Err(e) => {\\n                    eprintln!("QR status query failed: {e}; last_status={login_status}");'.replace("\\\\n", "\\n"),
+        "src/login.rs")
     path.write_text(main_rs, encoding="utf-8")
     wolpath.write_text(wol_rs, encoding="utf-8")
-    print("GPL_WOL_ONLY_PATCH_PASS: pinned clone, explicit-mode ingress gate,")
+    login_path.write_text(login_rs, encoding="utf-8")
+    print("GPL_WOL_ONLY_PATCH_PASS: pinned clone, mandatory WOL-only runtime,")
     print("directed UDP9 egress/allowlist gate and synthetic Rust tests")
     print("NOT_INSTALLABLE: Rust compilation/tests and independent audit still required")
 
