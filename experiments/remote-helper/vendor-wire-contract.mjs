@@ -34,11 +34,9 @@ function qrURL(value) {
     !url.hash && url.hostname.length > 0, "INVALID_QR_URL");
   return value;
 }
-export function prepareSignedRequest({ method = "POST", path, xParams, body = null, signingKey }) {
+function createCanonicalRequest({ method = "POST", path, xParams, body = null }) {
   requireValue(method === "POST" || method === "GET", "UNSUPPORTED_REQUEST_METHOD");
   requireValue(typeof path === "string" && ROUTES.has(path), "UNLISTED_VENDOR_API_PATH");
-  requireValue(typeof signingKey === "string" && signingKey.length >= 8 &&
-    signingKey.length <= 4096, "SIGNING_KEY_REQUIRED");
   requireValue(xParams && typeof xParams === "object" && !Array.isArray(xParams),
     "INVALID_SIGNING_PARAMS");
   const pairs = [];
@@ -62,13 +60,66 @@ export function prepareSignedRequest({ method = "POST", path, xParams, body = nu
   requireValue(typeof bodyText === "string" && bodyText.length <= 65536,
     "INVALID_SIGNED_BODY");
   const canonical = method + path + pairs.map(([key, value]) => key + "=" + value).join("&") + bodyText;
-  const signature = createHmac("sha256", signingKey).update(canonical, "utf8").digest("hex");
+  return { method, path, bodyText, canonical, pairs };
+}
+function finishSignedRequest(input, signature) {
+  const { method, path, bodyText, pairs } = input;
   const headers = Object.fromEntries(pairs);
   headers["x-param-sign"] = signature;
-  // Do not expose signingKey or canonical to the caller, to reduce accidental logging.
+  // The source credential and canonical bytes must not be returned or logged.
   return Object.freeze({ method, path, bodyText, headers: Object.freeze(headers),
     publicSummary: Object.freeze({ method, path, hasSignature: true,
       bodyBytes: Buffer.byteLength(bodyText), headerCount: pairs.length + 1 }) });
+}
+export function prepareSignedRequest({ method = "POST", path, xParams, body = null, signingKey }) {
+  requireValue(typeof signingKey === "string" && signingKey.length >= 8 &&
+    signingKey.length <= 4096, "SIGNING_KEY_REQUIRED");
+  const input = createCanonicalRequest({ method, path, xParams, body });
+  return finishSignedRequest(input,
+    createHmac("sha256", signingKey).update(input.canonical, "utf8").digest("hex"));
+}
+
+// External, owner-authorized signer seam. There is NO built-in NetEase key,
+// GPL source, network client, or permission to claim cloud authentication.
+// The caller is responsible for obtaining a permitted signing capability.
+// The challenge may contain identifiers: do not log or persist it.
+export async function prepareExternallySignedRequest({
+  method = "POST", path, xParams, body = null,
+  externalSigner, explicitlyAuthorized = false,
+  signerTimeoutMs = 4000,
+} = {}) {
+  requireValue(explicitlyAuthorized === true, "EXTERNAL_SIGNING_DISABLED");
+  requireValue(typeof externalSigner === "function", "EXTERNAL_SIGNER_UNAVAILABLE");
+  requireValue(Number.isInteger(signerTimeoutMs) && signerTimeoutMs >= 100 &&
+    signerTimeoutMs <= 10000, "EXTERNAL_SIGNER_TIMEOUT_INVALID");
+  const input = createCanonicalRequest({ method, path, xParams, body });
+  const controller = new AbortController();
+  let timer;
+  let signature;
+  try {
+    const failedByTimeout = new Promise((_, rejectTimeout) => {
+      timer = setTimeout(() => {
+        controller.abort();
+        rejectTimeout(new Error("EXTERNAL_SIGNER_TIMEOUT"));
+      }, signerTimeoutMs);
+    });
+    signature = await Promise.race([
+      Promise.resolve().then(() => externalSigner(Object.freeze({
+        method: input.method, path: input.path,
+        canonical: input.canonical, sensitive: true,
+        signal: controller.signal,
+      }))), failedByTimeout,
+    ]);
+  } catch {
+    // Never allow an external implementation's exception to print a key,
+    // signed canonical bytes, request URL, user identifier or bearer.
+    reject("EXTERNAL_SIGNER_FAILED");
+  } finally {
+    clearTimeout(timer);
+  }
+  requireValue(typeof signature === "string" && /^[a-f0-9]{64}$/.test(signature),
+    "EXTERNAL_SIGNATURE_INVALID");
+  return finishSignedRequest(input, signature);
 }
 
 export function parseQrIssued(httpStatus, payload) {

@@ -53,6 +53,7 @@ if command -v node >/dev/null 2>&1; then
         tests/test-remote-helper-engineio-socket.mjs \
         tests/test-remote-helper-fixture-wss.mjs \
         tests/test-remote-helper-credential-session.mjs tests/test-remote-helper-vendor-wire.mjs \
+        tests/test-remote-helper-external-signer.mjs \
         tests/test-remote-helper-vendor-https.mjs tests/test-remote-helper-vendor-room.mjs \
         tests/test-remote-helper-vendor-enrollment.mjs
 else

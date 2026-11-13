@@ -75,6 +75,9 @@ jobs:
       - name: Signed vendor wire format and QR ticket contract (offline only)
         run: node --test --test-reporter=spec tests/test-remote-helper-vendor-wire.mjs
 
+      - name: Optional authorized external signing provider contract (synthetic callback only)
+        run: node --test --test-reporter=spec tests/test-remote-helper-external-signer.mjs
+
       - name: Disabled-by-default vendor HTTPS adapter (mock-only, no live requests)
         run: node --test --test-reporter=spec tests/test-remote-helper-vendor-https.mjs
 

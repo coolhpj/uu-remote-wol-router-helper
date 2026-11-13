@@ -2,7 +2,7 @@
 // This is not a UU login client: no key, credentials or requests are bundled.
 // Default is OFFLINE. A genuine scan requires separate owner authorization.
 // No GPL implementation was copied into this independently authored transport.
-import { prepareSignedRequest, parseQrIssued } from "./vendor-wire-contract.mjs";
+import { prepareSignedRequest, prepareExternallySignedRequest, parseQrIssued } from "./vendor-wire-contract.mjs";
 import { inspectSignalingServer, parseRoomCandidate } from "./vendor-room-contract.mjs";
 
 export const VENDOR_ORIGIN = "https://api.nrd.nie.163.com";
@@ -52,10 +52,16 @@ async function readJsonBounded(response) {
 }
 
 export function createVendorHttpsClient({
-  enabled = false, signingKey, xParams, fetchImpl = globalThis.fetch,
+  enabled = false, signingKey, externalSigner,
+  explicitlyAuthorizedSigner = false,
+  xParams, fetchImpl = globalThis.fetch,
   timeoutMs = 10000, qrPollTimeoutMs = 65000, clock = Date.now,
 } = {}) {
   if (enabled !== true) reject("VENDOR_NETWORK_DISABLED");
+  if (externalSigner !== undefined && signingKey !== undefined)
+    reject("AMBIGUOUS_VENDOR_SIGNING_SOURCE");
+  if (externalSigner !== undefined && explicitlyAuthorizedSigner !== true)
+    reject("EXTERNAL_SIGNING_DISABLED");
   if (process.env.NODE_TLS_REJECT_UNAUTHORIZED === "0")
     reject("VENDOR_TLS_VERIFICATION_DISABLED");
   if (typeof fetchImpl !== "function") reject("VENDOR_FETCH_UNAVAILABLE");
@@ -72,7 +78,10 @@ export function createVendorHttpsClient({
     if (!Number.isSafeInteger(now) || now < 0) reject("VENDOR_CLOCK_INVALID");
     try { params = typeof xParams === "function" ? xParams({ path, method, nowSeconds: Math.floor(now / 1000) }) : xParams; }
     catch { reject("VENDOR_SIGNING_PARAMS_UNAVAILABLE"); }
-    const signed = prepareSignedRequest({ method, path, xParams: params, body, signingKey });
+    const signed = externalSigner === undefined
+      ? prepareSignedRequest({ method, path, xParams: params, body, signingKey })
+      : await prepareExternallySignedRequest({ method, path, xParams: params, body,
+        externalSigner, explicitlyAuthorized: explicitlyAuthorizedSigner });
     if (Math.abs(Number(signed.headers["x-param-ts"]) * 1000 - now) > 120000)
       reject("VENDOR_SIGNING_TIMESTAMP_STALE");
     const url = new URL(path, VENDOR_ORIGIN);
