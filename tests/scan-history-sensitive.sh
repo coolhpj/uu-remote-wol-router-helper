@@ -61,6 +61,46 @@ filter_known_history_fixture() {
             ;;
     esac
 
+    # Exact immutable commits from the independent GPL virtual-LAN lab:
+    # only synthetic TEST-NET addresses, wildcard bind and synthetic MAC lines.
+    # No whole-file or generic branch exclusion; all other lines remain scanned.
+    if [ "$commit" = "e796a34b7c400dc5e89cca7ff8db6a25ea258333" ]; then
+        printf '%s\n' "$input" | grep -Ev "^${commit}:labs/gpl-isolation/apply-wol-only[.]py:(161|169|179|191|192|200|201|204|209|212|215):|^${commit}:labs/gpl-isolation/test-virtual-egress[.]sh:(45|46|52|75|91|119):" || true
+        return 0
+    fi
+    if [ "$commit" = "6d269f5e27958c3c4e26041409fd376bc55e8bd4" ]; then
+        printf '%s\n' "$input" | grep -Ev "^${commit}:labs/gpl-isolation/apply-wol-only[.]py:(161|169|179|191|192|200|201|204|209|212|215):|^${commit}:labs/gpl-isolation/test-virtual-egress[.]sh:(40|41|47|70|86|112):" || true
+        return 0
+    fi
+    if [ "$commit" = "9d3b4f9dfe48f074ded88f921f1dc4082d2e8fbd" ]; then
+        printf '%s\n' "$input" | grep -Ev "^${commit}:labs/gpl-isolation/apply-wol-only[.]py:(161|169|179|191|192|200|201|204|209|212|215):|^${commit}:labs/gpl-isolation/test-virtual-egress[.]sh:(40|41|47|61|77|103):" || true
+        return 0
+    fi
+    if [ "$commit" = "016444067d7c2f9dbe20bc0bc8c842839a77d98e" ]; then
+        printf '%s\n' "$input" | grep -Ev "^${commit}:labs/gpl-isolation/apply-wol-only[.]py:(161|169|179|191|192|200|201|204|209|212|215):|^${commit}:labs/gpl-isolation/test-virtual-egress[.]sh:(40|41|47|61|77|103):" || true
+        return 0
+    fi
+    if [ "$commit" = "3b3f19f4eb36e96f9194280df6d40a371f671bf4" ]; then
+        printf '%s\n' "$input" | grep -Ev "^${commit}:labs/gpl-isolation/apply-wol-only[.]py:(161|169|179|191|192|200|201|204|209|212|215):|^${commit}:labs/gpl-isolation/test-virtual-egress[.]sh:(40|41|47|61|77|103):" || true
+        return 0
+    fi
+    if [ "$commit" = "4ed5259c730f54207d0f2e1433eb344592712e81" ]; then
+        printf '%s\n' "$input" | grep -Ev "^${commit}:labs/gpl-isolation/apply-wol-only[.]py:(161|169|179|191|192|200|201|204|209|212|215):|^${commit}:labs/gpl-isolation/test-virtual-egress[.]sh:(40|41|47|61|77|103):" || true
+        return 0
+    fi
+    if [ "$commit" = "436387462b6edb7b4d5b4357da75f7c3dc9c0eb2" ]; then
+        printf '%s\n' "$input" | grep -Ev "^${commit}:labs/gpl-isolation/apply-wol-only[.]py:(161|169|179|186|187|190|195|198|201):" || true
+        return 0
+    fi
+    if [ "$commit" = "b8add7a263138f401f09a0c3d85602950553b087" ]; then
+        printf '%s\n' "$input" | grep -Ev "^${commit}:tests/test-remote-helper-vendor-room[.]mjs:(81):" || true
+        return 0
+    fi
+    if [ "$commit" = "08343e127a0adf54df32d7fd39506bbe66c38177" ]; then
+        printf '%s\n' "$input" | grep -Ev "^${commit}:tests/test-remote-helper-vendor-enrollment[.]mjs:(15|61):" || true
+        return 0
+    fi
+
     printf '%s\n' "$input"
 }
 

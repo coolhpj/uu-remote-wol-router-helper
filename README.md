@@ -20,6 +20,32 @@ curl -fsSLo uu-docker-start.sh https://raw.githubusercontent.com/coolhpj/uu-remo
 
 **另一个独立研发方向（尚不可安装）：** [Draft PR #19：UU远程辅助设备 WoL-only 实验](https://github.com/coolhpj/uu-remote-wol-router-helper/pull/19) 研究让常开的路由器、Linux 主机或 NAS 使用 **UU远程辅助设备身份**接收唤醒指令，而不是复用上述 Docker 的官方路由器 `uuplugin` 身份。当前仅完成 GitHub Actions 的模拟扫码、注册/认证消息校验及本机 UDP 测试，**尚未完成真实网易 UU 账号绑定、云端指令或手机移动网络开机验证；不提供该模式的安装命令或可用镜像**。PR #16 与 PR #19 是两条互不混淆的实验路线。
 
+
+## 🗄️ NAS 专区｜QNAP、群晖、飞牛、极空间 Docker 测试版
+
+**[下载 NAS / Linux Docker 测试版源码 ZIP（固定提交）](https://github.com/coolhpj/uu-remote-wol-router-helper/archive/a52ada3a32760914e09d2dc665e87dd784c5d582.zip)** · **[NAS 完整安装、绑定、停止、升级、卸载及测试反馈教程](docs/NAS.md)**
+
+适合具有 Docker Engine 和 `docker compose` 的 NAS/常开 Linux 主机；`x86_64` 优先、ARM64 为候选。该 ZIP 含 `Dockerfile`、`compose.yaml`、NAS 只读环境检查脚本与开源安装代码，**不是预编译 Docker 镜像**；不捆绑网易闭源程序。首次构建及运行需要联网。系统自带的 NAS 图形容器管理器不一定支持源码构建，推荐用终端 / SSH 操作。
+
+**先在下载 ZIP 解压后的仓库根目录检查：**
+
+~~~sh
+sh scripts/nas-preflight.sh
+docker compose config --quiet
+~~~
+
+检查通过并确认 NAS 上没有冲突的 UU 设备身份或端口后，才启动：
+
+~~~sh
+docker compose build
+docker compose up -d --no-build
+docker compose ps
+~~~
+
+测试容器使用 **host 网络**，虽然不采用 `privileged`、`NET_ADMIN` 或宿主 `docker.sock`，但**不是完全隔离网络**。必须在自有设备上知情试用。手机关闭 Wi-Fi、只用移动数据真正唤醒关机 PC，才算远程唤醒成功。停止用 `docker compose stop`；退出实验用 `docker compose down`，默认保留身份卷；**不要运行 `down -v` 误删绑定数据**。请把脱敏成功/失败记录提交到 [Issue #15](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/15)。
+
+**重要：** 这个 NAS 包属于 **PR #16 路由器插件身份 Docker 实验版**，仍缺真正 NAS/UU 绑定与移动数据唤醒的社区验收；它**不是 PR #19 的独立辅助设备 WOL-only 版本**。后者虽已在 GitHub 虚拟局域网验证恰好一个 102 字节 UDP/9 唤醒包，但仍没有满足真实网易认证、运行时禁用其他远控能力和 NAS 权限隔离的发版门槛。两个版本不可混用身份文件或安装步骤。
+
 ---
 
 想用**网易 UU 远程开机**，让家里的路由器充当**UU 辅助开机 / 网易 UU 远程辅助设备**，但找不到适合自己固件的**路由器插件**或 **OpenWrt 安装**方法？本项目提供开源的检测、官方插件下载校验和分平台安装引导，帮助你判断路由器是否适合辅助唤醒关机电脑。**不是网易官方插件，也不保证所有路由器可安装或长期在线。**
