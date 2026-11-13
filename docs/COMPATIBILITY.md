@@ -1,6 +1,8 @@
-# Compatibility Matrix / 兼容性矩阵
+# 路由器版｜设备兼容性
 
-本文件只记录可验证状态，不把理论兼容性写成已支持。
+本表只记录**路由器原生版**的实测情况，不适用于 Docker / NAS 版。Docker 的两个模式分别在 [路由器插件测试反馈 #15](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/15) 与 [独立辅助设备测试反馈 #23](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/23) 收集结果。
+
+不把理论兼容性写成已支持。
 
 ## 状态定义
 
