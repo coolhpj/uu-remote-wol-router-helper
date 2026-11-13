@@ -2,6 +2,9 @@ name: Isolated GPL QR Timeout Diagnostic
 on:
   push:
     branches: [test/gpl-qr-poll-isolated-20261113]
+    paths:
+      - .github/workflows/isolated-gpl-qr-timeout.yml
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
