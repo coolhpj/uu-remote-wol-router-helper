@@ -2,7 +2,7 @@
 # Read-only preflight for the NAS / Linux Docker router-identity beta.
 # Never alters firewall, containers, volumes, SSH or NAS configuration.
 set -eu
-if [ "\${1:-}" = "--help" ]; then
+if [ "${1:-}" = "--help" ]; then
   printf '%s\n' 'Usage: sh scripts/nas-preflight.sh' \
     'Checks only. No installation, cloud login, binding or WOL packet.'
   exit 0
@@ -36,7 +36,7 @@ if command -v docker >/dev/null 2>&1; then
   check 'Docker Engine accessible (no sudo)' docker_daemon
   check 'docker compose plugin' compose_plugin
 fi
-if [ -n "\${DOCKER_HOST:-}" ]; then
+if [ -n "${DOCKER_HOST:-}" ]; then
   printf '%s\n' 'WARN DOCKER_HOST is set: inspect which host will receive this deployment.'
 fi
 printf '%s\n' 'NOTE beta uses Docker HOST networking; check for an existing UU process or port conflict yourself.'

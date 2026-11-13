@@ -6,7 +6,7 @@
 
 ## NAS 用户独立入口
 
-QNAP、群晖、飞牛 OS、极空间等 NAS 用户请先看 [NAS 专用安装步骤](https://github.com/coolhpj/uu-remote-wol-router-helper/blob/docs/nas-beta-20261113/docs/NAS.md)；固定源码测试包可从 [此提交 ZIP](https://github.com/coolhpj/uu-remote-wol-router-helper/archive/a52ada3a32760914e09d2dc665e87dd784c5d582.zip) 下载（包含只读 `scripts/nas-preflight.sh`）。首次操作必须先执行 `sh scripts/nas-preflight.sh` 和 `docker compose config --quiet`，检查通过也不证明手机远程开机成功。正式主分支的 NAS 页面合并后，以主 README 的固定下载 SHA 为准，不将本实验版当成独立 WOL-only 辅助设备。
+QNAP、群晖、飞牛 OS、极空间等 NAS 用户请先看 [NAS 专用安装步骤](https://github.com/coolhpj/uu-remote-wol-router-helper/blob/main/docs/NAS.md)；固定源码测试包可从 [此提交 ZIP](https://github.com/coolhpj/uu-remote-wol-router-helper/archive/a52ada3a32760914e09d2dc665e87dd784c5d582.zip) 下载（包含只读 `scripts/nas-preflight.sh`）。首次操作必须先执行 `sh scripts/nas-preflight.sh` 和 `docker compose config --quiet`，检查通过也不证明手机远程开机成功。正式主分支的 NAS 页面合并后，以主 README 的固定下载 SHA 为准，不将本实验版当成独立 WOL-only 辅助设备。
 
 ## 一条命令快速部署（Linux 实验版）
 

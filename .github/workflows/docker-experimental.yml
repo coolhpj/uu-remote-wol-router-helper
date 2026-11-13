@@ -32,6 +32,7 @@ jobs:
       - name: NAS beta read-only preflight
         run: |
           sh -n scripts/nas-preflight.sh
+          sh scripts/nas-preflight.sh --help | grep -F 'Checks only'
           sh scripts/nas-preflight.sh
       - name: Build native amd64 image
         run: docker build --pull -t uu-docker-experimental:test .
