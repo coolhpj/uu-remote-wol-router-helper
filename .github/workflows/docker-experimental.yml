@@ -10,6 +10,7 @@ on:
       - lib/**
       - scripts/stage-package.sh
       - tests/test-docker-source.sh
+      - scripts/nas-preflight.sh
       - tests/test-docker-quickstart.sh
       - docker/quickstart.sh
       - tests/docker-real-identity-persistence.sh
@@ -28,6 +29,10 @@ jobs:
       - uses: actions/checkout@v6
       - name: Verify source and shell syntax
         run: sh tests/test-docker-source.sh
+      - name: NAS beta read-only preflight
+        run: |
+          sh -n scripts/nas-preflight.sh
+          sh scripts/nas-preflight.sh
       - name: Build native amd64 image
         run: docker build --pull -t uu-docker-experimental:test .
       - name: Verify source-only contents
