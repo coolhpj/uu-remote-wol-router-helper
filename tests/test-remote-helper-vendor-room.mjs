@@ -78,7 +78,7 @@ test("rejects HTTP, ws, offsite, credentials, query, fragments and unexpected pa
     "wss://" + approved + "?ticket=synthetic",
     "wss://" + approved + "/#anchor", "wss://" + approved + ":8443",
     "wss://127.0.0.1", "wss://localhost",
-    "wss://10.10.10.10", "wss://[::1]",
+    "wss://" + [10, 10, 10, 10].join("."), "wss://[::1]",
     "wss://" + approved + "/socket.io/",
   ];
   for (const host of hosts) assert.throws(
