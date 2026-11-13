@@ -65,6 +65,12 @@ jobs:
             echo "WOL_ONLY_UNSAFE_ASSIST_COMMAND_ACCEPTED"; exit 1
           fi
           grep -q 'WOL_ONLY_STARTUP_DENIED' "$RUNNER_TEMP/wol-assist-test.log"
+          # The diagnostic binary must never fall back to full remote host,
+          # even if the operator omits UU_WOL_ONLY entirely.
+          if env UU_NO_GTK=1 "$bin" --help > "$RUNNER_TEMP/wol-mode-absent.log" 2>&1; then
+            echo "WOL_ONLY_FULL_HOST_FALLBACK_ACCEPTED"; exit 1
+          fi
+          grep -q 'WOL_ONLY_STARTUP_DENIED' "$RUNNER_TEMP/wol-mode-absent.log"
           if env UU_WOL_ONLY=1 UU_NO_GTK=1 UU_WOL_HELPER=1 \
             UU_REMOTE_ASSIST=0 UU_PORT_MAPPING=0 \
             UU_WOL_ALLOWED_MAC=02:11:22:33:44:55 \
