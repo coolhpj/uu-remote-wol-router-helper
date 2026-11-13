@@ -88,6 +88,8 @@ curl -fsSLo uu-docker-start.sh https://raw.githubusercontent.com/coolhpj/uu-remo
 
 ## 常见问题
 
+**NAS 和 Docker 有什么区别？NAS 用户该选哪个？** NAS 是群晖、威联通、飞牛等网络存储设备；Docker 是在 NAS 或 Linux 主机上运行程序的工具。**NAS 支持 Docker，就看上面的「Docker 版（支持 NAS）」**，不需要另找 NAS 专用版；不支持 Docker 的 NAS 则不能直接使用这套方案。普通 NAS 可优先测试「独立辅助设备模式」，也可了解「路由器插件模式」；两者的绑定数据不能混用，真实远程开机效果都还需要实机验证。
+
 **路由器已自带 UU，还要安装吗？** 不用。优先使用官方功能。
 
 **辅助设备已在线，为什么开不了机？** 先检查电脑自己的 WOL 设置、手机端路由器绑定、Windows「UU远程」的辅助设备关联。在线不等于成功唤醒。[详细步骤](docs/MANUAL-SETUP.md)
