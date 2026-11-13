@@ -97,7 +97,7 @@
 
 ## 贡献者提交新设备时需要的信息
 
-未来 Issue Template 会要求：
+提交新型号时，使用现有的 [新路由器支持表单](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/new/choose)，提供以下信息：
 
 - Brand / 品牌
 - Model / 型号
