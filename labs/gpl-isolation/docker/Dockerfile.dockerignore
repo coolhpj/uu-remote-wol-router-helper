@@ -1,0 +1,7 @@
+# Only the GPL patch recipe is sent as Docker build context.
+# In particular, private .env, config.json, qr.png and the rest of the
+# worktree must NEVER be uploaded to a remote builder.
+**
+!labs/
+!labs/gpl-isolation/
+!labs/gpl-isolation/apply-wol-only.py
