@@ -19,9 +19,13 @@ The patch prototype adds a *default-off*, explicitly configured
 - sends at most **one directed UDP/9 packet** in WOL-only mode, rather
   than the upstream's general-broadcast UDP/7 and UDP/9 fan-out.
 
-These are **source-level unit gates**, not evidence that the process has
-zero background capabilities or that a real NAS network path is safe.
-The container is not started by CI. There is no published binary artifact,
+The compile/test CI gate additionally creates **two ephemeral isolated Linux
+network namespaces** and runs only the patched Rust unit-test binary inside
+one namespace, capturing the actual UDP packet in the other. It must verify
+**exactly one 102-byte UDP/9** frame and **no UDP/7**, without any host NIC,
+Internet route, UU login or production service. This proves the synthetic
+single-packet path, not that a real NAS network interface or post-reboot
+identity has been safely configured. The container is not started by CI. There is no published binary artifact,
 Docker image, GitHub Release or end-user installation guide.
 
 ## Remaining gates before recruiting Docker volunteers

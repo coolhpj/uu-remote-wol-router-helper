@@ -181,6 +181,20 @@ fn wol_only_destination(
     )
     new_tests = r'''
     #[test]
+    fn wol_only_ci_isolated_packet_sender() {
+        // Not run on a normal developer host or a real LAN.
+        // The CI caller must create a throwaway private network namespace.
+        if std::env::var("UU_WOL_ISOLATED_CI").ok().as_deref() != Some("1") {
+            return;
+        }
+        let payload = serde_json::json!({"target_device": {
+            "mac": "02:11:22:33:44:55", "ip": "198.51.100.40",
+            "subnet_mask": "255.255.255.0"
+        }});
+        assert_eq!(handle_push(&payload).unwrap(), 1);
+    }
+
+    #[test]
     fn wol_only_egress_is_one_approved_mac_and_one_directed_udp9_address() {
         let payload = serde_json::json!({"target_device": {
             "mac": "02:11:22:33:44:55", "ip": "198.51.100.40",

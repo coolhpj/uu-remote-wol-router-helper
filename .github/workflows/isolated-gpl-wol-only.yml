@@ -22,7 +22,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
-            build-essential pkg-config libx11-dev libxext-dev libxtst-dev libxfixes-dev
+            build-essential pkg-config libx11-dev libxext-dev libxtst-dev libxfixes-dev iproute2
           rustup update stable --no-self-update
       - name: Retrieve exact upstream GPL-3.0-or-later release
         run: |
@@ -51,6 +51,12 @@ jobs:
           sha256sum target/debug/uuremote-server | cut -d' ' -f1 | sed 's/^/ISOLATED_GPL_BINARY_SHA256=/'
           echo "GPL_WOL_ONLY_COMPILE_PASS"
           echo "NOT_INSTALLABLE: no real vendor authentication, no interface-bound packet proof, no runtime sandbox / reboot gate"
+      - name: Virtual-LAN proof of exactly one GPL WOL UDP9 packet (never real network)
+        run: |
+          cd "$RUNNER_TEMP/gpl-source"
+          test_binary="$(find "$PWD/target/debug/deps" -maxdepth 1 -type f -name 'uuremote_server-*' -perm /111 | head -n 1)"
+          test -n "$test_binary" && test -x "$test_binary"
+          sudo sh "$GITHUB_WORKSPACE/labs/gpl-isolation/test-virtual-egress.sh" "$test_binary"
       - name: Confirm temporary GPL sources remain outside MIT worktree
         run: |
           test -d "$RUNNER_TEMP/gpl-source/.git"
