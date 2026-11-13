@@ -43,6 +43,10 @@ fn wol_only_startup_policy(arg_count: usize, enabled: bool, remote_assist: &str,
         allowed_mac.and_then(wol::parse_mac).is_some() && iface_ok
 }
 
+fn wol_only_room_ack_ok(ack: &serde_json::Value) -> bool {
+    ack.as_array().and_then(|v| v.first()).and_then(serde_json::Value::as_str) == Some("success")
+}
+
 /// The distinct host never constructs InputInjector, ScreenCapture, Assist,
 /// WebRtcSession, terminal, file transfer or a port mapping listener.
 async fn wol_only_host() -> Result<(), Box<dyn std::error::Error>> {
@@ -71,6 +75,7 @@ async fn wol_only_host() -> Result<(), Box<dyn std::error::Error>> {
         };
         let renewal = tokio::time::sleep(std::time::Duration::from_secs(900));
         tokio::pin!(renewal);
+        let mut room_authorized = false;
         loop {
             let event = tokio::select! {
                 event = events_rx.recv() => event,
@@ -84,11 +89,19 @@ async fn wol_only_host() -> Result<(), Box<dyn std::error::Error>> {
                     if wol::lan_info().is_none() {
                         return Err("WOL-only LAN interface invalid".into());
                     }
-                    wol::report(&auth).await;
                 }
-                Some(SignalingEvent::RoomInfoAck(_)) => {}
+                Some(SignalingEvent::RoomInfoAck(ref ack)) => {
+                    if !wol_only_room_ack_ok(ack) {
+                        log::warn!("WOL-only room authorization acknowledgement denied");
+                        break;
+                    }
+                    if !room_authorized {
+                        room_authorized = true;
+                        wol::report(&auth).await;
+                    }
+                }
                 Some(SignalingEvent::DeviceInfoChanged(ref value))
-                    if value.get("type").and_then(serde_json::Value::as_str) == Some("wake_on_lan") => {
+                    if room_authorized && value.get("type").and_then(serde_json::Value::as_str) == Some("wake_on_lan") => {
                     let data = value.get("data").unwrap_or(value);
                     match wol::handle_push(data) {
                         Ok(1) => log::info!("WOL-only one authorized magic packet sent"),
@@ -107,6 +120,15 @@ async fn wol_only_host() -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(test)]
 mod wol_only_startup_tests {
     use super::*;
+    #[test]
+    fn accepts_only_explicit_successful_room_ack() {
+        assert!(wol_only_room_ack_ok(&serde_json::json!(["success",{"synthetic":true}])));
+        for ack in [serde_json::json!([]),serde_json::json!({}),
+            serde_json::json!(["failed"]),serde_json::json!([null]),
+            serde_json::json!(["successfully_malicious"])] {
+            assert!(!wol_only_room_ack_ok(&ack));
+        }
+    }
     #[test]
     fn refuses_assist_commands_missing_guards_and_wrong_interface() {
         let valid = wol_only_startup_policy(1,true,"0","0",
