@@ -34,7 +34,7 @@ jobs:
       - name: Install real UDP loopback test transport
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends socat
+          sudo apt-get install -y --no-install-recommends socat iproute2
 
       - name: Verify test dependencies (no SKIP permitted)
         run: |
@@ -72,3 +72,6 @@ jobs:
 
       - name: Real UDP one-packet test on localhost only
         run: python3 tests/test-remote-helper-loopback.py
+
+      - name: Real original WoL sender over two isolated Linux virtual LAN namespaces
+        run: sudo sh tests/test-remote-helper-virtual-netns.sh
