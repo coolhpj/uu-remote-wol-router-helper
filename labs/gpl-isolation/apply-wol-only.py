@@ -32,6 +32,99 @@ def main() -> None:
     path = source / "src/main.rs"
     main_rs = path.read_text(encoding="utf-8")
     guard_and_tests = r'''
+/// WOL-only is a separate runtime, not merely a WebRTC event filter.
+/// The policy must run before any desktop, audio, input or assist setup.
+fn wol_only_startup_policy(arg_count: usize, enabled: bool, remote_assist: &str,
+    port_mapping: &str, allowed_mac: Option<&str>, lan_iface: Option<&str>) -> bool {
+    let iface_ok = lan_iface.is_some_and(|name|
+        !name.is_empty() && name.len() <= 15 && name != "lo" &&
+        name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.'));
+    arg_count == 1 && enabled && remote_assist == "0" && port_mapping == "0" &&
+        allowed_mac.and_then(wol::parse_mac).is_some() && iface_ok
+}
+
+/// The distinct host never constructs InputInjector, ScreenCapture, Assist,
+/// WebRtcSession, terminal, file transfer or a port mapping listener.
+async fn wol_only_host() -> Result<(), Box<dyn std::error::Error>> {
+    let credentials = config::file().and_then(Credentials::load)?;
+    let auth = Arc::new(UUAuthClient::new(credentials));
+    let mut stop = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
+    loop {
+        let room = tokio::select! {
+            answer = auth.create_room() => answer,
+            _ = stop.recv() => return Ok(()),
+            _ = tokio::signal::ctrl_c() => return Ok(()),
+        }.map_err(|_| std::io::Error::other("WOL-only room authorization denied"))?;
+        let (events_tx, mut events_rx) = mpsc::channel::<SignalingEvent>(32);
+        let connection = tokio::select! {
+            answer = SignalingClient::connect(&room.signaling_server, &room.token, events_tx) => answer,
+            _ = stop.recv() => return Ok(()),
+            _ = tokio::signal::ctrl_c() => return Ok(()),
+        };
+        let _connection = match connection {
+            Ok(connection) => connection,
+            Err(_) => {
+                log::warn!("WOL-only signaling connection rejected; retrying");
+                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                continue;
+            }
+        };
+        let renewal = tokio::time::sleep(std::time::Duration::from_secs(900));
+        tokio::pin!(renewal);
+        loop {
+            let event = tokio::select! {
+                event = events_rx.recv() => event,
+                _ = &mut renewal => Some(SignalingEvent::Disconnected),
+                _ = stop.recv() => return Ok(()),
+                _ = tokio::signal::ctrl_c() => return Ok(()),
+            };
+            match event {
+                Some(SignalingEvent::Connected) => {
+                    // A failed LAN preflight must never register a bogus helper.
+                    if wol::lan_info().is_none() {
+                        return Err("WOL-only LAN interface invalid".into());
+                    }
+                    wol::report(&auth).await;
+                }
+                Some(SignalingEvent::RoomInfoAck(_)) => {}
+                Some(SignalingEvent::DeviceInfoChanged(ref value))
+                    if value.get("type").and_then(serde_json::Value::as_str) == Some("wake_on_lan") => {
+                    let data = value.get("data").unwrap_or(value);
+                    match wol::handle_push(data) {
+                        Ok(1) => log::info!("WOL-only one authorized magic packet sent"),
+                        _ => log::warn!("WOL-only denied or failed a wake request"),
+                    }
+                }
+                Some(SignalingEvent::Disconnected) | None => break,
+                Some(SignalingEvent::Stop) => return Ok(()),
+                // All remote desktop, terminal, file and other events are inert.
+                _ => log::warn!("WOL-only rejected non-wake signaling event"),
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod wol_only_startup_tests {
+    use super::*;
+    #[test]
+    fn refuses_assist_commands_missing_guards_and_wrong_interface() {
+        let valid = wol_only_startup_policy(1,true,"0","0",
+            Some("02:11:22:33:44:55"),Some("br-lan"));
+        assert!(valid);
+        for args in [2usize,3,5] {
+            assert!(!wol_only_startup_policy(args,true,"0","0",Some("02:11:22:33:44:55"),Some("br-lan")));
+        }
+        for iface in [None,Some("lo"),Some("eth/0"),Some(""),Some("too_long_interface")] {
+            assert!(!wol_only_startup_policy(1,true,"0","0",Some("02:11:22:33:44:55"),iface));
+        }
+        assert!(!wol_only_startup_policy(1,false,"0","0",Some("02:11:22:33:44:55"),Some("br-lan")));
+        assert!(!wol_only_startup_policy(1,true,"1","0",Some("02:11:22:33:44:55"),Some("br-lan")));
+        assert!(!wol_only_startup_policy(1,true,"0","1",Some("02:11:22:33:44:55"),Some("br-lan")));
+        assert!(!wol_only_startup_policy(1,true,"0","0",None,Some("br-lan")));
+    }
+}
+
 /// A test-only WOL-first ingress gate for the separate GPL upstream host.
 /// No remote desktop, terminal, file-transfer, WebRTC or port-map signaling
 /// is allowed through its event dispatcher in UU_WOL_ONLY=1.
@@ -83,29 +176,26 @@ mod wol_only_isolation_tests {
         guard_and_tests + "#[cfg(test)]\nmod peer_release_tests {", "src/main.rs",
     )
     marker = '''    let portal_desktop = (capture.backend == desktop_backend::DesktopBackend::Portal && !desktop_backend::headless())'''
-    startup = '''    // Opt-in only: a missing or inconsistent protection setting is fatal.
-    let wol_only_mode = std::env::var("UU_WOL_ONLY").ok().as_deref() == Some("1");
-    if wol_only_mode && (!wol::enabled() ||
-        std::env::var("UU_REMOTE_ASSIST").ok().as_deref() != Some("0") ||
-        std::env::var("UU_PORT_MAPPING").ok().as_deref() != Some("0") ||
-        std::env::var("UU_WOL_ALLOWED_MAC").ok()
-          .and_then(|v| wol::parse_mac(&v)).is_none()) {
-        return Err("WOL-only environment policy incomplete".into());
+    startup = '''    // This early return precedes desktop, input, audio and assist initialization.
+    // Login is a separate interactive command with UU_WOL_ONLY unset.
+    if std::env::var("UU_WOL_ONLY").ok().as_deref() == Some("1") {
+        let allowed = std::env::var("UU_WOL_ALLOWED_MAC").ok();
+        let iface = std::env::var("UU_WOL_LAN_IFACE").ok();
+        if !wol_only_startup_policy(std::env::args().len(), wol::enabled(),
+            &std::env::var("UU_REMOTE_ASSIST").unwrap_or_default(),
+            &std::env::var("UU_PORT_MAPPING").unwrap_or_default(),
+            allowed.as_deref(), iface.as_deref()) {
+            return Err("WOL_ONLY_STARTUP_DENIED: mode and LAN allowlist required".into());
+        }
+        env_logger::Builder::new().filter_level(log::LevelFilter::Off)
+            .filter_module("uuremote_server", log::LevelFilter::Info).init();
+        return wol_only_host().await;
     }
 '''
-    main_rs = replace_once(main_rs, marker, startup + marker, "src/main.rs")
-    main_rs = replace_once(
-        main_rs,
-        '''            match evt {
-''',
-        '''            if wol_only_mode && !wol_only_event_allowed(&evt) {
-                // Do not construct any WebRTC session or remote-tool peer.
-                log::warn!("WOL-only mode denied a non-WOL signaling event");
-                continue;
-            }
-            match evt {
-''', "src/main.rs",
-    )
+    main_rs = replace_once(main_rs, "async fn main() -> Result<(), Box<dyn std::error::Error>> {",
+        "async fn main() -> Result<(), Box<dyn std::error::Error>> {\n" + startup, "src/main.rs")
+    # The ordinary host remains unchanged: UU_WOL_ONLY returns from main()
+    # before calling serve(), so its feature-rich event dispatcher is unreachable.
 
     wolpath = source / "src/wol.rs"
     wol_rs = wolpath.read_text(encoding="utf-8")
