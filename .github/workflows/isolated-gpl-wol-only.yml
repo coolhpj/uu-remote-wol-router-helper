@@ -35,6 +35,7 @@ jobs:
           python3 labs/gpl-isolation/apply-wol-only.py "$RUNNER_TEMP/gpl-source"
           cd "$RUNNER_TEMP/gpl-source"
           git diff --check
+          sh -n "$GITHUB_WORKSPACE/labs/gpl-isolation/test-virtual-egress.sh"
           git diff --stat
           grep -q 'if wol_only_mode && !wol_only_event_allowed(&evt)' src/main.rs
           grep -q 'WOL-only directed packet not sent' src/wol.rs
@@ -54,36 +55,10 @@ jobs:
       - name: Virtual-LAN proof of exactly one GPL WOL UDP9 packet (never real network)
         run: |
           cd "$RUNNER_TEMP/gpl-source"
-          # Cargo's JSON artifact manifest is authoritative; this pinned GPL
-          # project emits tests under a nonstandard target/debug/build/.../out
-          # path, so never guess a target/deps layout.
-          cargo test --locked --bin uuremote-server --no-run --message-format=json > "$RUNNER_TEMP/gpl-test-build.ndjson"
-          test_binary="$(python3 - "$RUNNER_TEMP/gpl-test-build.ndjson" <<'PY'
-          import json
-          import pathlib
-          import sys
-          
-          paths = set()
-          for line in pathlib.Path(sys.argv[1]).read_text().splitlines():
-              try:
-                  item = json.loads(line)
-              except ValueError:
-                  continue
-              if item.get("reason") != "compiler-artifact":
-                  continue
-              executable = item.get("executable")
-              if executable and item.get("profile", {}).get("test") and (
-                  item.get("target", {}).get("name") == "uuremote-server"
-              ):
-                  paths.add(executable)
-          if len(paths) != 1:
-              raise SystemExit("GPL_TEST_ARTIFACT_MANIFEST_INVALID")
-          print(paths.pop())
-          PY
-          )"
-          test -n "$test_binary" && test -x "$test_binary"
-          echo "GPL_WOL_ONLY_TEST_HARNESS_LOCATED_FROM_CARGO_JSON"
-          sudo sh "$GITHUB_WORKSPACE/labs/gpl-isolation/test-virtual-egress.sh" "$test_binary"
+          # Execute exactly one synthetic Rust unit test as the unprivileged
+          # runner within a disconnected two-namespace veth-only network.
+          sudo sh "$GITHUB_WORKSPACE/labs/gpl-isolation/test-virtual-egress.sh" \
+            "$RUNNER_TEMP/gpl-source" "$(id -un)" "$HOME" "$(command -v cargo)"
       - name: Confirm temporary GPL sources remain outside MIT worktree
         run: |
           test -d "$RUNNER_TEMP/gpl-source/.git"

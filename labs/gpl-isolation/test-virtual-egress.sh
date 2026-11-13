@@ -5,9 +5,14 @@
 set -eu
 
 [ "$(id -u)" -eq 0 ] || { echo "VIRTUAL_GPL_WOL_NEEDS_CI_ROOT" >&2; exit 69; }
-[ "$#" -eq 1 ] && [ -x "$1" ] || { echo "VIRTUAL_GPL_WOL_TEST_BINARY_REQUIRED" >&2; exit 69; }
-binary=$1
-for dep in ip python3 grep; do
+[ "$#" -eq 4 ] && [ -d "$1/.git" ] && [ -x "$4" ] || { echo "VIRTUAL_GPL_WOL_CARGO_WORKSPACE_REQUIRED" >&2; exit 69; }
+upstream_dir=$1
+runner_user=$2
+runner_home=$3
+cargo_bin=$4
+[ "$(id -u "$runner_user")" -ne 0 ] || { echo "VIRTUAL_GPL_WOL_UNPRIVILEGED_RUNNER_REQUIRED" >&2; exit 69; }
+[ "$(pwd -P)" = "$(cd "$upstream_dir" && pwd -P)" ] || { echo "VIRTUAL_GPL_WOL_WORKTREE_MISMATCH" >&2; exit 69; }
+for dep in ip python3 grep runuser; do
     command -v "$dep" >/dev/null 2>&1 || { echo "VIRTUAL_GPL_WOL_MISSING_TOOL: $dep" >&2; exit 69; }
 done
 work=$(mktemp -d /tmp/gpl-wol-only-veth.XXXXXXXX)
@@ -72,7 +77,7 @@ for port in (7, 9):
 ready.write_text("READY\n", encoding="ascii")
 messages = []
 while True:
-    readable, _, _ = select.select(list(ports), [], [], 3 if not messages else 0.5)
+    readable, _, _ = select.select(list(ports), [], [], 45 if not messages else 0.5)
     if not readable:
         break
     for sock in readable:
@@ -103,15 +108,18 @@ while [ ! -s "$work/ready" ]; do
     sleep 0.1
 done
 
-ip netns exec "$sn" env \
-    UU_WOL_ISOLATED_CI=1 \
-    UU_WOL_ONLY=1 \
-    UU_WOL_HELPER=1 \
-    UU_REMOTE_ASSIST=0 \
-    UU_PORT_MAPPING=0 \
+# The direct Rust unit test is launched as the unprivileged GitHub runner
+# inside the sender namespace. All dependencies must already be cached:
+# no other NIC, credentials, Internet connectivity or live UU host process.
+ip netns exec "$sn" runuser -u "$runner_user" -- env \
+    HOME="$runner_home" CARGO_HOME="$runner_home/.cargo" \
+    RUSTUP_HOME="$runner_home/.rustup" CARGO_NET_OFFLINE=true UU_NO_GTK=1 \
+    UU_WOL_ISOLATED_CI=1 UU_WOL_ONLY=1 UU_WOL_HELPER=1 \
+    UU_REMOTE_ASSIST=0 UU_PORT_MAPPING=0 \
     UU_WOL_ALLOWED_MAC=02:11:22:33:44:55 \
-    "$binary" --exact wol::tests::wol_only_ci_isolated_packet_sender \
-        --nocapture > "$work/rust-test.log" || {
+    "$cargo_bin" test --offline --locked --bin uuremote-server \
+    wol::tests::wol_only_ci_isolated_packet_sender -- --exact --nocapture \
+        > "$work/rust-test.log" 2>&1 || {
     cat "$work/rust-test.log" >&2
     echo "VIRTUAL_GPL_WOL_RUST_SENDER_FAILURE" >&2
     exit 70
@@ -124,10 +132,7 @@ grep -q "1 passed; 0 failed" "$work/rust-test.log" || {
 echo "VIRTUAL_GPL_WOL_RUST_TEST_PASS"
 wait "$receiver_pid"
 receiver_pid=""
-grep -q '^VIRTUAL_GPL_WOL_EGRESS_PASS packets=1 port=9 bytes=102 udp7=0
-cat "$work/result"
-echo "VIRTUAL_GPL_WOL_NETWORK_ISOLATION_PASS sender_only_virtual_lan=yes"
- "$work/result" || {
+grep -q '^VIRTUAL_GPL_WOL_EGRESS_PASS packets=1 port=9 bytes=102 udp7=0$' "$work/result" || {
     echo "VIRTUAL_GPL_WOL_CAPTURE_REPORT_MISSING" >&2
     exit 70
 }
