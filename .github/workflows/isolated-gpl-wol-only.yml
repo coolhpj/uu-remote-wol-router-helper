@@ -37,7 +37,9 @@ jobs:
           git diff --check
           sh -n "$GITHUB_WORKSPACE/labs/gpl-isolation/test-virtual-egress.sh"
           git diff --stat
-          grep -q 'if wol_only_mode && !wol_only_event_allowed(&evt)' src/main.rs
+          grep -q 'return wol_only_host().await' src/main.rs
+          grep -q 'fn wol_only_startup_policy' src/main.rs
+          grep -q 'SO_BINDTODEVICE' src/wol.rs
           grep -q 'WOL-only directed packet not sent' src/wol.rs
           grep -q 'return Ok(1)' src/wol.rs
       - name: Rust GPL-only ingress and directed UDP9 egress unit gates
@@ -51,7 +53,26 @@ jobs:
           test -s target/debug/uuremote-server
           sha256sum target/debug/uuremote-server | cut -d' ' -f1 | sed 's/^/ISOLATED_GPL_BINARY_SHA256=/'
           echo "GPL_WOL_ONLY_COMPILE_PASS"
-          echo "NOT_INSTALLABLE: no real vendor authentication, no interface-bound packet proof, no runtime sandbox / reboot gate"
+          echo "NOT_INSTALLABLE: still requires independent runtime capability and cloud verification"
+      - name: WOL-only startup refuses assist and incomplete LAN configuration
+        run: |
+          cd "$RUNNER_TEMP/gpl-source"
+          bin=target/debug/uuremote-server
+          if env UU_WOL_ONLY=1 UU_NO_GTK=1 UU_WOL_HELPER=1 \
+            UU_REMOTE_ASSIST=0 UU_PORT_MAPPING=0 \
+            UU_WOL_LAN_IFACE=br-lan UU_WOL_ALLOWED_MAC=02:11:22:33:44:55 \
+            "$bin" assist > "$RUNNER_TEMP/wol-assist-test.log" 2>&1; then
+            echo "WOL_ONLY_UNSAFE_ASSIST_COMMAND_ACCEPTED"; exit 1
+          fi
+          grep -q 'WOL_ONLY_STARTUP_DENIED' "$RUNNER_TEMP/wol-assist-test.log"
+          if env UU_WOL_ONLY=1 UU_NO_GTK=1 UU_WOL_HELPER=1 \
+            UU_REMOTE_ASSIST=0 UU_PORT_MAPPING=0 \
+            UU_WOL_ALLOWED_MAC=02:11:22:33:44:55 \
+            "$bin" > "$RUNNER_TEMP/wol-no-iface-test.log" 2>&1; then
+            echo "WOL_ONLY_UNSAFE_MISSING_LAN_ACCEPTED"; exit 1
+          fi
+          grep -q 'WOL_ONLY_STARTUP_DENIED' "$RUNNER_TEMP/wol-no-iface-test.log"
+          echo "GPL_WOL_ONLY_EARLY_STARTUP_REJECT_PASS"
       - name: Virtual-LAN proof of exactly one GPL WOL UDP9 packet (never real network)
         run: |
           cd "$RUNNER_TEMP/gpl-source"
