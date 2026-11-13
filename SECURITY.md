@@ -30,7 +30,7 @@ Issue、日志、截图和诊断报告中应隐藏：
 - SSH private key
 - 路由器 root 密码
 
-计划中的 `collect-info.sh` 必须以“默认脱敏”为设计要求，而不是依赖用户手工删除隐私。
+`scripts/collect-info.sh` 默认避免采集敏感数据，但提交日志前仍要自行检查，不要直接上传完整配置。
 
 ## 第三方二进制
 
