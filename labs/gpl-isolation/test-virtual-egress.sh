@@ -116,7 +116,7 @@ ip netns exec "$sn" runuser -u "$runner_user" -- env \
     RUSTUP_HOME="$runner_home/.rustup" CARGO_NET_OFFLINE=true UU_NO_GTK=1 \
     UU_WOL_ISOLATED_CI=1 UU_WOL_ONLY=1 UU_WOL_HELPER=1 \
     UU_REMOTE_ASSIST=0 UU_PORT_MAPPING=0 \
-    UU_WOL_ALLOWED_MAC=02:11:22:33:44:55 \
+    UU_WOL_ALLOWED_MAC=02:11:22:33:44:55 UU_WOL_LAN_IFACE=br-lan \
     "$cargo_bin" test --offline --locked --bin uuremote-server \
     wol::tests::wol_only_ci_isolated_packet_sender -- --exact --nocapture \
         > "$work/rust-test.log" 2>&1 || {
