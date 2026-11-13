@@ -5,9 +5,9 @@
 
 ## 下载测试版
 
-**[下载 NAS / Linux Docker 测试版固定源码 ZIP](https://github.com/coolhpj/uu-remote-wol-router-helper/archive/7df604132f4eb260949691378f2779372d98bb8a.zip)**
+**[下载 NAS / Linux Docker 测试版固定源码 ZIP](https://github.com/coolhpj/uu-remote-wol-router-helper/archive/a52ada3a32760914e09d2dc665e87dd784c5d582.zip)**
 
-- 固定源代码提交：`7df604132f4eb260949691378f2779372d98bb8a`（PR #16 Docker 路由器身份实验分支）。
+- 固定源代码提交：`a52ada3a32760914e09d2dc665e87dd784c5d582`（PR #16 Docker 路由器身份实验分支）。
 - ZIP 含 `compose.yaml`、`Dockerfile`、`docker/entrypoint.sh`、`scripts/nas-preflight.sh` 和开源启动代码。**ZIP 是可构建源码，并非预编译镜像**，也不包含网易闭源插件。
 - Docker 构建需要拉取基础镜像，首次启动会根据仓库校验规则从网易官方服务下载插件；必须保持外网可达。
 - [当前 Docker 实验源码和验收记录](https://github.com/coolhpj/uu-remote-wol-router-helper/pull/16)。

@@ -23,7 +23,7 @@ curl -fsSLo uu-docker-start.sh https://raw.githubusercontent.com/coolhpj/uu-remo
 
 ## 🗄️ NAS 专区｜QNAP、群晖、飞牛、极空间 Docker 测试版
 
-**[下载 NAS / Linux Docker 测试版源码 ZIP（固定提交）](https://github.com/coolhpj/uu-remote-wol-router-helper/archive/7df604132f4eb260949691378f2779372d98bb8a.zip)** · **[NAS 完整安装、绑定、停止、升级、卸载及测试反馈教程](docs/NAS.md)**
+**[下载 NAS / Linux Docker 测试版源码 ZIP（固定提交）](https://github.com/coolhpj/uu-remote-wol-router-helper/archive/a52ada3a32760914e09d2dc665e87dd784c5d582.zip)** · **[NAS 完整安装、绑定、停止、升级、卸载及测试反馈教程](docs/NAS.md)**
 
 适合具有 Docker Engine 和 `docker compose` 的 NAS/常开 Linux 主机；`x86_64` 优先、ARM64 为候选。该 ZIP 含 `Dockerfile`、`compose.yaml`、NAS 只读环境检查脚本与开源安装代码，**不是预编译 Docker 镜像**；不捆绑网易闭源程序。首次构建及运行需要联网。系统自带的 NAS 图形容器管理器不一定支持源码构建，推荐用终端 / SSH 操作。
 
