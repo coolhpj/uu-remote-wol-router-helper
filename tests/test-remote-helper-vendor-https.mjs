@@ -173,6 +173,58 @@ test("dynamic timestamp and device identity are refreshed on each signed request
   assert.notEqual(headers[0]["x-param-sign"], headers[1]["x-param-sign"]);
 });
 
+test("room/create requires explicit approved WSS hostname before any HTTPS request", async () => {
+  let sent = 0;
+  const client = createVendorHttpsClient({ ...options,
+    fetchImpl: async () => { sent++; return result({ code: 0, data: {} }); },
+  });
+  for (const bad of ["", "localhost", "*.example.org", "signal.example.invalid"]) {
+    await assert.rejects(client.createRoomCandidate({ approvedSignalHost: bad }),
+      /INVALID_APPROVED_SIGNAL_HOST|UNTRUSTED_SIGNAL_HOST/);
+  }
+  assert.equal(sent, 0);
+});
+
+test("signed room/create response produces disabled-by-default WSS plan, no implicit auth", async () => {
+  const token = "synthetic-room-ticket-0123456789";
+  let count = 0;
+  const client = createVendorHttpsClient({ ...options,
+    fetchImpl: async (url, init) => {
+      count++;
+      assert.equal(url, VENDOR_ORIGIN + "/api/v1/room/create");
+      assert.equal(init.body, "{}");
+      assert.match(init.headers["x-param-sign"], /^[a-f0-9]{64}$/);
+      return result({ code: 0, data: {
+        signaling_server: "wss://signal.example.org",
+        token, signaling_list: ["wss://signal.example.org"],
+      } });
+    },
+  });
+  const candidate = await client.createRoomCandidate({
+    approvedSignalHost: "signal.example.org",
+  });
+  assert.equal(count, 1);
+  assert.equal(candidate.publicStatus().authenticated, false);
+  assert.equal(candidate.publicStatus().wakePermitted, false);
+  assert.equal(JSON.stringify(candidate).includes(token), false);
+  assert.throws(() => candidate.prepareUpgradeRequest(), /ROOM_TRANSPORT_DISABLED/);
+  const plan = candidate.prepareUpgradeRequest({ enabled: true });
+  assert.equal(plan.headers["X-NRD-AUTH"], token);
+  assert.equal(plan.maySendWol, false);
+});
+
+test("room/create rejects an unapproved cloud-provided WSS destination", async () => {
+  const client = createVendorHttpsClient({ ...options,
+    fetchImpl: async () => result({ code: 0, data: {
+      signaling_server: "wss://other.example.org",
+      token: "synthetic-room-ticket-0123456789",
+    } }),
+  });
+  await assert.rejects(client.createRoomCandidate({
+    approvedSignalHost: "signal.example.org",
+  }), /SIGNALING_ENDPOINT_REJECTED/);
+});
+
 test("signing parameter provider failure is redacted and sends no HTTP", async () => {
   let sent = 0;
   const client = createVendorHttpsClient({

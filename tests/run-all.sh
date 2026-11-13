@@ -51,7 +51,8 @@ if command -v node >/dev/null 2>&1; then
         tests/test-remote-helper-qr-loopback.mjs tests/test-remote-helper-room-loopback.mjs \
         tests/test-remote-helper-engineio-v4.mjs \
         tests/test-remote-helper-credential-session.mjs tests/test-remote-helper-vendor-wire.mjs \
-        tests/test-remote-helper-vendor-https.mjs tests/test-remote-helper-vendor-enrollment.mjs
+        tests/test-remote-helper-vendor-https.mjs tests/test-remote-helper-vendor-room.mjs \
+        tests/test-remote-helper-vendor-enrollment.mjs
 else
     echo "REMOTE_HELPER_CLOUD_CONTRACT_SKIPPED: Node.js unavailable (separate CI must enforce)"
 fi

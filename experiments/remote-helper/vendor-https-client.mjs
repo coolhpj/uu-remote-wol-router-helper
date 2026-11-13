@@ -3,6 +3,7 @@
 // Default is OFFLINE. A genuine scan requires separate owner authorization.
 // No GPL implementation was copied into this independently authored transport.
 import { prepareSignedRequest, parseQrIssued } from "./vendor-wire-contract.mjs";
+import { inspectSignalingServer, parseRoomCandidate } from "./vendor-room-contract.mjs";
 
 export const VENDOR_ORIGIN = "https://api.nrd.nie.163.com";
 const MAX_REPLY_BYTES = 16 * 1024;
@@ -110,7 +111,18 @@ export function createVendorHttpsClient({
     return Object.freeze({ ...issued, sensitive: true });
   }
 
-  return Object.freeze({ request, issueQr });
+  async function createRoomCandidate({ approvedSignalHost } = {}) {
+    // Verify the explicit expected host before even issuing the signed room
+    // request; never learn the allowed WSS destination from the response.
+    inspectSignalingServer("wss://" + approvedSignalHost, approvedSignalHost);
+    const result = await request("/api/v1/room/create", {});
+    return parseRoomCandidate({
+      httpStatus: result.httpStatus, payload: result.privatePayload,
+      approvedSignalHost, receivedAtMs: clock(), clock,
+    });
+  }
+
+  return Object.freeze({ request, issueQr, createRoomCandidate });
 }
 
 export function sanitizedVendorResult(result) {

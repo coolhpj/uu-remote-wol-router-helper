@@ -70,6 +70,9 @@ jobs:
       - name: Disabled-by-default vendor HTTPS adapter (mock-only, no live requests)
         run: node --test --test-reporter=spec tests/test-remote-helper-vendor-https.mjs
 
+      - name: Room-create WSS exact-host pin and bearer lifecycle (mock-only, no vendor requests)
+        run: node --test --test-reporter=spec tests/test-remote-helper-vendor-room.mjs
+
       - name: Virtual-device QR enrollment and cancellation (mock-only, no live requests)
         run: node --test --test-reporter=spec tests/test-remote-helper-vendor-enrollment.mjs
 
