@@ -4,7 +4,15 @@
 
 *项目功能概览（设计示意图，不代表任何型号已经通过实际远程唤醒验收）。*
 
-## 🐳 Docker 通用实验版（可试用，尚未实机验证）
+## 选哪个版本？
+
+- **路由器版**：OpenWrt、iStoreOS、华硕等，见下方[平台下载](#按平台下载预览测试版尚非稳定版)。
+- **Docker 路由器模式**：在 Linux 或部分 NAS 上运行路由器插件，见 [NAS 安装教程](docs/NAS.md)。
+- **NAS 独立辅助设备版**：普通 NAS 通过 Docker 运行独立 WOL-only 辅助设备，见 [源码测试版与安装方法](docs/NAS-WOL-ONLY-BETA.md)。
+
+这几种方式的设备身份不同，**不要混用数据卷或绑定信息**。
+
+## 🐳 Docker 路由器模式（测试版）
 
 **适用环境：** Debian、Ubuntu、iStoreOS、飞牛 OS 等安装了 Docker 的常开 Linux 主机。优先 x86_64；ARM64 目前仅完成自动构建测试。**Docker 代码仍在 [PR #16 独立实验分支](https://github.com/coolhpj/uu-remote-wol-router-helper/pull/16)，尚未合并到 `main`，也未发布稳定镜像。**
 
@@ -44,7 +52,19 @@ docker compose ps
 
 测试容器使用 **host 网络**，虽然不采用 `privileged`、`NET_ADMIN` 或宿主 `docker.sock`，但**不是完全隔离网络**。必须在自有设备上知情试用。手机关闭 Wi-Fi、只用移动数据真正唤醒关机 PC，才算远程唤醒成功。停止用 `docker compose stop`；退出实验用 `docker compose down`，默认保留身份卷；**不要运行 `down -v` 误删绑定数据**。请把脱敏成功/失败记录提交到 [Issue #15](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/15)。
 
-**重要：** 这个 NAS 包属于 **PR #16 路由器插件身份 Docker 实验版**，仍缺真正 NAS/UU 绑定与移动数据唤醒的社区验收；它**不是 PR #19 的独立辅助设备 WOL-only 版本**。后者虽已在 GitHub 虚拟局域网验证恰好一个 102 字节 UDP/9 唤醒包，但仍没有满足真实网易认证、运行时禁用其他远控能力和 NAS 权限隔离的发版门槛。两个版本不可混用身份文件或安装步骤。
+**注意：** 这是 PR #16 的 Docker 路由器插件身份测试版，不是 NAS 独立辅助设备版。普通 NAS 还可查看下面的 WOL-only 源码预览；两个版本不要混用身份文件。
+
+## 🖥️ NAS 独立辅助设备版（WOL-only 源码测试版）
+
+适合装有 Docker 的 QNAP、群晖、飞牛和极空间等普通 NAS。**不要求 NAS 充当主路由器。**
+
+[下载源码 ZIP](https://github.com/coolhpj/uu-remote-wol-router-helper/archive/66707aeb20f0021b45ac5f95d4aec243197b4c41.zip) · [简单安装与测试教程](docs/NAS-WOL-ONLY-BETA.md) · [提交测试结果（Issue #23）](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/23)
+
+GitHub 已通过 Docker 构建和模拟局域网唤醒测试，**但这个版本尚未通过真实网易 UU 手机远程开机验收**。当前优先邀请 x86_64 NAS 用户自愿试用；ARM64 暂未验证。
+
+本模式使用独立 GPL-3.0-or-later 客户端，与上面的 Docker 路由器插件版本不同。源码开放，暂无正式稳定镜像。
+
+**开发说明：** 本项目部分代码、测试和文档由 **ChatGPT（OpenAI GPT-6）协助开发**，维护者审核发布。非网易官方项目。
 
 ---
 

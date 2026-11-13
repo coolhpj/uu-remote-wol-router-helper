@@ -39,5 +39,19 @@
         if (filepath == "experiments/remote-helper/README.md")
             gsub(/1[.]8[.]0[.]3/, "SOCAT_FIXTURE_VERSION", line)
     }
+    # Only these three GPL virtual-LAN test files contain the fixed sample
+    # address/MAC literals below. This also covers immutable historical revisions
+    # without excluding any commit, whole file, unrelated MAC, IP or token.
+    gpl_fixture = filepath == "labs/gpl-isolation/apply-wol-only.py" \
+        || filepath == "labs/gpl-isolation/test-virtual-egress.sh" \
+        || filepath == ".github/workflows/isolated-gpl-wol-only.yml"
+    if (gpl_fixture) {
+        gsub(/02:11:22:33:44:5[56]/, "GPL_SYNTHETIC_MAC", line)
+        gsub(/198[.]51[.]100[.](1|40)([^0-9]|$)/, "GPL_TEST_NET", line)
+        gsub(/203[.]0[.]113[.]1([^0-9]|$)/, "GPL_TEST_NET", line)
+        gsub(/255[.]255[.]255[.]0([^0-9]|$)/, "GPL_TEST_MASK", line)
+        gsub(/255[.]255[.]0[.]0([^0-9]|$)/, "GPL_TEST_MASK", line)
+        gsub(/0[.]0[.]0[.]0([^0-9]|$)/, "GPL_WILDCARD_BIND", line)
+    }
     print line
 }

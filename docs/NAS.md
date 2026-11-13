@@ -86,11 +86,14 @@ docker compose down
 
 **禁止公开**扫码凭据、UU Token、UUID、SN、完整原始日志、私有 IP/MAC、NAS 管理账号或身份数据卷。
 
-## 和 GPL 独立辅助设备路线的区别
+## NAS 还有另一种安装方式
 
-- **PR #16（本页下载）**：在 Docker 中尝试网易路由器插件身份，使用官方闭源 `uuplugin`；自动 CI 已证明容器构建及部分生命周期行为，但尚缺真实 NAS/UU 远程开机验收。
-- **PR #19（尚不可安装）**：MIT 独立辅助设备身份候选，模拟签名、Socket.IO 与 WOL 协议已通过，真实服务端认证仍不具备可合法维护的完整实现。
-- **独立 GPL WOL-only 隔离实验**：已在 GitHub 两个虚拟 Linux 网络空间内真正验证 **恰好一个 102 字节 UDP/9、UDP/7 零包**，但仍需运行时禁用远控/文件传输、真实账号绑定和受限容器权限审查，**不可作为 NAS 正式镜像发给普通用户**。
-- **社区独立成果**：[Keithin/uu-remote-nas-wol](https://github.com/Keithin/uu-remote-nas-wol) 报告过极空间 Z4 真机唤醒及 NAS 重启复测成功，但它是另一个 GPL 项目，不代表本仓库 Docker 身份或 WOL-only 镜像已经通过验证。
+如果 NAS 不是主路由器，可以查看 [NAS 独立辅助设备 WOL-only 源码测试版](NAS-WOL-ONLY-BETA.md)。
 
-不要混用三种安装、绑定与身份保存方式。完整 Docker 实验说明仍见 [PR #16 Docker README](https://github.com/coolhpj/uu-remote-wol-router-helper/blob/feat/docker-experimental/docker/README.md)。
+- **本页**：Docker 路由器插件身份，下载入口在上面。
+- **独立辅助设备版**：单独的 GPL 客户端，使用不同的身份和数据卷，适合普通 NAS 参与测试。
+- 两个版本都需要在自己的设备上验证手机移动数据唤醒。独立版目前只有源码测试包，没有稳定镜像。
+
+[独立版下载与安装](NAS-WOL-ONLY-BETA.md) · [实机测试反馈 Issue #23](https://github.com/coolhpj/uu-remote-wol-router-helper/issues/23)
+
+**开发说明：** 本项目部分代码、测试和文档由 **ChatGPT（OpenAI GPT-6）协助开发**，维护者审核发布。非网易官方项目。
