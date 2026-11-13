@@ -239,11 +239,60 @@ fn wol_only_destination(
 }
 
 '''
+    bind_helper = r'''
+/// A WOL-only route must name the intended LAN adapter, never choose the default route.
+fn wol_only_interface_name_ok(name: &str) -> bool {
+    !name.is_empty() && name != "lo" && name.len() <= 15 &&
+        name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.')
+}
+
+#[cfg(target_os = "linux")]
+fn wol_only_bind_interface(socket: &UdpSocket, iface: &str) -> Result<(), String> {
+    use std::os::fd::AsRawFd;
+    if !wol_only_interface_name_ok(iface) {
+        return Err("WOL-only interface refused".into());
+    }
+    let name = std::ffi::CString::new(iface)
+        .map_err(|_| "WOL-only interface invalid")?;
+    let result = unsafe {
+        libc::setsockopt(socket.as_raw_fd(), libc::SOL_SOCKET, libc::SO_BINDTODEVICE,
+            name.as_ptr().cast(), name.as_bytes_with_nul().len() as libc::socklen_t)
+    };
+    if result != 0 { return Err("WOL-only SO_BINDTODEVICE refused".into()); }
+    Ok(())
+}
+
+#[cfg(not(target_os = "linux"))]
+fn wol_only_bind_interface(_: &UdpSocket, _: &str) -> Result<(), String> {
+    Err("WOL-only requires Linux".into())
+}
+
+'''
+    wol_rs = replace_once(wol_rs,
+        "/// Handles a `wake_on_lan` push payload; returns how many datagrams were sent.",
+        bind_helper + "/// Handles a `wake_on_lan` push payload; returns how many datagrams were sent.",
+        "src/wol.rs",
+    )
     wol_rs = replace_once(
         wol_rs,
         "/// Handles a `wake_on_lan` push payload; returns how many datagrams were sent.",
         wol_plan + "/// Handles a `wake_on_lan` push payload; returns how many datagrams were sent.",
         "src/wol.rs",
+    )
+    # Only opt-in WOL-only mode may override upstream default-route detection.
+    # The ordinary upstream program continues to behave as before.
+    wol_rs = replace_once(
+        wol_rs,
+        '''    let iface = routes.lines().skip(1).map(|l| l.split_whitespace().collect::<Vec<_>>())
+        .find(|f| f.len() > 2 && f[1] == "00000000")?.first()?.to_string();''',
+        '''    let iface = if std::env::var("UU_WOL_ONLY").ok().as_deref() == Some("1") {
+        let name = std::env::var("UU_WOL_LAN_IFACE").ok()?;
+        if !wol_only_interface_name_ok(&name) { return None; }
+        name
+    } else {
+        routes.lines().skip(1).map(|l| l.split_whitespace().collect::<Vec<_>>())
+            .find(|f| f.len() > 2 && f[1] == "00000000")?.first()?.to_string()
+    };''', "src/wol.rs",
     )
     wol_rs = replace_once(
         wol_rs,
@@ -252,12 +301,20 @@ fn wol_only_destination(
         '''    if std::env::var("UU_WOL_ONLY").ok().as_deref() == Some("1") {
         let allowed = std::env::var("UU_WOL_ALLOWED_MAC")
             .map_err(|_| "WOL-only allowlist is required")?;
+        let iface = std::env::var("UU_WOL_LAN_IFACE")
+            .map_err(|_| "WOL-only LAN interface is required")?;
+        if !wol_only_interface_name_ok(&iface) {
+            return Err("WOL-only LAN interface unsafe".into());
+        }
         let (_, lan_ip, lan_mask) = lan_info()
             .ok_or("WOL-only LAN identity unavailable")?;
         let destination = wol_only_destination(data, &allowed, &lan_ip, &lan_mask)?;
         let packet = magic_packet(mac);
-        let socket = UdpSocket::bind("0.0.0.0:0")
-            .map_err(|e| format!("WOL-only bind: {}", e.kind()))?;
+        let source_ip: Ipv4Addr = lan_ip.parse()
+            .map_err(|_| "WOL-only source address invalid")?;
+        let socket = UdpSocket::bind(SocketAddrV4::new(source_ip, 0))
+            .map_err(|e| format!("WOL-only source bind: {}", e.kind()))?;
+        wol_only_bind_interface(&socket, &iface)?;
         socket.set_broadcast(true)
             .map_err(|e| format!("WOL-only broadcast: {}", e.kind()))?;
         if socket.send_to(&packet, destination).ok() != Some(packet.len()) {
@@ -282,6 +339,15 @@ fn wol_only_destination(
             "subnet_mask": "255.255.255.0"
         }});
         assert_eq!(handle_push(&payload).unwrap(), 1);
+    }
+
+    #[test]
+    fn wol_only_rejects_missing_or_dangerous_lan_interface_names() {
+        assert!(wol_only_interface_name_ok("br-lan"));
+        assert!(wol_only_interface_name_ok("enp2s0"));
+        for bad in ["", "lo", "../wan", "a/b", "invalid-too-long-device", "bad space"] {
+            assert!(!wol_only_interface_name_ok(bad));
+        }
     }
 
     #[test]
