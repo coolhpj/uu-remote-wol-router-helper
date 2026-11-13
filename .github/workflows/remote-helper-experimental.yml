@@ -61,6 +61,9 @@ jobs:
             tests/test-remote-helper-room-loopback.mjs \
             tests/test-remote-helper-credential-session.mjs
 
+      - name: Engine.IO v4 and Socket.IO packet transcript (fixture only; never authenticated)
+        run: node --test --test-reporter=spec tests/test-remote-helper-engineio-v4.mjs
+
       - name: Signed vendor wire format and QR ticket contract (offline only)
         run: node --test --test-reporter=spec tests/test-remote-helper-vendor-wire.mjs
 
