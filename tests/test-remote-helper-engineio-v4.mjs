@@ -125,6 +125,14 @@ test("malformed room ack does not unlock the wake event gate", () => {
   assert.throws(() => t.receive("4311[bad]"), /INVALID_ROOM_INFO_ACK/);
   assert.equal(t.publicStatus().roomAckObserved, false);
 });
+test("explicit Socket.IO CONNECT_ERROR immediately rejects namespace and closes", () => {
+  const t = new EngineIOV4FixtureTranscript();
+  t.receive(open());
+  assert.throws(() => t.receive('44{"message":"not authorized"}'),
+    /SOCKET_NAMESPACE_DENIED/);
+  assert.equal(t.publicStatus().phase, "closed");
+  assert.equal(t.publicStatus().authenticated, false);
+});
 test("Socket.IO namespace disconnect revokes previously observed room", () => {
   const t = new EngineIOV4FixtureTranscript();
   observeRoom(t);

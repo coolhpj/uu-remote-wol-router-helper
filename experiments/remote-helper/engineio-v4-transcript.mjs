@@ -79,6 +79,12 @@ export class EngineIOV4FixtureTranscript {
     }
 
     if (this.#phase === "await_socket_connect") {
+      if (packet.startsWith("44")) {
+        const denied = parseJSON(packet.slice(2), "INVALID_SOCKET_CONNECT_ERROR");
+        check(object(denied) && Buffer.byteLength(packet, "utf8") <= MAX_WIRE_BYTES,
+          "INVALID_SOCKET_CONNECT_ERROR");
+        reject("SOCKET_NAMESPACE_DENIED");
+      }
       if (!packet.startsWith("40")) return this.#ignore();
       if (packet.length > 2) {
         const data = parseJSON(packet.slice(2), "INVALID_SOCKET_CONNECT");

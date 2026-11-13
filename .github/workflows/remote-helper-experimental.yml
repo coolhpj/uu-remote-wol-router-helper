@@ -64,6 +64,9 @@ jobs:
       - name: Engine.IO v4 and Socket.IO packet transcript (fixture only; never authenticated)
         run: node --test --test-reporter=spec tests/test-remote-helper-engineio-v4.mjs
 
+      - name: Real Engine.IO v4 frames over a local WebSocket (fixture-only, not vendor authorization)
+        run: node --test --test-reporter=spec tests/test-remote-helper-engineio-socket.mjs
+
       - name: Signed vendor wire format and QR ticket contract (offline only)
         run: node --test --test-reporter=spec tests/test-remote-helper-vendor-wire.mjs
 
