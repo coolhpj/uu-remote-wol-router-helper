@@ -8,6 +8,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: gpl-wol-only-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   inspect-only:
     runs-on: ubuntu-22.04
@@ -92,3 +95,54 @@ jobs:
           test ! -e src/main.rs
           test ! -e src/wol.rs
           echo "MIT_GPL_SOURCE_SEPARATION_PASS"
+
+  docker-offline-smoke:
+    needs: inspect-only
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate private-lab Compose and build pinned GPL source image
+        run: |
+          UU_WOL_ALLOWED_MAC=02:11:22:33:44:55 UU_WOL_LAN_IFACE=br-lan \
+            docker compose -f labs/gpl-isolation/docker/compose.yaml --profile service config --quiet
+          docker build --progress=plain -f labs/gpl-isolation/docker/Dockerfile \
+            -t uu-gpl-wol-only:offline-lab .
+      - name: Real container startup must deny full remote host without cloud access
+        run: |
+          if docker run --rm --network none --read-only --user 10001:10001 \
+            --cap-drop ALL --security-opt no-new-privileges:true \
+            --tmpfs /tmp:rw,nosuid,nodev,size=32m \
+            -e UU_WOL_ONLY=0 uu-gpl-wol-only:offline-lab \
+            > "$RUNNER_TEMP/no-mode.log" 2>&1; then
+            echo "CONTAINER_ALLOWED_FULL_REMOTE_FALLBACK"; exit 1
+          fi
+          grep -q 'WOL_ONLY_STARTUP_DENIED' "$RUNNER_TEMP/no-mode.log"
+          if docker run --rm --network none --read-only --user 10001:10001 \
+            --cap-drop ALL --security-opt no-new-privileges:true \
+            --tmpfs /tmp:rw,nosuid,nodev,size=32m \
+            -e UU_WOL_ALLOWED_MAC=02:11:22:33:44:55 \
+            -e UU_WOL_LAN_IFACE=br-lan \
+            uu-gpl-wol-only:offline-lab assist \
+            > "$RUNNER_TEMP/assist.log" 2>&1; then
+            echo "CONTAINER_ALLOWED_REMOTE_ASSIST"; exit 1
+          fi
+          grep -q 'WOL_ONLY_STARTUP_DENIED' "$RUNNER_TEMP/assist.log"
+          echo "GPL_WOL_ONLY_CONTAINER_STARTUP_DENY_PASS"
+      - name: Non-root private identity volume survives a stopped isolated container
+        run: |
+          set -eu
+          volume="uu-wol-only-ci-${{ github.run_id }}"
+          trap 'docker volume rm "$volume" >/dev/null 2>&1 || true' EXIT
+          docker volume create "$volume" >/dev/null
+          docker run --rm --network none --read-only --user 10001:10001 \
+            --cap-drop ALL --security-opt no-new-privileges:true \
+            --tmpfs /tmp:rw,nosuid,nodev,size=32m \
+            -v "$volume:/data" --entrypoint /bin/sh uu-gpl-wol-only:offline-lab \
+            -c 'test -w /data && printf marker > /data/ci-marker'
+          docker run --rm --network none --read-only --user 10001:10001 \
+            --cap-drop ALL --security-opt no-new-privileges:true \
+            --tmpfs /tmp:rw,nosuid,nodev,size=32m \
+            -v "$volume:/data" --entrypoint /bin/sh uu-gpl-wol-only:offline-lab \
+            -c 'test "$(cat /data/ci-marker)" = marker'
+          echo "GPL_WOL_ONLY_PERSISTENCE_PASS"
