@@ -67,6 +67,11 @@ jobs:
       - name: Real Engine.IO v4 frames over a local WebSocket (fixture-only, not vendor authorization)
         run: node --test --test-reporter=spec tests/test-remote-helper-engineio-socket.mjs
 
+      - name: Synthetic TLS and real WSS Upgrade over loopback (temporary CA, never UU)
+        run: |
+          command -v openssl
+          node --test --test-reporter=spec tests/test-remote-helper-fixture-wss.mjs
+
       - name: Signed vendor wire format and QR ticket contract (offline only)
         run: node --test --test-reporter=spec tests/test-remote-helper-vendor-wire.mjs
 
