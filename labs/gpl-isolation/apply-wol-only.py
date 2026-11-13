@@ -422,6 +422,13 @@ fn wol_only_bind_interface(_: &UdpSocket, _: &str) -> Result<(), String> {
         '                Err(e) => {\n                    eprintln!("QR status query failed: {e}; last_status={login_status}");',
         '                Err(e) if e.kind == QrRequestErrorKind::Timeout && qr_started_at.elapsed() < Duration::from_secs(300) => {\n                    eprintln!("QR status timeout: keep same ticket and retry");\n                    tokio::time::sleep(Duration::from_millis(500)).await;\n                    continue;\n                }\n                Err(e) => {\n                    eprintln!("QR status query failed: {e}; last_status={login_status}");',
         "src/login.rs")
+    # A copied base-image /etc/machine-id must never make unrelated NAS
+    # installs claim the SAME machine_guid. Persist a random GUID once in
+    # the private config volume, just like the independent client/system IDs.
+    login_rs = replace_once(login_rs,
+        '("machine_guid", machine_guid)]',
+        '("machine_guid", random_uuid)]',
+        "src/login.rs")
     path.write_text(main_rs, encoding="utf-8")
     wolpath.write_text(wol_rs, encoding="utf-8")
     login_path.write_text(login_rs, encoding="utf-8")
