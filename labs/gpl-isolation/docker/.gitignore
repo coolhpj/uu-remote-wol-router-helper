@@ -1,0 +1,5 @@
+.env
+config.json
+qr.png
+*.token
+*.pem
